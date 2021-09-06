@@ -1,0 +1,72 @@
+<?xml version="1.0" ?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  ~ Copyright 2021 Shulie Technology, Co.Ltd
+  ~ Email: shulie@shulie.io
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<configuration>
+    <property>
+        <name>dfs.replication</name>
+        <value>3</value>
+    </property>
+    <property>
+        <name>dfs.block.size</name>
+        <value>268435456</value>
+        <description>The block size for new files, 1G</description>
+    </property>
+    <property>
+        <name>io.file.buffer.size</name>
+        <value>262144</value>
+    </property>
+    <property>
+        <name>dfs.permissions</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>dfs.datanode.socket.write.timeout</name>
+        <value>360000</value>
+    </property>
+    <property>
+        <name>dfs.socket.timeout</name>
+        <value>360000</value>
+    </property>
+    <property>
+        <name>io.seqfile.compress.blocksize</name>
+        <value>1000000</value>
+    </property>
+    <property>
+        <name>io.seqfile.compression.type</name>
+        <value>BLOCK</value>
+    </property>
+    <property>
+        <name>io.compression.codecs</name>
+        <value>org.apache.hadoop.io.compress.GzipCodec</value>
+    </property>
+    <property>
+        <name>fs.hdfs.impl</name>
+        <value>org.apache.hadoop.hdfs.DistributedFileSystem</value>
+    </property>
+    <property>
+        <name>fs.viewfs.impl</name>
+        <value>org.apache.hadoop.fs.viewfs.ViewFileSystem</value>
+    </property>
+    <property>
+        <name>fs.viewfs.zk.addr</name>
+        <value>hdp:2181,master01:2181,master02:2181</value>
+    </property>
+    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://pradar.host.namenode01:8020</value>
+    </property>
+</configuration>

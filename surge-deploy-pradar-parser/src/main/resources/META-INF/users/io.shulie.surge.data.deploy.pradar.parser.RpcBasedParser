@@ -1,0 +1,6 @@
+# 用户扩展文件,此文件内容会覆盖默认文件
+# logType~rpcType=具体解析类,对应不同的日志类型做解析处理
+# logType可参考PradarLogType定义 rpcType可参考MiddlewareType
+
+
+

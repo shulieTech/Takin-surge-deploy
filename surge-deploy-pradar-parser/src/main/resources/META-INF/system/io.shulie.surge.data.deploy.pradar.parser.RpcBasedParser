@@ -1,0 +1,35 @@
+# logType~rpcType=具体解析类,对应不同的日志类型做解析处理
+# logType可参考PradarLogType定义 rpcType可参考MiddlewareType
+
+#------------入口类日志----------------
+# rpc入口服务日志
+1~1=io.shulie.surge.data.deploy.pradar.parser.rpc.RpcServerRpcBasedParser
+# web入口服务日志
+1~0=io.shulie.surge.data.deploy.pradar.parser.rpc.TraceRpcBasedParser
+# mq入口消费日志
+1~3=io.shulie.surge.data.deploy.pradar.parser.mq.MQConsumerRpcBasedParser
+# job入口日志
+1~7=io.shulie.surge.data.deploy.pradar.parser.job.JobRpcBasedParser
+
+#-------------服务类日志------------------
+# mq消费日志
+3~3=io.shulie.surge.data.deploy.pradar.parser.mq.MQConsumerRpcBasedParser
+# rpc服务端日志
+3~1=io.shulie.surge.data.deploy.pradar.parser.rpc.RpcServerRpcBasedParser
+# web服务端日志
+3~0=io.shulie.surge.data.deploy.pradar.parser.rpc.RpcServerRpcBasedParser
+
+#-------------客户端类日志-----------------
+# 操作缓存类
+2~5=io.shulie.surge.data.deploy.pradar.parser.cache.CacheRpcBasedParser
+# 操作数据库
+2~4=io.shulie.surge.data.deploy.pradar.parser.db.DBClientRpcBasedParser
+# 操作mq
+2~3=io.shulie.surge.data.deploy.pradar.parser.mq.MQProducerRpcBasedParser
+# 操作文件系统
+2~8=io.shulie.surge.data.deploy.pradar.parser.fs.FsRpcBasedParser
+# 操作搜索
+2~6=io.shulie.surge.data.deploy.pradar.parser.search.SearchRpcBasedParser
+# 操作rpc类
+2~1=io.shulie.surge.data.deploy.pradar.parser.rpc.RpcClientRpcBasedParser
+
