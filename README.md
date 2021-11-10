@@ -69,6 +69,12 @@ mvn clean package -DskipTests
 storm jar surge-deploy-pradar-storm/target/surge-deploy-1.0-jar-with-dependencies.jar -DSourceType=MYSQL
 # 不加 -DSourceType=MYSQL 时，需依赖clickhouse
 ```
+# QA
+* 1.Cannot resolve io.shulie.takin:simulator-internal-bootstrap-api:1.0.0
+```
+访问[link-agent](https://github.com/shulieTech/LinkAgent)仓库,对instrument-modules/bootstrap-inject/simulator-internal-bootstrap-api模块进行本地install
+```
+
 # 许可证
 
 Takin amdb-receiver-service遵循 the Apache 2.0 许可证. 详见 the [LICENSE](https://github.com/shulieTech/Takin/blob/main/LICENSE) file for details.
