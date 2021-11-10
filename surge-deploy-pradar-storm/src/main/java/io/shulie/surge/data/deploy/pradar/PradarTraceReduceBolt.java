@@ -128,6 +128,10 @@ public class PradarTraceReduceBolt extends BaseBasicBolt {
                     //influxdbTags.put("entranceId", tags[12]);
                     //使用sql的md5值作为分组字段,防止sql过长导致分组性能过差
                     influxdbTags.put("sqlStatementMd5", tags[13]);
+                    //放入租户标识
+                    influxdbTags.put("tenantAppKey", tags[14]);
+                    //放入环境标识
+                    influxdbTags.put("envCode", tags[15]);
 
                     // 总次数/成功次数/totalRt/错误次数/hitCount/totalQps/totalTps/总次数(不计算采样率)/e2e成功次数/e2e失败次数/maxRt
                     Map<String, Object> fields = Maps.newHashMap();

@@ -15,7 +15,7 @@
 
 package io.shulie.surge.data.deploy.pradar.link.model;
 
-public class LinkConfigModel {
+public class LinkConfigModel extends LinkPublicModel{
     String linkId;
     String service;
     String method;

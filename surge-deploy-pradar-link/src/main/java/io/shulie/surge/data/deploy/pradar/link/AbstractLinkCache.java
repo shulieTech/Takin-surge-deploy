@@ -16,9 +16,10 @@
 package io.shulie.surge.data.deploy.pradar.link;
 
 import com.google.common.collect.Maps;
-import io.shulie.surge.data.common.dataSource.DataSourceSupport;
+import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import io.shulie.surge.data.deploy.pradar.parser.DefaultRpcBasedParser;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +81,14 @@ public abstract class AbstractLinkCache {
                     continue;
                 }
                 String linkId = defaultRpcBasedParser.linkId(linkConfMap);
-                tmpLinkConfig.put(linkId, defaultRpcBasedParser.linkTags(linkConfMap));
+                Map<String, Object> result = defaultRpcBasedParser.linkTags(linkConfMap);
+                String userAppKey = String.valueOf(linkConfMap.get("userAppKey"));
+                String envCode = String.valueOf(linkConfMap.get("envCode"));
+                String userId = String.valueOf(linkConfMap.get("userId"));
+                result.put("userAppKey", StringUtils.isBlank(userAppKey) ? TenantConstants.DEFAULT_USER_APP_KEY : userAppKey);
+                result.put("envCode", StringUtils.isBlank(envCode) ? TenantConstants.DEFAULT_ENV_CODE : envCode);
+                result.put("userId", StringUtils.isBlank(userId) ? TenantConstants.DEFAULT_USERID : userId);
+                tmpLinkConfig.put(linkId, result);
             }
             linkConfig = tmpLinkConfig;
         } catch (Exception e) {

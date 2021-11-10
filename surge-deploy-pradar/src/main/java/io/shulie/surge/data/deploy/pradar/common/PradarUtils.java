@@ -17,6 +17,8 @@ package io.shulie.surge.data.deploy.pradar.common;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
+import com.pamirs.pradar.log.parser.trace.FlagBased;
+import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.common.utils.CommonUtils;
 import io.shulie.surge.data.common.utils.FormatUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -170,13 +172,17 @@ public final class PradarUtils {
 
 
     /**
-     * 检查调用链是否需要被采样，采样值需要大于 1 才会做计算，小于等于 1 会作为全部采样处理
+     * 检查调用链是否需要被采样
+     *  1、采样值需要大于 1 才会做计算，小于等于 1 会作为全部采样处理
+     *  2、skipTraceSampling：是否全部采样逻辑判断
      *
      * @param sampling 采样率
+     * @param rpcBased trace日志，<i>NotNull</i>
      * @return <code>true</code> 调用链需要被分析，<code>false</code> 调用链可以被忽略
      */
-    public static boolean isTraceSampleAccepted(final String traceId, final int sampling) {
-        if (sampling > 1) {
+    public static boolean isTraceSampleAccepted(RpcBased rpcBased, final int sampling) {
+        if (sampling > 1 && sampling <= 10000 && !skipTraceSampling(rpcBased)) {
+            String traceId = rpcBased.getTraceId();
             if (traceId.length() >= 25) {
                 int count = traceId.charAt(21) - '0';
                 count = count * 10 + traceId.charAt(22) - '0';
@@ -354,4 +360,14 @@ public final class PradarUtils {
         return URL_REGEX_PATTERN.matcher(patternUrl).replaceAll("*");
     }
 
+    /**
+     * 是否需要跳过采样处理
+     *
+     * @param rpcBased trace日志, <i>NotNull</i>
+     * @return <code>true</code>-跳过(即数据全部采样，相当于sampling=1)，<code>false</code>-不跳过
+     */
+    private static boolean skipTraceSampling(RpcBased rpcBased) {
+        FlagBased flagBased;
+        return (flagBased = rpcBased.getFlags()) != null && flagBased.isDebugTest();
+    }
 }

@@ -100,7 +100,7 @@ public class LogDigester implements DataDigester<RpcBased> {
             if (rpcBased == null) {
                 return;
             }
-            if (!PradarUtils.isTraceSampleAccepted(context.getContent().getTraceId(), clickhouseSampling.get())) {
+            if (!PradarUtils.isTraceSampleAccepted(rpcBased, clickhouseSampling.get())) {
                 return;
             }
             rpcBased.setDataLogTime(context.getProcessTime());

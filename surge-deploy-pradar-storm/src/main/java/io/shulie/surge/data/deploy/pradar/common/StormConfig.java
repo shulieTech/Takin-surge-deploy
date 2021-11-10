@@ -49,7 +49,7 @@ public class StormConfig {
         conf.registerSerialization(Metric.class);
         conf.registerSerialization(CallStat.class);
         conf.registerSerialization(Pair.class);
-
+        //使用topology.worker.gc.childopts或者worker.childopts配置worker内存等参数,两者的效果是一致的
         conf.put("topology.worker.gc.childopts",
                 "-Xms2g -Xmx2g -XX:MaxDirectMemorySize=512m -XX:+HeapDumpOnOutOfMemoryError "
                         + "-XX:HeapDumpPath=java.hprof -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m -XX:-OmitStackTraceInFastThrow ");

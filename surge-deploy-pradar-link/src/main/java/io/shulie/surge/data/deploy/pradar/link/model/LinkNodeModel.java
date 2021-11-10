@@ -18,10 +18,9 @@ package io.shulie.surge.data.deploy.pradar.link.model;
 import org.apache.commons.beanutils.BeanUtils;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Date;
 import java.util.Map;
 
-public class LinkNodeModel {
+public class LinkNodeModel extends LinkPublicModel {
     String linkId;
     String appName;
     String traceAppName;
@@ -30,19 +29,19 @@ public class LinkNodeModel {
     String appId;
 
     public static String getCols() {
-        return "(link_id,app_name,trace_app_name,middleware_name,extend,app_id,gmt_modify)";
+        return "(link_id,app_name,trace_app_name,middleware_name,extend,app_id,user_app_key,env_code,user_id,gmt_modify)";
     }
 
     public static String getParamCols() {
-        return "(?,?,?,?,?,?,now())";
+        return "(?,?,?,?,?,?,?,?,?,now())";
     }
 
     public static String getOnDuplicateCols() {
-        return "ON DUPLICATE KEY UPDATE app_name=VALUES(app_name),trace_app_name=VALUES(trace_app_name),middleware_name=VALUES(middleware_name),extend=VALUES(extend),gmt_modify=VALUES(gmt_modify)";
+        return "ON DUPLICATE KEY UPDATE app_name=VALUES(app_name),trace_app_name=VALUES(trace_app_name),middleware_name=VALUES(middleware_name),extend=VALUES(extend),user_app_key=VALUES(user_app_key),env_code=VALUES(env_code),user_id=VALUES(user_id),gmt_modify=VALUES(gmt_modify)";
     }
 
     public Object[] getValues() {
-        return new Object[]{linkId, appName, traceAppName, middlewareName, extend, appId};
+        return new Object[]{linkId, appName, traceAppName, middlewareName, extend, appId, getUserAppKey(), getEnvCode(), getUserId()};
     }
 
     public String getLinkId() {
