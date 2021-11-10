@@ -15,6 +15,8 @@
 
 package io.shulie.surge.data.runtime.common.utils;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
@@ -26,6 +28,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.AntPathMatcher;
 
 import java.net.URL;
 import java.util.*;
@@ -33,6 +36,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @Auther: vernon
@@ -41,23 +45,27 @@ import java.util.concurrent.TimeUnit;
  */
 @Singleton
 public class ApiProcessor {
-    @Inject
-    @Named("tro.url.ip")
+    private final static Logger logger = LoggerFactory.getLogger(ApiProcessor.class);
+
+    private static String staticUri;
+    private static String staticPath;
+    private static String staticEntryPath;
+    private static String staticPort;
+
     private String URI;
-
-    @Inject
-    @Named("tro.api.path")
     private String PATH;
-
-    @Inject
-    @Named("tro.port")
+    private String ENTRY_PATH;
     private String PORT;
 
-    private Gson gson = new Gson();
+    private static Gson gson = new Gson();
 
     protected static Map<String, Map<String, List<String>>> API_COLLECTION = new HashMap<>();
 
     protected static Map<String, Matcher> MATHERS = new HashMap<>();
+
+
+    public ApiProcessor() {
+    }
 
     private ScheduledExecutorService service =
             new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
@@ -69,6 +77,19 @@ public class ApiProcessor {
                     return t;
                 }
             });
+
+    @Inject
+    public ApiProcessor(@Named("tro.url.ip") String url, @Named("tro.api.path") String path,
+                        @Named("tro.entries.path") String entryPath, @Named("tro.port") String port) {
+        this.URI = url;
+        this.PATH = path;
+        this.ENTRY_PATH = entryPath;
+        this.PORT = port;
+        staticUri = url;
+        staticPath = path;
+        staticEntryPath = entryPath;
+        staticPort = port;
+    }
 
 
     public void init() {
@@ -83,7 +104,7 @@ public class ApiProcessor {
     private void refresh() {
         Map<String, Object> res = new HashMap<>();
         try {
-            res = gson.fromJson(HttpUtil.doGet(URI, Integer.valueOf(PORT), PATH), Map.class);
+            res = gson.fromJson(HttpUtil.doGet(URI, Integer.valueOf(PORT), PATH, null), Map.class);
         } catch (Throwable e) {
             System.err.println(e.getMessage());
         }
@@ -111,6 +132,118 @@ public class ApiProcessor {
             }
             MATHERS.clear();
         }
+    }
+
+    //10分钟的本地缓存,1000个压测报告
+    private static Cache<String, List<Map<String, Object>>> cache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
+
+    /**
+     * 匹配报告ID下的业务活动
+     *
+     * @param taskId
+     * @param url
+     * @param type
+     * @return
+     */
+    public static String matchBusinessActivity(String taskId, String url, String type) {
+        List<String> matchUrls = new ArrayList<>(4);
+        //String defaultAppName = "pressure-engine";
+        String defaultResult = url;
+        try {
+
+            //先从cache里面拿,如果没拿到,调用查询接口
+            List<Map<String, Object>> businessActivities = cache.getIfPresent(taskId);
+            if (businessActivities == null) {
+                businessActivities = getBusinessActivityByReportId(taskId);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("taskId {} query businessActivity from tro:{}", taskId, businessActivities);
+                }
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("taskId {} query businessActivity from cache:{}", taskId, businessActivities);
+            }
+            if (CollectionUtils.isEmpty(businessActivities)) {
+                return defaultResult;
+            }
+
+            AntPathMatcher matcher = new AntPathMatcher();
+
+            businessActivities.forEach(map -> {
+                //是否虚拟业务活动 1为是,0为不是
+                double isVirtual = (double) map.get("isVirtual");
+                //正常
+                if (isVirtual == 0) {
+                    //先校验请求方式
+                    String parsedMethod = (String) map.get("methodName");
+                    if (!type.equalsIgnoreCase(parsedMethod)) {
+                        return;
+                    }
+                }
+                String pattern = (String) map.get("serviceName");
+                if (matcher.match(pattern, url)) {
+                    matchUrls.add(pattern);
+                }
+            });
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("match urls:{}", matchUrls);
+            }
+            if (CollectionUtils.isEmpty(matchUrls)) {
+                return defaultResult;
+            }
+            if (matchUrls.size() == 1) {
+//                AtomicReference<String> appName = getMatchAppName(matchUrls, defaultAppName, businessActivities);
+                return matchUrls.get(0);
+            }
+            // 选中匹配度最高的path (spring的原始逻辑：PatternsRequestCondition#compareTo)
+            matchUrls.sort((pattern1, pattern2) -> matcher.getPatternComparator(url).compare(pattern1, pattern2));
+
+//            AtomicReference<String> appName = getMatchAppName(matchUrls, defaultAppName, businessActivities);
+            return matchUrls.get(0);
+        } catch (Exception e) {
+            logger.error("dealWith url match businessActivity catch exception :{},{}", e, e.getStackTrace());
+        }
+        return url;
+    }
+
+    private static AtomicReference<String> getMatchAppName(List<String> matchUrls, String defaultAppName, List<Map<String, Object>> businessActivities) {
+        AtomicReference<String> appName = new AtomicReference<String>();
+        businessActivities.forEach(map -> {
+            if (matchUrls.get(0).equals(map.get("serviceName"))) {
+                String applicationName = (String) map.get("applicationName");
+                if (StringUtils.isBlank(applicationName)) {
+                    appName.set(defaultAppName);
+                } else {
+                    appName.set(applicationName);
+                }
+            }
+        });
+        return appName;
+    }
+
+
+    /**
+     * 根据报告ID查询业务活动
+     */
+    private static List<Map<String, Object>> getBusinessActivityByReportId(String taskId) {
+        Map<String, Object> res = new HashMap<>();
+        HashMap<String, String> param = Maps.newHashMap();
+        param.put("reportId", taskId);
+
+        try {
+            res = gson.fromJson(HttpUtil.doGet(staticUri, Integer.valueOf(staticPort), staticEntryPath, param), Map.class);
+        } catch (Throwable e) {
+            logger.error("query businessActivity catch exception :{},{}", e, e.getStackTrace());
+        }
+        if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
+            Object data = res.get("data");
+            List<Map<String, Object>> dataMapList = (List<Map<String, Object>>) data;
+            if (CollectionUtils.isNotEmpty(dataMapList)) {
+                cache.put(taskId, dataMapList);
+                return dataMapList;
+            }
+        }
+        return Lists.newArrayList();
     }
 
     /**
@@ -182,7 +315,7 @@ public class ApiProcessor {
             matcher = new Matcher(apiMaps);
             MATHERS.putIfAbsent(appName, matcher);
         }
-        return matcher.match2(url, type);
+        return matcher.match3(url, type);
     }
 
     @Deprecated
@@ -421,6 +554,49 @@ final class Matcher {
         }
 
         return res;
+    }
+
+    protected String match3(String url, String type) {
+        List<String> apiPatterns = apiMap.get(type);
+        if (CollectionUtils.isEmpty(apiPatterns)) {
+            apiPatterns = Lists.newArrayList();
+            for (Map.Entry<String, List<String>> entry : apiMap.entrySet()) {
+                apiPatterns.addAll(entry.getValue());
+            }
+        }
+        if (apiPatterns.contains(url)) {
+            return url;
+        }
+        /*
+            借用 spring requestMapping 的匹配逻辑，先匹配出所有满足匹配条件的path，然后选中匹配度最高的path
+            此处性能较merge2略差，但是能保证同一个url返回唯一结果，merge2返回的结果依赖于apiPath的顺序
+            如：
+            顺序1：{hello}/name      {hello}/{name}      hello/{name}
+            url：hello/name
+            merge2：{hello}/name
+            merge：hello/{name}
+
+            顺序2：{hello}/{name}      hello/{name}      {hello}/name
+            url：hello/name
+            merge2：hello/{name}
+            merge：hello/{name}
+         */
+        List<String> matchUrls = new ArrayList<>(4);
+        AntPathMatcher matcher = new AntPathMatcher();
+        for (String pattern : apiPatterns) {
+            if (matcher.match(pattern, url)) {
+                matchUrls.add(pattern);
+            }
+        }
+        if (CollectionUtils.isEmpty(matchUrls)) {
+            return url;
+        }
+        if (matchUrls.size() == 1) {
+            return matchUrls.get(0);
+        }
+        // 选中匹配度最高的path (spring的原始逻辑：PatternsRequestCondition#compareTo)
+        matchUrls.sort((pattern1, pattern2) -> matcher.getPatternComparator(url).compare(pattern1, pattern2));
+        return matchUrls.get(0);
     }
 
     static enum HttpTypeEnum {

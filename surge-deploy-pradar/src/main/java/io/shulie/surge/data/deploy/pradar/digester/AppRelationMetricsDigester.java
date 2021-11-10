@@ -96,7 +96,7 @@ public class AppRelationMetricsDigester implements DataDigester<RpcBased> {
         // 总次数/成功次数/totalRt/错误次数/totalQps
         long successCount = rpcBased.isOk() ? 1 : 0;
         long failureCount = rpcBased.isOk() ? 0 : 1;
-        Integer simpling = appConfigUtil.getAppSamplingByAppName(rpcBased.getAppName());
+        Integer simpling = appConfigUtil.getAppSamplingByAppName("", "", rpcBased.getAppName());
         CallStat callStat = new CallStat(
                 simpling * 1L, simpling * successCount, simpling * rpcBased.getCost(),
                 simpling * failureCount, simpling);

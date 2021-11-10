@@ -25,7 +25,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>surge-deploy-pradar</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 
     <dependencies>
         <dependency>
@@ -53,7 +53,7 @@
         <dependency>
             <groupId>io.shulie.pradar</groupId>
             <artifactId>log-rule</artifactId>
-            <version>2.0.4.3</version>
+            <version>${log.rule.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -101,7 +101,7 @@
         <dependency>
             <groupId>io.shulie.pradar</groupId>
             <artifactId>log-remoting</artifactId>
-            <version>2.0.4.3</version>
+            <version>${log.remoting.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -112,12 +112,6 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.0</version>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>commons-lang</groupId>
@@ -145,7 +139,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-link</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.2.1</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
@@ -156,8 +150,9 @@
         -->
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.2</version>
+                <version>3.5.1</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>

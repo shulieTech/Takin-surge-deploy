@@ -18,7 +18,6 @@ package io.shulie.surge.data.deploy.pradar;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.inject.Injector;
-import com.google.inject.Singleton;
 import io.shulie.surge.data.common.aggregation.AggregateSlot;
 import io.shulie.surge.data.common.aggregation.Aggregation;
 import io.shulie.surge.data.common.aggregation.Scheduler;
@@ -142,6 +141,8 @@ public class E2ETraceReduceBolt extends BaseBasicBolt {
                     } else {
                         fields.put("rt", callStat.get(2) / (double) callStat.get(0));
                     }
+                    fields.put("traceId", callStat.getTraceId());
+                    
                     // 写入influxDB
                     influxDbSupport.write(metricsDataBase, metricsId, influxdbTags, fields, slotKey * 1000);
                 });

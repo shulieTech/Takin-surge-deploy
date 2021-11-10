@@ -19,7 +19,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.common.MiddlewareTypeEnum;
-import io.shulie.surge.data.deploy.pradar.common.TraceParseUtils;
+import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParser;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParserFactory;
 import org.apache.commons.lang3.StringUtils;
@@ -49,20 +49,35 @@ public class LinkCommand implements ClickhouseCommand {
         map.put("timeMin", rpcBased.getStartTime() / 1000 / 60);
         map.put("dateToMin", rpcBased.getStartTime() / 1000 / 60 / 60 / 24);
         if (rpcBasedParser != null) {
-            map.put("parsedServiceName", StringUtils.defaultString(rpcBasedParser.serviceParse(rpcBased), ""));
-            map.put("parsedMethod", StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), ""));
-            map.put("parsedAppName", StringUtils.defaultString(rpcBasedParser.appNameParse(rpcBased), ""));
-            map.put("parsedExtend", StringUtils.defaultString(rpcBasedParser.extendParse(rpcBased), ""));
-            map.put("parsedMiddlewareName", MiddlewareTypeEnum.getNodeType(rpcBased.getMiddlewareName()).getType());
+            parse0(rpcBased, rpcBasedParser, map);
         } else {
-            map.put("parsedServiceName", "");
-            map.put("parsedMethod", "");
-            map.put("parsedAppName", "");
-            map.put("parsedExtend", "");
-            map.put("parsedMiddlewareName", "");
+            parse1(rpcBased, map);
         }
         // TODO 去掉
         map.put("entranceServiceType", "");
         return map;
+    }
+
+    private void parse1(RpcBased rpcBased, LinkedHashMap<String, Object> map) {
+        //如果是压测引擎日志,且非http调用,如dubbo等rpc调用,赋值parsedService,parsedMethod
+        if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
+            map.put("parsedServiceName", rpcBased.getServiceName());
+            map.put("parsedMethod", rpcBased.getMethodName());
+            map.put("parsedAppName", rpcBased.getAppName());
+        } else {
+            map.put("parsedServiceName", "");
+            map.put("parsedMethod", "");
+            map.put("parsedAppName", "");
+        }
+        map.put("parsedExtend", "");
+        map.put("parsedMiddlewareName", "");
+    }
+
+    private void parse0(RpcBased rpcBased, RpcBasedParser rpcBasedParser, LinkedHashMap<String, Object> map) {
+        map.put("parsedServiceName", StringUtils.defaultString(rpcBasedParser.serviceParse(rpcBased), ""));
+        map.put("parsedMethod", StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), ""));
+        map.put("parsedAppName", StringUtils.defaultString(rpcBasedParser.appNameParse(rpcBased), ""));
+        map.put("parsedExtend", StringUtils.defaultString(rpcBasedParser.extendParse(rpcBased), ""));
+        map.put("parsedMiddlewareName", MiddlewareTypeEnum.getNodeType(rpcBased.getMiddlewareName()).getType());
     }
 }

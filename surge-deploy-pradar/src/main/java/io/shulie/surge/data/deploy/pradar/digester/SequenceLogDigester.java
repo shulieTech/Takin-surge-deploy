@@ -1,4 +1,4 @@
-//package io.shulie.surge.data.deploy.pradar.digester;
+package io.shulie.surge.data.deploy.pradar.digester;//package io.shulie.surge.data.deploy.pradar.digester;
 //
 //import com.google.inject.Inject;
 //import com.google.inject.Singleton;

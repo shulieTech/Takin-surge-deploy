@@ -36,16 +36,18 @@ public class ParamUtil {
     public static final String HOSTNAME = "-DHostName=";
     // 内外网映射-DNet='{\"192.189.1:192.2.3.22\",\"168,1,1.1\":\"10.1.1.1\"}'
     public static final String NET = "-DNet=";
-    // 数据源类型切换
+    // 数据源类型切换 -DSourceType=MYSQL/CLICKHOUSE
     public static final String DATA_SOURCE_TYPE = "-DSourceType=";
     // ip对应的端口段  -DPORTS='{"192.168.0.5":"[299900,29995]","192.168.0.6":"[29900,29995]","192.168.0.7":"[29900,29995]"}
     public static final String PORTS = "-DPORTS=";
-    // 是否通用版本,默认是
+    // 是否通用版本,默认是true -DGeneralVersion=false
     public static final String GENERAL_VERSION = "-DGeneralVersion";
     //外部配置文件 传入绝对路径 多个路径用,分割
     public static final String EXTERNAL_PROPERTIES_PATHS_KEY = "-DExternal.properties.paths";
     //配置文件别名映射 classpath路径下
     public static final String EXTERNAL_ALIAS_FILE_KEY = "-DExternal.alias.file";
+    //配置storm任务拓扑名称
+    public static final String TOPOLOGY_NAME = "-DTopologyName=";
 
     /**
      * 读取系统参数，是否设置ip映射
@@ -56,7 +58,8 @@ public class ParamUtil {
         conf.put(ParamUtil.CORE_SIZE, "0");
         conf.put(ParamUtil.DATA_SOURCE_TYPE, CommonStat.CLICKHOUSE);
         conf.put(ParamUtil.WORKERS, CommonStat.WORKERS);
-        conf.put(ParamUtil.GENERAL_VERSION, CommonStat.TRUE);
+        //E2E和trace指标合并,默认打开
+        conf.put(ParamUtil.GENERAL_VERSION, CommonStat.FALSE);
 
         if (args != null && args.length == 1 && !args[0].startsWith("-D")) {
             // 兼容只设置worker的情况
@@ -76,6 +79,10 @@ public class ParamUtil {
                     conf.put(ParamUtil.DATA_SOURCE_TYPE, param.replace(ParamUtil.DATA_SOURCE_TYPE, ""));
                 } else if (param.startsWith(ParamUtil.PORTS)) {
                     conf.put(ParamUtil.PORTS, param.replace(ParamUtil.PORTS, ""));
+                } else if (param.startsWith(ParamUtil.TOPOLOGY_NAME)) {
+                    conf.put(ParamUtil.TOPOLOGY_NAME, param.replace(ParamUtil.TOPOLOGY_NAME, ""));
+                } else if (param.startsWith(ParamUtil.GENERAL_VERSION)) {
+                    //禁止该参数作用
                 } else if (param.startsWith("-D")) {
                     String[] split = param.split("=");
                     conf.put(split[0], split[1]);

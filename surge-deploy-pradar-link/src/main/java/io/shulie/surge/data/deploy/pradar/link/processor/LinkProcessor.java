@@ -63,7 +63,7 @@ public class LinkProcessor extends AbstractProcessor {
     private static final String NEW_LINE_MATCHER = "\r\n";
 
     private static final String LINK_TOPOLOGY_SQL
-            = " appName,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,"
+            = " appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,"
             + "parsedServiceName,methodName,port,remoteIp ";
 
     @Inject
@@ -184,7 +184,10 @@ public class LinkProcessor extends AbstractProcessor {
 
     @Override
     public void init() {
-
+        linkNodeInsertSql = "INSERT INTO " + LINKNODE_TABLENAME + LinkNodeModel.getCols() + " VALUES " + LinkNodeModel
+                .getParamCols() + LinkNodeModel.getOnDuplicateCols();
+        linkEdgeInsertSql = "INSERT INTO " + LINKEDGE_TABLENAME + LinkEdgeModel.getCols() + " VALUES " + LinkEdgeModel
+                .getParamCols() + LinkEdgeModel.getOnDuplicateCols();
     }
 
     /**
@@ -196,21 +199,25 @@ public class LinkProcessor extends AbstractProcessor {
             //写入MySQL
             Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkPair = link(linkId, linkConfig,
                     TraceLogQueryScopeEnum.MINUTE);
-            Set<LinkNodeModel> linkNodeModels = linkPair.getLeft();
-            Set<LinkEdgeModel> linkEdgeModels = linkPair.getRight();
-            if (CollectionUtils.isEmpty(linkNodeModels) || CollectionUtils.isEmpty(linkEdgeModels)) {
-                logger.warn("LinkProcessor is empty  {}, {}", linkId, linkConfig);
-                return;
-            }
-            mysqlSupport.batchUpdate(linkNodeInsertSql,
-                    linkNodeModels.stream().map(LinkNodeModel::getValues).collect(Collectors.toList()));
-            mysqlSupport.batchUpdate(linkEdgeInsertSql,
-                    linkEdgeModels.stream().map(LinkEdgeModel::getValues).collect(Collectors.toList()));
+            saveTopology(linkId, linkConfig, linkPair);
             logger.info("LinkProcessor save is ok size {},{}", linkPair.getKey().size(), linkPair.getValue().size());
         } catch (Exception e) {
             logger.error("Save to pradar_link_info error!" + linkId, e);
             //ignore
         }
+    }
+
+    public void saveTopology(String linkId, Map<String, Object> linkConfig, Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkPair) {
+        Set<LinkNodeModel> linkNodeModels = linkPair.getLeft();
+        Set<LinkEdgeModel> linkEdgeModels = linkPair.getRight();
+        if (CollectionUtils.isEmpty(linkNodeModels) || CollectionUtils.isEmpty(linkEdgeModels)) {
+            logger.warn("LinkProcessor is empty  {}, {}", linkId, linkConfig);
+            return;
+        }
+        mysqlSupport.batchUpdate(linkNodeInsertSql,
+                linkNodeModels.stream().map(LinkNodeModel::getValues).collect(Collectors.toList()));
+        mysqlSupport.batchUpdate(linkEdgeInsertSql,
+                linkEdgeModels.stream().map(LinkEdgeModel::getValues).collect(Collectors.toList()));
     }
 
     /**
@@ -226,6 +233,23 @@ public class LinkProcessor extends AbstractProcessor {
         Set<LinkNodeModel> nodes = new HashSet<>();
         List<RpcBased> rpcBaseds = getTraceLog(linkConfig, queryScope);
         Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkRelationPair = linkAnalysis(linkId, rpcBaseds);
+        nodes.addAll(linkRelationPair.getLeft());
+        edges.addAll(linkRelationPair.getRight());
+        return Pair.of(nodes, edges);
+    }
+
+    /**
+     * 提供AMDB根据指定traceId计算链路拓扑的功能
+     *
+     * @param param
+     * @return
+     * @throws IOException
+     */
+    public Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> link(Map<String, String> param) throws IOException {
+        Set<LinkEdgeModel> edges = new HashSet<>();
+        Set<LinkNodeModel> nodes = new HashSet<>();
+        List<RpcBased> rpcBaseds = getTraceLog(param);
+        Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkRelationPair = linkAnalysis(param.get("linkId"), rpcBaseds);
         nodes.addAll(linkRelationPair.getLeft());
         edges.addAll(linkRelationPair.getRight());
         return Pair.of(nodes, edges);
@@ -358,6 +382,74 @@ public class LinkProcessor extends AbstractProcessor {
                 .collect(Collectors.toList());
     }
 
+    public List<RpcBased> getTraceLog(Map<String, String> param) {
+        String serviceName = param.get("serviceName");
+        String methodName = param.get("methodName");
+        String appName = param.get("appName");
+        String traceId = param.get("traceId");
+        String startTime = param.get("startTime");
+        String endTime = param.get("endTime");
+        String rpcId = param.get("rpcId");
+        String logType = param.get("logType");
+
+        if (StringUtils.isBlank(traceId)) {
+            return Collections.EMPTY_LIST;
+        }
+        Map<String, String> traceFilter = new HashMap<>();
+        traceFilter.put(traceId, rpcId + "#" + logType);
+        logger.info("LinkProcessor query traceIds:{}", traceFilter);
+
+        StringBuilder sql = new StringBuilder();
+        sql.append(
+                "select " + LINK_TOPOLOGY_SQL + " from t_trace_all where startDate between '" + startTime + "' and '" + endTime + "' and traceId = '" + traceId + "' and logType != 5");
+        sql.append(" order by rpcId asc limit " + ("".equals(traceQuerylimit) ? "500" : traceQuerylimit));
+
+        List<TTrackClickhouseModel> modelList = Lists.newArrayList();
+        if (this.isUseCk()) {
+            modelList = clickHouseSupport.queryForList(sql.toString(), TTrackClickhouseModel.class);
+        } else {
+            modelList = mysqlSupport.query(sql.toString(), new BeanPropertyRowMapper(TTrackClickhouseModel.class));
+        }
+
+        TTrackClickhouseModel tmpModel = null;
+        //首先把跟入口匹配上的数据暂存一份,用于后面为空时的处理
+        for (TTrackClickhouseModel model :
+                modelList) {
+            String ary[] = traceFilter.get(model.getTraceId()).split("#");
+            String filterRpcId = ary[0];
+            String filterLogType = ary[1];
+            if (model.getRpcId().equals(filterRpcId) && appName.equals(model.getAppName()) && serviceName.equals(model.getParsedServiceName()) && methodName.equals(model.getMethodName()) && filterLogType.equals(model.getLogType() + "")) {
+                // 相同RpcID情况处理，如果是选择的当前服务且当前服务是入口，就保留，否则就丢掉
+                tmpModel = model;
+                break;
+            }
+        }
+
+        modelList = modelList.stream().
+                filter(model -> {
+                    String ary[] = traceFilter.get(model.getTraceId()).split("#");
+                    String filterRpcId = ary[0];
+                    String filterLogType = ary[1];
+                    if (model.getRpcId().equals(filterRpcId)) {
+                        // 相同RpcID情况处理，如果是选择的当前服务且当前服务是入口，就保留，否则就丢掉
+                        return "0".equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName()
+                                .contains(serviceName) && methodName.equals(model.getMethodName()) && filterLogType.equals(
+                                model.getLogType() + "");
+                    }
+                    // 如果是以所选服务的RpcId为开始的就保留，否则就丢掉
+                    return model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1;
+                })
+                .collect(Collectors.toList());
+        //当选择的入口rpcId不为0时,且当前节点为最后一个节点,此时链路图不会展示,需要兼容这种情况
+        if (modelList.isEmpty() && tmpModel != null) {
+            modelList.add(tmpModel);
+        }
+
+        return modelList.stream()
+                .map(TTrackClickhouseModel::getRpcBased)
+                .collect(Collectors.toList());
+    }
+
     /**
      * 链路关系分析
      *
@@ -390,6 +482,10 @@ public class LinkProcessor extends AbstractProcessor {
             //在链路拓扑图这里客户端的rpc日志我们不解
             if (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType()) {
 //                logger.warn("client rpc log ignored by system.");
+                continue;
+            }
+            if (StringUtils.isNotBlank(rpcBased.getMiddlewareName()) &&
+                    rpcBased.getMiddlewareName().contains("sentinel_terminal_message")) {
                 continue;
             }
 

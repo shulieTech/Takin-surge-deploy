@@ -20,7 +20,9 @@ import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author vincent
@@ -52,7 +54,7 @@ public class DefaultRpcBasedParser implements RpcBasedParser {
         Integer rpcType = rpcBased.getRpcType();
         Integer logType = rpcBased.getLogType();
         String middlewareName = rpcBased.getMiddlewareName();
-        String entranceId = rpcBased.getEntranceNodeId();
+        String entranceId = rpcBased.getEntranceId();
         if (StringUtils.isBlank(entranceId)) {
             entranceId = "";
         }
@@ -206,5 +208,21 @@ public class DefaultRpcBasedParser implements RpcBasedParser {
     @Override
     public String serverAppNameParse(RpcBased rpcBased) {
         return rpcBased.getUpAppName();
+    }
+
+    /**
+     * 地址排序
+     *
+     * @param addr
+     * @return
+     */
+    public String sortAddr(String addr) {
+        if (StringUtils.isBlank(addr)) {
+            return addr;
+        }
+        if (addr.contains(",")) {
+            addr = Arrays.stream(addr.split(",")).sorted().collect(Collectors.joining(","));
+        }
+        return addr;
     }
 }

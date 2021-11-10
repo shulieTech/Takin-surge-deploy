@@ -31,12 +31,10 @@ public class PradarLogTopology {
         // reduce数为spout的一半
         Double reduceCount = Math.ceil(Double.valueOf(workers) / 2);
         builder.setSpout(PradarLogSpout.class.getSimpleName(), new PradarLogSpout(), workers);
-        if (!isGeneralVersion) {
-            // TODO 使用trace记录metrics,通用版本里面暂时不计算流量,可通过配置打开
-            builder.setBolt(PradarTraceReduceBolt.class.getSimpleName(), new PradarTraceReduceBolt(), reduceCount.intValue())
-                    .directGrouping(PradarLogSpout.class.getSimpleName(), PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID);
-        }
-        // E2E巡检指标计算
+        //E2E指标合并到链路指标
+        builder.setBolt(PradarTraceReduceBolt.class.getSimpleName(), new PradarTraceReduceBolt(), reduceCount.intValue())
+                .directGrouping(PradarLogSpout.class.getSimpleName(), PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID);
+        // E2E断言指标计算
         builder.setBolt(E2ETraceReduceBolt.class.getSimpleName(), new E2ETraceReduceBolt(), reduceCount.intValue())
                 .directGrouping(PradarLogSpout.class.getSimpleName(), PradarRtConstant.REDUCE_E2E_TRACE_METRICS_STREAM_ID);
         return builder;
@@ -61,9 +59,13 @@ public class PradarLogTopology {
         Boolean generalVersion = Boolean.valueOf(inputMap.get(ParamUtil.GENERAL_VERSION));
         Config config = StormConfig.createConfig(workers);
         config.putAll(inputMap);
-        TopologyBuilder topologyBuilder = createLogBuilder(workers, generalVersion);
 
-        StormSubmitter.submitTopology(PradarLogTopology.class.getSimpleName(), config, topologyBuilder.createTopology());
+        TopologyBuilder topologyBuilder = createLogBuilder(workers, generalVersion);
+        if (inputMap.containsKey(ParamUtil.TOPOLOGY_NAME)) {
+            StormSubmitter.submitTopology(inputMap.get(ParamUtil.TOPOLOGY_NAME), config, topologyBuilder.createTopology());
+        } else {
+            StormSubmitter.submitTopology(PradarLogTopology.class.getSimpleName(), config, topologyBuilder.createTopology());
+        }
     }
 }
 

@@ -37,6 +37,7 @@ public class CallStat implements AggregatableRecord<CallStat>, TimestampSupport 
     private transient long timestamp;
     private long[] values;
     private String traceId;
+    private String sqlStatement;
 
     public CallStat() {
         this("", EMPTY_ARRAY);
@@ -48,6 +49,12 @@ public class CallStat implements AggregatableRecord<CallStat>, TimestampSupport 
 
     public CallStat(String traceId, long... values) {
         this.traceId = traceId;
+        this.values = values;
+    }
+
+    public CallStat(String traceId, String sqlStatement, long... values) {
+        this.traceId = traceId;
+        this.sqlStatement = sqlStatement;
         this.values = values;
     }
 
@@ -77,6 +84,14 @@ public class CallStat implements AggregatableRecord<CallStat>, TimestampSupport 
         this.traceId = traceId;
     }
 
+    public String getSqlStatement() {
+        return sqlStatement;
+    }
+
+    public void setSqlStatement(String sqlStatement) {
+        this.sqlStatement = sqlStatement;
+    }
+
     public void reset() {
         for (int i = 0; i < values.length; i++) {
             values[i] = 0;
@@ -96,22 +111,39 @@ public class CallStat implements AggregatableRecord<CallStat>, TimestampSupport 
                 // 刚初始化出来
                 this.values = Arrays.copyOf(values2, len);
                 this.traceId = other.traceId;
+                //区分e2e断言指标和链路指标,不能使用isnotBlank,因为部分sql语句设置的为"null"
+                if (other.sqlStatement != null) {
+                    this.sqlStatement = other.sqlStatement;
+                }
             }
             return;
         }
 
-        //选取耗时最长的
-        if (values2.length > 3 && other.values.length > 3) {
-            if (values[2] > 0 && values2[2] > 0) {
-                if (StringUtils.isBlank(traceId)) {
-                    traceId = other.traceId;
-                }
-            } else if (values[1] < values2[1]) {
-                this.traceId = other.traceId;
-            }
+//        if (values2.length > 3 && other.values.length > 3) {
+//            if (values[2] > 0 && values2[2] > 0) {
+//                //第一次过来,初始化
+//                if (StringUtils.isBlank(traceId)) {
+//                    traceId = other.traceId;
+//                }
+//            }
+//        }
+        //如果长度为5,代表是断言指标数据,每次更新traceId为最新的
+        if (len == 5) {
+            traceId = other.traceId;
         }
-        if (len <= 8) {
+        if (len <= 10) {
             switch (len) {
+                //最大耗时计算
+                case 10:
+                    values[9] = Math.max(values[9], values2[9]);
+                    if (values2[9] > values[9]) {
+                        //计算最大耗时对应的traceId,原先的逻辑存在问题
+                        traceId = other.traceId;
+                        //保存sql语句
+                        sqlStatement = other.sqlStatement;
+                    }
+                case 9:
+                    values[8] += values2[8];
                 case 8:
                     values[7] += values2[7];
                 case 7:

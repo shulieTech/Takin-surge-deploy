@@ -151,7 +151,7 @@ public class CuratorZkHeartbeatNode implements ZkHeartbeatNode {
     private final Watcher watcher = new Watcher() {
         @Override
         public void process(WatchedEvent event) {
-            if (event.getType() == Watcher.Event.EventType.NodeDeleted) {
+            if (event.getType() == Event.EventType.NodeDeleted) {
                 try {
                     reset();
                 } catch (Exception e) {

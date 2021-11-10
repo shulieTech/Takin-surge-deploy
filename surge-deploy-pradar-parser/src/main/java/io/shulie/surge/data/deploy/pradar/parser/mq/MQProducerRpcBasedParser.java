@@ -19,6 +19,7 @@ import com.google.common.collect.Maps;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.parser.DefaultRpcBasedParser;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 
 import java.util.Map;
 
@@ -33,9 +34,24 @@ public class MQProducerRpcBasedParser extends DefaultRpcBasedParser {
      * @return
      */
     @Override
+    public String serviceParse(RpcBased rpcBased) {
+        if ("ons".equalsIgnoreCase(rpcBased.getMiddlewareName())) {
+            String serviceName = rpcBased.getServiceName();
+            serviceName = serviceName.contains("%") ? serviceName.split("%")[1] : serviceName;
+            //serviceName = serviceName.startsWith("PT_") ? serviceName.substring(3) : serviceName;
+            return serviceName;
+        }
+        return super.serviceParse(rpcBased);
+    }
+
+    /**
+     * @param rpcBased
+     * @return
+     */
+    @Override
     public String appNameParse(RpcBased rpcBased) {
-        String addr = rpcBased.getRemoteIp();
-        String port = rpcBased.getPort();
+        String addr = sortAddr(rpcBased.getRemoteIp());
+        int port = NumberUtils.toInt(rpcBased.getPort(), 0);
         String dbType = rpcBased.getMiddlewareName();
         String appName = dbType + "" + addr + ":" + port;
         if (StringUtils.isNotBlank(addr) && addr.contains(":")) {

@@ -137,7 +137,7 @@ public class E2EDefaultDigester implements DataDigester<RpcBased> {
             // 是否压测流量
             String clusterTest = rpcBased.isClusterTest() ? "1" : "0";
             //应用级别采样,默认都是1?
-            Integer simpling = appConfigUtil.getAppSamplingByAppName(rpcBased.getAppName());
+            Integer simpling = appConfigUtil.getAppSamplingByAppName("", "", rpcBased.getAppName());
             // 写入断言指标
             for (String exceptionType : exceptionTypeList) {
                 long successCount = 0;

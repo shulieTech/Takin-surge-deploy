@@ -23,7 +23,6 @@ import io.shulie.surge.data.deploy.pradar.config.PradarModule;
 import io.shulie.surge.data.deploy.pradar.config.PradarProcessor;
 import io.shulie.surge.data.deploy.pradar.config.PradarProcessorConfigSpec;
 import io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration;
-import io.shulie.surge.data.deploy.pradar.digester.E2EAssertionDigester;
 import io.shulie.surge.data.deploy.pradar.digester.E2EDefaultDigester;
 import io.shulie.surge.data.deploy.pradar.digester.MetricsReduceDigester;
 import io.shulie.surge.data.deploy.pradar.digester.TraceMetricsDiggester;
@@ -136,9 +135,20 @@ public class PradarStormSupplierConfiguration {
             baseProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
 
+            /**
+             * agent日志
+             */
+            ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
+            agentProcessorConfigSpec.setName("agent-log");
+            agentProcessorConfigSpec.setDigesters(conf.buildAgentProcess(dataRuntime));
+            agentProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor agentProcessor = dataRuntime.createGenericInstance(agentProcessorConfigSpec);
+
+
             Map<String, DataQueue> queueMap = Maps.newHashMap();
             queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
             queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
+            queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
 
             nettyRemotingSupplier.setQueue(queueMap);
             nettyRemotingSupplier.setInputPortMap(serverPortsMap);
@@ -157,16 +167,9 @@ public class PradarStormSupplierConfiguration {
      * @return
      */
     public DataDigester[] buildTraceLogComplexProcess(DataRuntime dataRuntime) {
-        if (!generalVersion) {
-            TraceMetricsDiggester traceMetricsDiggester = dataRuntime.getInstance(TraceMetricsDiggester.class);
-            E2EAssertionDigester e2eAssertionDigester = dataRuntime.getInstance(E2EAssertionDigester.class);
-            e2eAssertionDigester.init();
-            return new DataDigester[]{traceMetricsDiggester, e2eAssertionDigester};
-        } else {
-            E2EAssertionDigester e2eAssertionDigester = dataRuntime.getInstance(E2EAssertionDigester.class);
-            e2eAssertionDigester.init();
-            return new DataDigester[]{e2eAssertionDigester};
-        }
+        TraceMetricsDiggester traceMetricsDiggester = dataRuntime.getInstance(TraceMetricsDiggester.class);
+        traceMetricsDiggester.init();
+        return new DataDigester[]{traceMetricsDiggester};
     }
 
     /**

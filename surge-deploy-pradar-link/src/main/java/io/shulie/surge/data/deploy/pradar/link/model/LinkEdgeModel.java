@@ -16,10 +16,13 @@
 package io.shulie.surge.data.deploy.pradar.link.model;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Date;
 import java.util.Map;
+
+import static io.shulie.surge.data.deploy.pradar.link.processor.EntranceProcessor.SERVICE_LENGTH_FIELD;
 
 public class LinkEdgeModel {
     String linkId;
@@ -183,6 +186,7 @@ public class LinkEdgeModel {
         LinkEdgeModel linkEdgeModel = new LinkEdgeModel();
         try {
             BeanUtils.populate(linkEdgeModel, dataMap);
+            linkEdgeModel.setMethod(StringUtils.substring(linkEdgeModel.getMethod(), 0, SERVICE_LENGTH_FIELD));
             return linkEdgeModel;
         } catch (IllegalAccessException e) {
             e.printStackTrace();

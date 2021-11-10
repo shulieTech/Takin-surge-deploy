@@ -21,7 +21,7 @@ public class EagleLoader {
     /**
      * 边缓存
      */
-    private Cache<String, String> cache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(1, TimeUnit.HOURS).build();
+    private Cache<String, String> cache = CacheBuilder.newBuilder().maximumSize(30000).expireAfterWrite(1, TimeUnit.HOURS).build();
 
     @Inject
     private MysqlSupport mysqlSupport;
@@ -29,8 +29,9 @@ public class EagleLoader {
     private static final String QUERY_LINK_CONFIG = "select link_id from t_amdb_pradar_link_config";
 
     private static final String QUERY_LINK_EDGE = "select edge_id from t_amdb_pradar_link_edge where link_id='%s' " +
-            " and gmt_modify >DATE_ADD(NOW(), INTERVAL -120 MINUTE) " +
-            " order by gmt_modify desc limit 101";
+            " and gmt_modify >DATE_ADD(NOW(), INTERVAL -1440 MINUTE) " +
+            " order by gmt_modify desc";
+
     public void init() {
         Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> initConfig(), 0, 5, TimeUnit.MINUTES);
     }
@@ -43,10 +44,10 @@ public class EagleLoader {
                 linkConfigList.stream().forEach(linkConfig -> {
                     Object linkId = linkConfig.get("link_id");
                     List<Map<String, Object>> edgeList = mysqlSupport.queryForList(String.format(QUERY_LINK_EDGE, linkId));
-                    if (CollectionUtils.isNotEmpty(edgeList)&&edgeList.size()<100) {
-                        edgeList.stream().forEach(edge->{
+                    if (CollectionUtils.isNotEmpty(edgeList)) {
+                        edgeList.stream().forEach(edge -> {
                             String edgeId = String.valueOf(edge.get("edge_id"));
-                            this.cache.put(edgeId,edgeId);
+                            this.cache.put(edgeId, edgeId);
                         });
                     }
                 });

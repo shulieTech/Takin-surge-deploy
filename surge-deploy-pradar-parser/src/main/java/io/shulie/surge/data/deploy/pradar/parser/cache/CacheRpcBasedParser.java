@@ -18,10 +18,7 @@ package io.shulie.surge.data.deploy.pradar.parser.cache;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.parser.db.DBClientRpcBasedParser;
 import org.apache.commons.lang3.StringUtils;
-
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import org.apache.commons.lang3.math.NumberUtils;
 
 /**
  * cache
@@ -37,23 +34,37 @@ public class CacheRpcBasedParser extends DBClientRpcBasedParser {
      */
     @Override
     public String methodParse(RpcBased rpcBased) {
-        String serviceName = rpcBased.getServiceName();
-        if (StringUtils.isNotBlank(serviceName) && serviceName.contains(":")) {
-            // 旧版本的日志的库名跟方法是放到一起的，按:分开解析出来
-            return serviceName.substring(serviceName.indexOf(":") + 1);
+        //如果中间件类型是redis,则从serviceName中解析方法名称,其他缓存如google-guava则还是取其methodname
+        if ("redis".equals(rpcBased.getMiddlewareName())) {
+            String serviceName = rpcBased.getServiceName();
+            if (StringUtils.isNotBlank(serviceName) && serviceName.contains(":")) {
+                // 旧版本的日志的库名跟方法是放到一起的，按:分开解析出来
+                return serviceName.substring(serviceName.indexOf(":") + 1);
+            }
+            //这里不能直接取methodname,agent出现过把对象地址打印到methodName的情况,导致redis边爆增
+            /**
+             * ─serviceName─┬─methodName──┬─middlewareName─┬─parsedMiddlewareName─┐
+             * │ del         │ [[B@9f2e43b │ redis          │ REDIS                │
+             */
+            return serviceName;
         }
-        return serviceName;
+        return rpcBased.getMethodName();
     }
 
     @Override
     public String serviceParse(RpcBased rpcBased) {
-        // 1、旧版本的日志的库名跟方法是放到一起的，按:分开解析出来
         String serviceName = rpcBased.getServiceName();
-        if (StringUtils.isNotBlank(serviceName) && serviceName.contains(":")) {
-            return serviceName.substring(0, serviceName.indexOf(":"));
+        if ("redis".equals(rpcBased.getMiddlewareName())) {
+            // 1、旧版本的日志的库名跟方法是放到一起的，按:分开解析出来
+//            if (StringUtils.isNotBlank(serviceName) && serviceName.contains(":")) {
+//                return serviceName.substring(0, serviceName.indexOf(":"));
+//            }
+            // 2、新版本没有库名了。默认返回0
+            // 库名现在统一给0
+            return "0";
         }
-        // 2、新版本没有库名了。默认返回0
-        return "0";
+        //如果是其他缓存,类似google-guava,则取实际的serviceName;
+        return serviceName;
     }
 
     /**
@@ -63,7 +74,7 @@ public class CacheRpcBasedParser extends DBClientRpcBasedParser {
     @Override
     public String appNameParse(RpcBased rpcBased) {
         String addr = rpcBased.getRemoteIp();
-        String port = rpcBased.getPort();
+        int port = NumberUtils.toInt(rpcBased.getPort(), 0);
         String dbType = rpcBased.getMiddlewareName();
         String serviceName = serviceParse(rpcBased);
         String appName = dbType + " " + addr + ":" + port + ":" + serviceName;

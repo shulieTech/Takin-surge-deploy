@@ -16,7 +16,6 @@
 package io.shulie.surge.data.common.utils;
 
 
-
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -36,21 +35,34 @@ public class HttpUtil {
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-    public static String doGet(String host, int port, String url) {
+    public static String doGet(String host, int port, String url, Map<String, String> params) {
         InputStream input = null;
         OutputStream output = null;
         Socket socket = null;
         try {
             SocketAddress address = new InetSocketAddress(host, port);
-            String request = "GET " + url + " HTTP/1.1\r\n"
-                    + "Host: " + host + ":" + port + "\r\n"
-                    + "Connection: Keep-Alive\r\n"
-                    + "\r\n";
+            StringBuilder request = new StringBuilder();
+
+            if (params != null && !params.isEmpty()) {
+                request.append("GET " + url + "?");
+                params.forEach((key, value) -> {
+                    request.append(key + "=" + value + "&");
+                });
+                request.deleteCharAt(request.lastIndexOf("&"));
+                request.append(" HTTP/1.1\r\n");
+            } else {
+                request.append("GET " + url + " HTTP/1.1\r\n");
+            }
+
+            request.append("Host: " + host + ":" + port + "\r\n");
+            request.append("Connection: Keep-Alive\r\n");
+            request.append("\r\n");
+
             socket = new Socket();
             socket.connect(address, 1000); // 设置建立连接超时时间 1s
             socket.setSoTimeout(5000); // 设置读取数据超时时间 5s
             output = socket.getOutputStream();
-            output.write(request.getBytes(UTF_8));
+            output.write(request.toString().getBytes(UTF_8));
             output.flush();
             input = socket.getInputStream();
             String status = readLine(input);
@@ -67,7 +79,7 @@ public class HttpUtil {
             closeQuietly(output);
 
             // JDK 1.6 Socket没有实现Closeable接口
-            if (socket != null){
+            if (socket != null) {
                 if (socket != null) {
                     try {
                         socket.close();
@@ -175,7 +187,8 @@ public class HttpUtil {
     public static void exhaustInputStream(InputStream inStream)
             throws IOException {
         byte buffer[] = new byte[1024];
-        while (inStream.read(buffer) >= 0) {}
+        while (inStream.read(buffer) >= 0) {
+        }
     }
 
     public static void closeQuietly(Closeable closeable) {

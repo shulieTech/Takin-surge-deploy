@@ -33,3 +33,6 @@
 # 操作rpc类
 2~1=io.shulie.surge.data.deploy.pradar.parser.rpc.RpcClientRpcBasedParser
 
+#-------------压测引擎日志-----------------
+# 入口服务日志
+5~0=io.shulie.surge.data.deploy.pradar.parser.rpc.PressureTraceBasedParser

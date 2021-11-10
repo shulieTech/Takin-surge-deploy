@@ -20,7 +20,6 @@ import io.shulie.surge.data.deploy.pradar.PradarStormSupplierConfiguration;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
 import io.shulie.surge.data.deploy.pradar.config.PradarLinkConfiguration;
 import io.shulie.surge.data.runtime.common.DataRuntime;
-import io.shulie.surge.deploy.pradar.common.CommonStat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +40,7 @@ public class PradarTopologyBootStrap {
         //移除无关参数
         inputMap.remove(ParamUtil.WORKERS);
         //默认指定数据源是MYSQL
-        inputMap.put(ParamUtil.DATA_SOURCE_TYPE, CommonStat.MYSQL);
+        //inputMap.put(ParamUtil.DATA_SOURCE_TYPE, CommonStat.MYSQL);
 
         PradarStormSupplierConfiguration pradarStormSupplierConfiguration =
                 new PradarStormSupplierConfiguration(

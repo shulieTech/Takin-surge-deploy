@@ -19,7 +19,9 @@ package io.shulie.surge.data.deploy.pradar.link.processor;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import io.shulie.surge.data.common.utils.DateUtils;
+import io.shulie.surge.data.common.utils.Pair;
 import io.shulie.surge.data.deploy.pradar.link.TaskManager;
+import io.shulie.surge.data.deploy.pradar.link.constants.SqlConstants;
 import io.shulie.surge.data.deploy.pradar.link.model.LinkEntranceModel;
 import io.shulie.surge.data.deploy.pradar.link.util.StringUtil;
 import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
@@ -39,14 +41,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 入口/出口处理器
+ * 入口处理器
  *
  * @author vincent
  */
 public class EntranceProcessor extends AbstractProcessor {
     private static final Logger logger = LoggerFactory.getLogger(EntranceProcessor.class);
-
-    //入口/出口表
+    //远程调用/白名单保存表
     private static final String LINK_ENTRANCE_NAME = "t_amdb_pradar_link_entrance";
 
     @Inject
@@ -87,6 +88,15 @@ public class EntranceProcessor extends AbstractProcessor {
         linkEntranceDeleteSql = "DELETE FROM " + LINK_ENTRANCE_NAME + " WHERE GMT_MODIFY<=?";
     }
 
+    private Pair<String, String> getStartAndEndTime() {
+        long now = System.currentTimeMillis();
+        String startTime = DateFormatUtils.format(
+                now - DEFAULT_DELAY_TIME * 60 * 1000, "yyyy-MM-dd HH:mm:ss");
+        String endTime = DateFormatUtils.format(
+                now - 5000, "yyyy-MM-dd HH:mm:ss");
+        return new Pair<>(startTime, endTime);
+    }
+
     /**
      * 解析任务不按照任务编号去分配
      * 该方法未有地方使用到,暂无需关注
@@ -100,12 +110,12 @@ public class EntranceProcessor extends AbstractProcessor {
         if (!isHandler(intervalTime.get())) {
             return;
         }
-        Date queryTime = new Date(System.currentTimeMillis() - DEFAULT_DELAY_TIME * 60 * 1000);
-        List<Map<String, Object>> appNames = queryAppNames(queryTime);
+        Pair<String, String> timePair = getStartAndEndTime();
+        List<Map<String, Object>> appNames = queryAppNames(timePair);
         if (CollectionUtils.isNotEmpty(appNames)) {
             appNames.stream().forEach(appNameMap -> {
                 String appName = String.valueOf(appNameMap.get("appName"));
-                saveLinkInfo(appName, queryTime);
+                saveEntrance(appName, timePair);
             });
         }
     }
@@ -128,13 +138,13 @@ public class EntranceProcessor extends AbstractProcessor {
         if (taskId == -1) {
             return;
         }
-        Date queryTime = new Date(System.currentTimeMillis() - DEFAULT_DELAY_TIME * 60 * 1000);
-        List<Map<String, Object>> appNames = queryAppNames(queryTime);
+        Pair<String, String> timePair = getStartAndEndTime();
+        List<Map<String, Object>> appNames = queryAppNames(timePair);
         if (CollectionUtils.isNotEmpty(appNames)) {
             appNames.stream().forEach(appNameMap -> {
                 String appName = String.valueOf(appNameMap.get("appName"));
                 if (appName.hashCode() % taskId == 0) {
-                    saveLinkInfo(appName, queryTime);
+                    saveEntrance(appName, timePair);
                 }
             });
         }
@@ -154,12 +164,12 @@ public class EntranceProcessor extends AbstractProcessor {
         if (!isHandler(intervalTime.get())) {
             return;
         }
-        Date queryTime = new Date(System.currentTimeMillis() - DEFAULT_DELAY_TIME * 60 * 1000);
-        List<Map<String, Object>> appNames = queryAppNames(queryTime);
+        Pair<String, String> timePair = getStartAndEndTime();
+        List<Map<String, Object>> appNames = queryAppNames(timePair);
         if (CollectionUtils.isNotEmpty(appNames)) {
             appNames.stream().forEach(appNameMap -> {
                 String appName = String.valueOf(appNameMap.get("appName"));
-                saveLinkInfo(appName, queryTime);
+                saveEntrance(appName, timePair);
             });
         }
     }
@@ -169,7 +179,7 @@ public class EntranceProcessor extends AbstractProcessor {
     }
 
     /**
-     * 保存链路入口/出口信息
+     * 保存链路入口信息
      *
      * @param taskIds
      * @param currentId
@@ -183,8 +193,8 @@ public class EntranceProcessor extends AbstractProcessor {
         if (!isHandler(intervalTime.get())) {
             return;
         }
-        Date queryTime = new Date(System.currentTimeMillis() - DEFAULT_DELAY_TIME * 60 * 1000);
-        List<Map<String, Object>> appNames = queryAppNames(queryTime);
+        Pair<String, String> timePair = getStartAndEndTime();
+        List<Map<String, Object>> appNames = queryAppNames(timePair);
         if (CollectionUtils.isNotEmpty(appNames)) {
             Map<String, List<Map<String, Object>>> nameMap = appNames.stream().collect(
                     Collectors.groupingBy(name -> String.valueOf(name.get("appName"))));
@@ -195,7 +205,7 @@ public class EntranceProcessor extends AbstractProcessor {
                 avgList.stream().forEach(avg -> {
                     Optional<Map<String, Object>> appMap = nameMap.get(avg).stream().findFirst();
                     if (appMap.isPresent()) {
-                        saveLinkInfo(String.valueOf(appMap.get().get("appName")), queryTime);
+                        saveEntrance(String.valueOf(appMap.get().get("appName")), timePair);
                     }
                 });
             }
@@ -205,13 +215,14 @@ public class EntranceProcessor extends AbstractProcessor {
     /**
      * 读取所有的应用名
      *
-     * @param queryTime
+     * @param timePair
      * @return
      */
-    public List<Map<String, Object>> queryAppNames(Date queryTime) {
+    public List<Map<String, Object>> queryAppNames(Pair timePair) {
         try {
-            String appNameSql = "select appName from t_trace_all where startDate >= '" + DateFormatUtils.format(
-                    queryTime, "yyyy-MM-dd HH:mm:ss") + "' group by appName";
+            //统计当前时间往前两分钟到当前时间往前5s期间有服务端和入口日志的应用列表
+            //排除压测流量
+            String appNameSql = "select appName from t_trace_all where startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and logType in (1,3) and clusterTest = '0' group by appName";
             if (isUseCk()) {
                 return clickHouseSupport.queryForList(appNameSql);
             } else {
@@ -223,21 +234,30 @@ public class EntranceProcessor extends AbstractProcessor {
         return Collections.EMPTY_LIST;
     }
 
-    private static final int SERVICE_LENGTH_FIELD = 256;
+    public static final int SERVICE_LENGTH_FIELD = 256;
 
     /**
-     * 保存链路入口/出口信息
+     * 保存链路入口信息
      */
-    public void saveLinkInfo(String appName, Date queryTime) {
-        logger.info("saveLinkInfo:{},queryTime:{}", appName, queryTime);
+    public void saveEntrance(String appName, Pair timePair) {
+        //压测引擎的不处理
+        if ("pressure-engine".equals(appName)) {
+            return;
+        }
+        if (logger.isDebugEnabled()) {
+            logger.debug("saveEntrance:{},startTime,endTime:{}", appName, timePair);
+        }
         try {
-            // 按应用名去解析服务信息
-            List<Map<String, Object>> entranceMapList = queryEntrance(appName, queryTime);
+            List<Map<String, Object>> entranceMapList = queryEntrance(appName, timePair);
             if (CollectionUtils.isEmpty(entranceMapList)) {
                 return;
             }
             //对于serviceName和methodName超过256的入口,采取截断方式
             entranceMapList = entranceMapList.stream().map(entranceMap -> {
+                //parsedMiddlewareName改名为middlewareName
+                entranceMap.put("middlewareName", StringUtil.formatString(entranceMap.get("parsedMiddlewareName")));
+                entranceMap.remove("parsedMiddlewareName");
+
                 String oriServiceName = StringUtil.formatString(entranceMap.get("serviceName"));
                 String oriMethodName = StringUtil.formatString(entranceMap.get("methodName"));
                 if (oriServiceName.length() > SERVICE_LENGTH_FIELD) {
@@ -252,12 +272,12 @@ public class EntranceProcessor extends AbstractProcessor {
             }).collect(Collectors.toList());
 
             List<LinkEntranceModel> linkEntranceModels = entranceMapList.stream().map(
-                    LinkEntranceModel::parseFromDataMap)
+                            LinkEntranceModel::parseFromDataMap)
                     .collect(Collectors.toList()).stream().collect(Collectors.collectingAndThen(Collectors.toCollection(()
                             -> new TreeSet<>(Comparator.comparing(LinkEntranceModel::getEntranceId))), ArrayList::new));
             mysqlSupport.batchUpdate(linkEntranceInsertSql, new ArrayList<>(
                     linkEntranceModels.stream().map(LinkEntranceModel::getValues).collect(Collectors.toSet())));
-            logger.info("saveLinkEntrance is ok {}", appName);
+            logger.info("{} saveEntrance is ok,size: {}", appName, entranceMapList.size());
         } catch (Throwable e) {
             logger.error("Save to pradar_link_entrance error!" + ExceptionUtils.getStackTrace(e));
             //ignore
@@ -266,62 +286,35 @@ public class EntranceProcessor extends AbstractProcessor {
 
 
     /**
-     * 读取所有的应用入口和出口
+     * 读取所有的应用入口
      * 对于rpcType是webServer或者是job类型,trace表里只有入口日志和服务器端日志,还有压测引擎产生的日志,无客户端日志
      * 对于logType是trace日志或者server日志,rpcType只有webServer、rpc、MQ类型
      * 综上,两种条件取并集,确实能涵盖服务类型是http,dubbo,rocketMQ,kafka,elasticjob几种
-     * 针对6.4需求
      *
-     * @param queryTime
-     * @return
+     * @param appName,timePair
      */
-    public List<Map<String, Object>> queryEntrance(String appName, Date queryTime) {
-
+    public List<Map<String, Object>> queryEntrance(String appName, Pair timePair) {
+        List<Map<String, Object>> entranceList;
+        StringBuilder entranceSql = new StringBuilder();
         try {
-            //此处的limit 200可能存在问题,暂时还没想到该怎么处理这个
-            //2021-05-24 如果serviceName为空,则不写入入口表,因为是无效入口
-            //入口日志无需保存upAppName,只有服务端日志需要保存upAppName
+            buildQueryCkSql(appName, timePair, entranceSql);
+            logger.info("queryEntrance:{}", entranceSql);
             if (this.isUseCk()) {
-                String entranceSql =
-                        "select distinct parsedServiceName as serviceName,appName,rpcType,parsedMethod as methodName,"
-                                + "parsedMiddlewareName as middlewareName,parsedExtend as extend,'0' as linkType,case when logType = '3' then upAppName else '' end as upAppName from t_trace_all "
-                                + "where startDate >= '" + DateFormatUtils.format(queryTime, "yyyy-MM-dd HH:mm:ss")
-                                + "'  and appName='" + appName + "' and serviceName != '' and " +
-                                "(rpcType in ('" + MiddlewareType.TYPE_WEB_SERVER + "','" +
-                                MiddlewareType.TYPE_JOB + "') or logType in ('" + PradarLogType.LOG_TYPE_RPC_SERVER + "','"
-                                + PradarLogType.LOG_TYPE_TRACE + "')) limit 100 ";
-                entranceSql += "union all ";
-                //出口日志无需关注upAppName,给空即可
-                //and parsedMiddlewareName in ('DUBBO','HTTP','FEIGN') 去除中间件类型过滤,开放所有类型出口
-                entranceSql += "select distinct parsedServiceName as serviceName,appName,rpcType,parsedMethod as methodName,"
-                        + "parsedMiddlewareName as middlewareName,parsedExtend as extend,'1' as linkType,'' as upAppName from t_trace_all "
-                        + "where startDate >= '" + DateFormatUtils.format(queryTime, "yyyy-MM-dd HH:mm:ss")
-                        + "'  and appName='" + appName + "' and serviceName != '' and logType = '2'  limit 100";
-                logger.info("queryEntrance:{}", entranceSql);
-                return clickHouseSupport.queryForList(entranceSql);
+                entranceList = clickHouseSupport.queryForList(entranceSql.toString());
             } else {
-                String entranceSql =
-                        "(select distinct parsedServiceName as serviceName,appName,rpcType,parsedMethod as methodName,"
-                                + "parsedMiddlewareName as middlewareName,parsedExtend as extend,'0' as linkType,case when logType = '3' then upAppName else '' end as upAppName from t_trace_all "
-                                + "where startDate >= '" + DateFormatUtils.format(queryTime, "yyyy-MM-dd HH:mm:ss")
-                                + "'  and appName='" + appName + "' and serviceName != '' and " +
-                                "(rpcType in ('" + MiddlewareType.TYPE_WEB_SERVER + "','" +
-                                MiddlewareType.TYPE_JOB + "') or logType in ('" + PradarLogType.LOG_TYPE_RPC_SERVER + "','"
-                                + PradarLogType.LOG_TYPE_TRACE + "')) limit 100) ";
-                entranceSql += "union all ";
-                //出口日志无需关注upAppName,给空即可
-                //and parsedMiddlewareName in ('DUBBO','HTTP','FEIGN') 去除中间件类型过滤,开放所有类型出口
-                entranceSql += "(select distinct parsedServiceName as serviceName,appName,rpcType,parsedMethod as methodName,"
-                        + "parsedMiddlewareName as middlewareName,parsedExtend as extend,'1' as linkType,'' as upAppName from t_trace_all "
-                        + "where startDate >= '" + DateFormatUtils.format(queryTime, "yyyy-MM-dd HH:mm:ss")
-                        + "'  and appName='" + appName + "' and serviceName != '' and logType = '2'  limit 100)";
-                logger.info("queryEntrance:{}", entranceSql);
-                return mysqlSupport.queryForList(entranceSql);
+                entranceList = mysqlSupport.queryForList(entranceSql.toString());
             }
+            return entranceList;
         } catch (Throwable e) {
             logger.error("query queryEntrance error " + ExceptionUtils.getStackTrace(e));
         }
         return Collections.EMPTY_LIST;
+    }
+
+    private void buildQueryCkSql(String appName, Pair timePair, StringBuilder entranceSql) {
+        //查询入口数据(HTTP/DUBBO/JOB)
+        //排除压测流量
+        entranceSql.append(SqlConstants.QUERY_ENTRANCE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and clusterTest = '0' and " + "(rpcType in ('" + MiddlewareType.TYPE_WEB_SERVER + "','" + MiddlewareType.TYPE_JOB + "') or logType in ('" + PradarLogType.LOG_TYPE_RPC_SERVER + "','" + PradarLogType.LOG_TYPE_TRACE + "')) limit 100 ");
     }
 
     /**

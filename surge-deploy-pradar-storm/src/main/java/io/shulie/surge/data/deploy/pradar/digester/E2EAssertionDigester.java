@@ -130,7 +130,7 @@ public class E2EAssertionDigester implements DataDigester<RpcBased> {
             }
             // 是否压测流量
             String clusterTest = rpcBased.isClusterTest() ? "1" : "0";
-            Integer simpling = appConfigUtil.getAppSamplingByAppName(rpcBased.getAppName());
+            Integer simpling = appConfigUtil.getAppSamplingByAppName("", "", rpcBased.getAppName());
             // 写入断言指标
             for (String exceptionType : exceptionTypeList) {
                 long successCount = 0;

@@ -19,6 +19,7 @@ import com.pamirs.pradar.log.parser.metrics.MetricsBased;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * @Author: xingchen
@@ -36,25 +37,40 @@ public class TraceMetrics extends MetricsBased {
      * 入口应用
      */
     private String traceAppName;
+    /**
+     * e2e成功次数
+     */
+    private long e2eSuccessCount;
+    /**
+     * e2e失败次数
+     */
+    private long e2eErrorCount;
+    /**
+     * 最大rt
+     */
+    private long maxRt;
+
 
     /**
      * 通过rpcBase的转换traceMetrics
      *
      * @param rpcBased
+     * @param exceptionTypeList
      * @return
      */
-    public static TraceMetrics convert(RpcBased rpcBased, int sampling) {
+    public static TraceMetrics convert(RpcBased rpcBased, int sampling, List<String> exceptionTypeList) {
         final TraceMetrics traceMetrics = new TraceMetrics();
         // 设置默认值
         traceMetrics.setAppName(rpcBased.getAppName());
         traceMetrics.setTraceAppName(rpcBased.getTraceAppName());
         traceMetrics.setTimestamp(rpcBased.getLogTime());
-        traceMetrics.setTotalRt(rpcBased.getCost() * sampling);
-        traceMetrics.setTotalCount(1L * sampling);
-        traceMetrics.setHitCount(0L);
-        traceMetrics.setQps(BigDecimal.ONE.multiply(BigDecimal.valueOf(sampling)));
         traceMetrics.setClusterTest(rpcBased.isClusterTest());
         traceMetrics.setTraceId(rpcBased.getTraceId());
+        traceMetrics.setTotalRt(rpcBased.getCost() * sampling);
+        traceMetrics.setMaxRt(rpcBased.getCost());
+        traceMetrics.setQps(BigDecimal.ONE.multiply(BigDecimal.valueOf(sampling)));
+        traceMetrics.setHitCount(0L);
+        traceMetrics.setTotalCount(1L * sampling);
         // 判断是否成功
         if (isSuccess(rpcBased)) {
             traceMetrics.setSuccessCount(1L * sampling);
@@ -63,8 +79,12 @@ public class TraceMetrics extends MetricsBased {
             traceMetrics.setSuccessCount(0L);
             traceMetrics.setFailureCount(1L * sampling);
         }
+        //由于e2e指标计算逻辑中将命中断言的数据认定为失败
+        traceMetrics.setE2eSuccessCount(exceptionTypeList.size() > 0 ? 0 : 1 * sampling);
+        traceMetrics.setE2eErrorCount(exceptionTypeList.size() > 0 ? 1 * sampling : 0);
         return traceMetrics;
     }
+
 
     public String getEntryIndex() {
         return entryIndex;
@@ -80,6 +100,30 @@ public class TraceMetrics extends MetricsBased {
 
     public void setTraceAppName(String traceAppName) {
         this.traceAppName = traceAppName;
+    }
+
+    public long getE2eSuccessCount() {
+        return e2eSuccessCount;
+    }
+
+    public void setE2eSuccessCount(long e2eSuccessCount) {
+        this.e2eSuccessCount = e2eSuccessCount;
+    }
+
+    public long getE2eErrorCount() {
+        return e2eErrorCount;
+    }
+
+    public void setE2eErrorCount(long e2eErrorCount) {
+        this.e2eErrorCount = e2eErrorCount;
+    }
+
+    public long getMaxRt() {
+        return maxRt;
+    }
+
+    public void setMaxRt(long maxRt) {
+        this.maxRt = maxRt;
     }
 
     public static boolean isSuccess(RpcBased rpcBased) {

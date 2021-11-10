@@ -24,6 +24,7 @@ import java.util.Map;
 
 /**
  * 日志解析工厂类
+ *
  * @author vincent
  */
 public class PradarPaserFactory {
@@ -36,6 +37,7 @@ public class PradarPaserFactory {
         dataParserMap.put(DataType.TRACE_LOG, new PradarLogParser());
         dataParserMap.put(DataType.METRICS_LOG, new PradarMetricsParser());
         dataParserMap.put(DataType.MONITOR_LOG, new PradarBaseParser());
+        dataParserMap.put(DataType.AGENT_LOG, new PradarAgentLogParser());
     }
 
     public static DataParser<String, DigestContext> getParser(Byte dataType) {

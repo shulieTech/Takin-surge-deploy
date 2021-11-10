@@ -20,8 +20,8 @@
 
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
-    <artifactId>surge-deploy</artifactId>
     <groupId>io.shulie.surge.data</groupId>
+    <artifactId>surge-deploy</artifactId>
     <version>1.0</version>
     <properties>
         <surge.data.version>1.0</surge.data.version>
@@ -31,6 +31,10 @@
         <java.version>1.8</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <log.protocol.version>2.0.5.3</log.protocol.version>
+        <log.remoting.version>2.0.5</log.remoting.version>
+        <log.rule.version>2.0.4</log.rule.version>
+        <log.assembler.version>2.0.4</log.assembler.version>
     </properties>
     <modules>
         <module>surge-deploy-pradar</module>
@@ -54,7 +58,7 @@
             <dependency>
                 <groupId>io.shulie.pradar</groupId>
                 <artifactId>log-protocol</artifactId>
-                <version>2.0.4.3</version>
+                <version>${log.protocol.version}</version>
             </dependency>
             <!-- mockito-->
             <dependency>

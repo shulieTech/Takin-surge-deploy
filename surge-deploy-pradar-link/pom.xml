@@ -25,8 +25,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>surge-deploy-pradar-link</artifactId>
-    <version>1.0.1</version>
-
+    <version>1.0.2.1</version>
 
     <dependencies>
         <dependency>
@@ -66,12 +65,6 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
             <version>1.9.4</version>
@@ -109,6 +102,11 @@
             <groupId>org.jooq</groupId>
             <artifactId>jooq-codegen</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.shulie.takin</groupId>
+            <artifactId>simulator-internal-bootstrap-api</artifactId>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
 </project>

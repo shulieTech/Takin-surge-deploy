@@ -34,21 +34,24 @@ public class LinkEntranceModel {
     Date gmtModify;
     String linkType;
     String upAppName;
+    String middlewareDetail;
+    String downAppName;
+    String defaultWhiteInfo;
 
     public static String getCols() {
-        return "(entrance_id,app_name,service_name,method_name,middleware_name,rpc_type,extend,link_type,up_app_name,gmt_modify)";
+        return "(entrance_id,app_name,service_name,method_name,middleware_name,rpc_type,extend,link_type,up_app_name,middleware_detail,down_app_name,default_white_info,gmt_modify)";
     }
 
     public static String getParamCols() {
-        return "(?,?,?,?,?,?,?,?,?,now())";
+        return "(?,?,?,?,?,?,?,?,?,?,?,?,now())";
     }
 
     public Object[] getValues() {
-        return new Object[]{entranceId, appName, serviceName, methodName, middlewareName, rpcType, extend, linkType, upAppName};
+        return new Object[]{entranceId, appName, serviceName, methodName, middlewareName, rpcType, extend, linkType, upAppName, middlewareDetail, downAppName, defaultWhiteInfo};
     }
 
     public static String getOnDuplicateCols() {
-        return "ON DUPLICATE KEY UPDATE service_name=VALUES(service_name),method_name=VALUES(method_name),middleware_name=VALUES(middleware_name),link_type=VALUES(link_type),up_app_name=VALUES(up_app_name),gmt_modify=VALUES(gmt_modify)";
+        return "ON DUPLICATE KEY UPDATE service_name=VALUES(service_name),method_name=VALUES(method_name),middleware_name=VALUES(middleware_name),link_type=VALUES(link_type),up_app_name=VALUES(up_app_name),middleware_detail=VALUES(middleware_detail),down_app_name=VALUES(down_app_name),default_white_info=VALUES(default_white_info),gmt_modify=VALUES(gmt_modify)";
     }
 
     public static LinkEntranceModel parseFromDataMap(Map<String, Object> dataMap) {
@@ -61,9 +64,8 @@ public class LinkEntranceModel {
 
             //如果是出口日志,并且中间件类型是HTTP,不区分methodName,相同path的接口只保存一条
             if ("1".equals(dataMap.get("linkType")) && "HTTP".equals(dataMap.get("middlewareName"))) {
-                calConditionList = Arrays.asList(new String[]{"serviceName", "appName", "rpcType", "middlewareName", "extend", "linkType"});
+                calConditionList = Arrays.asList(new String[]{"serviceName", "appName", "rpcType", "middlewareName", "extend", "linkType", "middlewareDetail"});
             }
-
             for (String key : calConditionList) {
                 sb.append(dataMap.get(key)).append('|');
             }
@@ -157,6 +159,30 @@ public class LinkEntranceModel {
         this.gmtModify = gmtModify;
     }
 
+    public String getMiddlewareDetail() {
+        return middlewareDetail;
+    }
+
+    public void setMiddlewareDetail(String middlewareDetail) {
+        this.middlewareDetail = middlewareDetail;
+    }
+
+    public String getDownAppName() {
+        return downAppName;
+    }
+
+    public void setDownAppName(String downAppName) {
+        this.downAppName = downAppName;
+    }
+
+    public String getDefaultWhiteInfo() {
+        return defaultWhiteInfo;
+    }
+
+    public void setDefaultWhiteInfo(String defaultWhiteInfo) {
+        this.defaultWhiteInfo = defaultWhiteInfo;
+    }
+
     @Override
     public String toString() {
         return "LinkEntranceModel{" +
@@ -167,8 +193,12 @@ public class LinkEntranceModel {
                 ", middlewareName='" + middlewareName + '\'' +
                 ", rpcType=" + rpcType +
                 ", extend='" + extend + '\'' +
+                ", gmtModify=" + gmtModify +
                 ", linkType='" + linkType + '\'' +
                 ", upAppName='" + upAppName + '\'' +
+                ", middlewareDetail='" + middlewareDetail + '\'' +
+                ", downAppName='" + downAppName + '\'' +
+                ", defaultWhiteInfo='" + defaultWhiteInfo + '\'' +
                 '}';
     }
 }

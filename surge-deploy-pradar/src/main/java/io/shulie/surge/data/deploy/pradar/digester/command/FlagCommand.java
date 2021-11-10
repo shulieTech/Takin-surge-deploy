@@ -17,21 +17,14 @@ package io.shulie.surge.data.deploy.pradar.digester.command;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.pamirs.pradar.log.parser.trace.AttachmentBased;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
-import io.shulie.surge.data.deploy.pradar.common.RuleLoader;
-import io.shulie.surge.data.deploy.pradar.model.RuleModel;
 import io.shulie.surge.data.deploy.pradar.common.TraceFlagEnum;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cglib.beans.BeanMap;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Objects;
 
 public class FlagCommand implements ClickhouseCommand {
     private static Logger logger = LoggerFactory.getLogger(FlagCommand.class);
@@ -48,7 +41,14 @@ public class FlagCommand implements ClickhouseCommand {
     public LinkedHashMap<String, Object> action(RpcBased rpcBased) {
         LinkedHashMap<String, Object> map = Maps.newLinkedHashMap();
         map.put("flag", TraceFlagEnum.LOG_OK.getCode());
-        map.put("flagMessage", "");
+
+        //放入attachment
+        AttachmentBased attachmentBased = rpcBased.getAttachmentBased();
+        if (attachmentBased != null) {
+            map.put("flagMessage", attachmentBased.getTemplateId() + "@##" + attachmentBased.getExt());
+        } else {
+            map.put("flagMessage", "");
+        }
         /*if (CollectionUtils.isNotEmpty(RuleLoader.flagRules)) {
             Map<String, Object> ctx = BeanMap.create(rpcBased);
             StringBuilder flagMessage = new StringBuilder();

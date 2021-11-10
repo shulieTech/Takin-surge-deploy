@@ -17,9 +17,7 @@ package io.shulie.surge.data.deploy.pradar.link.model;
 
 import com.alibaba.fastjson.JSONObject;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
-import org.apache.commons.lang3.StringUtils;
 
-import java.util.Collections;
 import java.util.Map;
 
 public class TTrackClickhouseModel {
@@ -56,15 +54,21 @@ public class TTrackClickhouseModel {
     private boolean async;
     private long timeMin;
     private String entranceServiceType;
-    long dateToMin;
-    String parsedServiceName;
-    String parsedMethod;
-    String parsedAppName;
-    String parsedExtend;
-    String log;
-    String version;
-    String hostIp;
-    String agentId;
+    private long dateToMin;
+    private String parsedServiceName;
+    private String parsedMethod;
+    private String parsedAppName;
+    private String parsedExtend;
+    private String log;
+    private String version;
+    private String hostIp;
+    private String agentId;
+
+    private String parsedMiddlewareName;
+    private String flag;
+    private String flagMessage;
+    private String taskId;
+
 
     public TTrackClickhouseModel() {
     }
@@ -107,6 +111,38 @@ public class TTrackClickhouseModel {
         rpcBased.setHostIp(hostIp);
         rpcBased.setAgentId(agentId);
         return rpcBased;
+    }
+
+    public String getParsedMiddlewareName() {
+        return parsedMiddlewareName;
+    }
+
+    public void setParsedMiddlewareName(String parsedMiddlewareName) {
+        this.parsedMiddlewareName = parsedMiddlewareName;
+    }
+
+    public String getFlag() {
+        return flag;
+    }
+
+    public void setFlag(String flag) {
+        this.flag = flag;
+    }
+
+    public String getFlagMessage() {
+        return flagMessage;
+    }
+
+    public void setFlagMessage(String flagMessage) {
+        this.flagMessage = flagMessage;
+    }
+
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
     }
 
     public String getAppName() {

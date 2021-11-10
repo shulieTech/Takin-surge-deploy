@@ -19,6 +19,7 @@ import com.google.common.collect.Maps;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.parser.DefaultRpcBasedParser;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 
 import java.util.Map;
 
@@ -36,6 +37,13 @@ public class DBClientRpcBasedParser extends DefaultRpcBasedParser {
 
     @Override
     public String methodParse(RpcBased rpcBased) {
+        if ("hbase".equalsIgnoreCase(rpcBased.getMiddlewareName())) {
+            String serviceName = rpcBased.getServiceName();
+            //解析出表名
+            //serviceName 2种格式  1:namespace:tableName 2: tableName
+            serviceName = serviceName.contains(":") ? serviceName.split(":")[1] : serviceName;
+            return serviceName;
+        }
         // 兼容新版本，1.6版本的日志，method为表名，低版本为空,低版本解析表名放到method中
         if (StringUtils.isBlank(rpcBased.getMethodName())) {
             return sqlParser.parse(rpcBased);
@@ -46,6 +54,10 @@ public class DBClientRpcBasedParser extends DefaultRpcBasedParser {
     @Override
     public String serviceParse(RpcBased rpcBased) {
         String serviceName = rpcBased.getServiceName();
+        if ("hbase".equalsIgnoreCase(rpcBased.getMiddlewareName())) {
+            //serviceName 2种格式  1:namespace:tableName 2: tableName
+            return serviceName.contains(":") ? serviceName.split(":")[0] : "default";
+        }
         if (StringUtils.isNotBlank(serviceName)) {
             if (serviceName.contains("?")) {
                 return serviceName.substring(0, serviceName.indexOf("?"));
@@ -61,7 +73,7 @@ public class DBClientRpcBasedParser extends DefaultRpcBasedParser {
     @Override
     public String appNameParse(RpcBased rpcBased) {
         String addr = rpcBased.getRemoteIp();
-        String port = rpcBased.getPort();
+        int port = NumberUtils.toInt(rpcBased.getPort(), 0);
         String dbType = rpcBased.getMiddlewareName();
         String serviceName = serviceParse(rpcBased);
         String appName = dbType + " " + addr + ":" + port + ":" + serviceName;

@@ -20,6 +20,7 @@ import com.google.common.collect.Maps;
 import com.pamirs.pradar.log.parser.DataType;
 import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
+import io.shulie.surge.data.deploy.pradar.digester.AgentInfoDigester;
 import io.shulie.surge.data.deploy.pradar.digester.BaseDataDigester;
 import io.shulie.surge.data.deploy.pradar.digester.LogDigester;
 import io.shulie.surge.data.deploy.pradar.digester.MetricsDigester;
@@ -157,6 +158,17 @@ public class PradarSupplierConfiguration {
     public DataDigester[] buildMonitorProcess(DataRuntime dataRuntime) {
         BaseDataDigester baseDataDigester = dataRuntime.getInstance(BaseDataDigester.class);
         return new DataDigester[]{baseDataDigester};
+    }
+
+    /**
+     * agent日志处理
+     *
+     * @param dataRuntime
+     * @return
+     */
+    public DataDigester[] buildAgentProcess(DataRuntime dataRuntime) {
+        DataDigester agentInfoDigester = dataRuntime.getInstance(AgentInfoDigester.class);
+        return new DataDigester[]{agentInfoDigester};
     }
 
     /**

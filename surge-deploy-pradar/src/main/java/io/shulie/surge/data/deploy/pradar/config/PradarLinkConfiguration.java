@@ -25,10 +25,12 @@ import io.shulie.surge.data.deploy.pradar.link.AbstractLinkCache;
 import io.shulie.surge.data.deploy.pradar.link.processor.*;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
+import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
 import io.shulie.surge.deploy.pradar.common.CommonStat;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,14 +82,18 @@ public class PradarLinkConfiguration {
      */
     public void initWithTaskSize(List<String> allTaskIds, String currentTaskId) {
         DataRuntime dataRuntime = initDataRuntime();
-        Scheduler scheduler = new Scheduler(6);
+        Scheduler scheduler = new Scheduler(2);
         try {
+            ApiProcessor apiProcessor = dataRuntime.getInstance(ApiProcessor.class);
+            apiProcessor.init();
+
             /**
              * 链路梳理任务，此功能是将配置了业务活动的入口，梳理其链路图
              */
+            ScheduledExecutorService linkScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("LinkProcessor-%d").build());
             LinkProcessor linkProcessor = dataRuntime.getInstance(LinkProcessor.class);
             linkProcessor.init(dataSourceType);
-            scheduler.scheduleAtFixedRate(new Runnable() {
+            linkScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -101,15 +107,41 @@ public class PradarLinkConfiguration {
             /**
              * 链路入口梳理
              */
+            ScheduledExecutorService entranceScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("EntranceProcessor-%d").build());
             EntranceProcessor entranceProcessor = dataRuntime.getInstance(EntranceProcessor.class);
             entranceProcessor.init(dataSourceType);
-            scheduler.scheduleAtFixedRate(new Runnable() {
+            entranceScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     try {
+                        logger.info("EntranceProcessor start run:{}", DateFormatUtils.format(
+                                System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
                         entranceProcessor.share(allTaskIds, currentTaskId);
+                        logger.info("EntranceProcessor run finish:{}", DateFormatUtils.format(
+                                System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
                     } catch (Throwable e) {
                         logger.error("do link_entrance task error!", e);
+                    }
+                }
+            }, defaultDelayTime, periodTime, TimeUnit.SECONDS);
+
+            /**
+             * 链路出口(远程调用)梳理
+             */
+            ScheduledExecutorService exitScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("ExitProcessor-%d").build());
+            ExitProcessor exitProcessor = dataRuntime.getInstance(ExitProcessor.class);
+            exitProcessor.init(dataSourceType);
+            exitScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        logger.info("ExitProcessor start run:{}", DateFormatUtils.format(
+                                System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
+                        exitProcessor.share(allTaskIds, currentTaskId);
+                        logger.info("ExitProcessor run finish:{}", DateFormatUtils.format(
+                                System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
+                    } catch (Throwable e) {
+                        logger.error("do link_exit task error!", e);
                     }
                 }
             }, defaultDelayTime, periodTime, TimeUnit.SECONDS);
@@ -118,13 +150,27 @@ public class PradarLinkConfiguration {
                 @Override
                 public void run() {
                     try {
-                        // 两天未更新删除
+                        // 两天未更新删除出口和入口
                         entranceProcessor.shareExpire(2);
                     } catch (Exception e) {
                         logger.error("do EntranceProcessor.shareExpire task error!", e);
                     }
                 }
             }, defaultDelayTime, 5, TimeUnit.HOURS);
+
+            // 影子库表梳理
+            ShadowDatabaseProcessor shadowDatabaseProcessor = dataRuntime.getInstance(ShadowDatabaseProcessor.class);
+            shadowDatabaseProcessor.init(dataSourceType);
+            scheduler.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        shadowDatabaseProcessor.share(allTaskIds, currentTaskId);
+                    } catch (Throwable e) {
+                        logger.error("do shadow_database task error!", e);
+                    }
+                }
+            }, defaultDelayTime, periodTime, TimeUnit.SECONDS);
 
             processUnknow(dataRuntime, linkProcessor.getLinkCache(), allTaskIds, currentTaskId);
         } catch (Exception e) {

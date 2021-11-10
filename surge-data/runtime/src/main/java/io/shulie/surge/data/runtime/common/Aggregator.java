@@ -1,4 +1,4 @@
-/*
+package io.shulie.surge.data.runtime.common;/*
 package io.shulie.surge.data.runtime.common;
 
 import com.google.inject.Singleton;

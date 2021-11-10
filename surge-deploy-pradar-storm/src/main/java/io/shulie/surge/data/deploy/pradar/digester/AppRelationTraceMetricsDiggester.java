@@ -98,7 +98,7 @@ public class AppRelationTraceMetricsDiggester implements DataDigester<RpcBased> 
         // 总次数/成功次数/totalRt/错误次数/totalQps
         long successCount = TraceMetrics.isSuccess(rpcBased) ? 1 : 0;
         long failureCount = 1 - successCount;
-        Integer simpling = appConfigUtil.getAppSamplingByAppName(rpcBased.getAppName());
+        Integer simpling = appConfigUtil.getAppSamplingByAppName("", "", rpcBased.getAppName());
         CallStat callStat = new CallStat(
                 simpling * 1L, simpling * successCount, simpling * rpcBased.getCost(),
                 simpling * failureCount, simpling);

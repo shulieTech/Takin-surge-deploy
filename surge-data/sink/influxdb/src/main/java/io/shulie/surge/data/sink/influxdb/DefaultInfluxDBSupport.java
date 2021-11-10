@@ -135,7 +135,7 @@ public class DefaultInfluxDBSupport implements InfluxDBSupport {
     @Override
     public void createRetentionPolicy(String dataBase, String policyName, String duration, int replication) {
         String command = String.format("CREATE RETENTION POLICY \"%s\" ON \"%s\" DURATION %s REPLICATION %s DEFAULT",
-                policyName, dataBase, duration + "d", replication);
+                policyName, dataBase, duration + "h", replication);
         influxDB.query(new Query(command, dataBase));
     }
 

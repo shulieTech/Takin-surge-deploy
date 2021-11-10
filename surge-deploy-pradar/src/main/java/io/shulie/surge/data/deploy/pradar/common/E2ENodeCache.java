@@ -183,7 +183,7 @@ public class E2ENodeCache {
         String code = (String) e2eAssertConf.get("assertCode");
         String condition = (String) e2eAssertConf.get("assertCondition");
         String result = (String) e2eAssertConf.get("result");
-        Rule.RuleType ruleType = RuleType.tiny;
+        RuleType ruleType = RuleType.tiny;
         return new Rule(code, condition, result, ruleType);
     }
 }

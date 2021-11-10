@@ -175,13 +175,13 @@ public class HBaseDAO {
             for (Result result : results) {
                 if (resultIncludeRowKey) {
                     map = new LinkedHashMap<String, String>(result.size() + 1);
-                    map.put(resultMapKeyNameForRowKey, io.shulie.surge.data.common.utils.Bytes.toString(result.getRow()));
+                    map.put(resultMapKeyNameForRowKey, Bytes.toString(result.getRow()));
                 } else {
                     map = new LinkedHashMap<String, String>(result.size());
                 }
 
                 for (KeyValue kv : result.raw()) {
-                    map.put(io.shulie.surge.data.common.utils.Bytes.toString(kv.getQualifier()), io.shulie.surge.data.common.utils.Bytes.toString(kv.getValue()));
+                    map.put(Bytes.toString(kv.getQualifier()), Bytes.toString(kv.getValue()));
                 }
 
                 resultList.add(map);
@@ -192,7 +192,7 @@ public class HBaseDAO {
             String rowKey;
             for (Result result : results) {
                 timestampMap = new LinkedHashMap<Long, Map<String, String>>(maxVersions);
-                rowKey = io.shulie.surge.data.common.utils.Bytes.toString(result.getRow());
+                rowKey = Bytes.toString(result.getRow());
 
                 for (KeyValue kv : result.raw()) {
                     timestamp = kv.getTimestamp();
@@ -209,7 +209,7 @@ public class HBaseDAO {
                         resultList.add(map);
                     }
 
-                    map.put(io.shulie.surge.data.common.utils.Bytes.toString(kv.getQualifier()), Bytes.toString(kv.getValue()));
+                    map.put(Bytes.toString(kv.getQualifier()), Bytes.toString(kv.getValue()));
                 }
             }
         }

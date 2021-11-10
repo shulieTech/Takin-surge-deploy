@@ -52,12 +52,15 @@ public class PradarLinkTopology {
         Integer workers = Integer.valueOf(inputMap.get(ParamUtil.WORKERS));
         //移除无关参数
         inputMap.remove(ParamUtil.REGISTERZK);
-
         Config config = StormConfig.createConfig(workers);
         config.putAll(inputMap);
 
         TopologyBuilder topologyBuilder = createLogBuilder(workers);
-        StormSubmitter.submitTopology(PradarLinkTopology.class.getSimpleName(), config, topologyBuilder.createTopology());
+        if (inputMap.containsKey(ParamUtil.TOPOLOGY_NAME)) {
+            StormSubmitter.submitTopology(inputMap.get(ParamUtil.TOPOLOGY_NAME), config, topologyBuilder.createTopology());
+        } else {
+            StormSubmitter.submitTopology(PradarLinkTopology.class.getSimpleName(), config, topologyBuilder.createTopology());
+        }
     }
 }
 
