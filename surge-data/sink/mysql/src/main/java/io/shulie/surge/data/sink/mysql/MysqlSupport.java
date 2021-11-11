@@ -23,9 +23,8 @@ import com.google.inject.name.Named;
 import io.shulie.surge.data.common.batch.CountRotationPolicy;
 import io.shulie.surge.data.common.batch.RotationBatch;
 import io.shulie.surge.data.common.batch.TimedRotationPolicy;
-import io.shulie.surge.data.common.lifecycle.Lifecycle;
-import io.shulie.surge.data.common.lifecycle.Stoppable;
 import io.shulie.surge.data.common.utils.Pair;
+import io.shulie.surge.data.runtime.common.DataOperations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -48,7 +47,7 @@ import java.util.concurrent.TimeUnit;
  * @author pamirs
  */
 
-public class MysqlSupport implements Lifecycle, Stoppable {
+public class MysqlSupport implements DataOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(MysqlSupport.class);
 
@@ -289,5 +288,19 @@ public class MysqlSupport implements Lifecycle, Stoppable {
             jdbcTemplate = new JdbcTemplate(dataSource);
         }
         return jdbcTemplate.query(sql, rowMapper);
+    }
+
+    public void batchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
+        shardBatchArgs.forEach((key, value) -> {
+            batchUpdate(sql, value);
+        });
+    }
+
+    @Override
+    public void execute(String sql) {
+        if (jdbcTemplate == null) {
+            jdbcTemplate = new JdbcTemplate(dataSource);
+        }
+        jdbcTemplate.execute(sql);
     }
 }

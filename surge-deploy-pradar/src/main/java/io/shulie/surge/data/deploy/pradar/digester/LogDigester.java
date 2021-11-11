@@ -20,7 +20,10 @@ import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
+import io.shulie.surge.config.clickhouse.ClickhouseTemplateHolder;
+import io.shulie.surge.config.clickhouse.ClickhouseTemplateManager;
 import io.shulie.surge.data.deploy.pradar.common.PradarUtils;
 import io.shulie.surge.data.deploy.pradar.digester.command.BaseCommand;
 import io.shulie.surge.data.deploy.pradar.digester.command.ClickhouseFacade;
@@ -31,9 +34,6 @@ import io.shulie.surge.data.runtime.common.remote.Remote;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
-import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
-import io.shulie.surge.data.sink.mysql.MysqlSupport;
-import io.shulie.surge.deploy.pradar.common.CommonStat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -52,10 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class LogDigester implements DataDigester<RpcBased> {
     private static final Logger logger = LoggerFactory.getLogger(LogDigester.class);
     @Inject
-    private ClickHouseShardSupport clickHouseShardSupport;
-
-    @Inject
-    private MysqlSupport mysqlSupport;
+    private ClickhouseTemplateManager clickhouseTemplateManager;
 
     /**
      * clickhouse和mysql切换
@@ -76,17 +73,13 @@ public class LogDigester implements DataDigester<RpcBased> {
 
     private ClickhouseFacade clickhouseFacade = ClickhouseFacade.Factory.getInstace();
 
-    private String sql = "";
+    private String columnAndValuesSql = "";
 
     public void init() {
-        String tableName = "t_trace_all";
-        if (CommonStat.isUseCk(this.dataSourceType)) {
-            tableName = clickHouseShardSupport.isCluster() ? "t_trace" : "t_trace_all";
-        }
         clickhouseFacade.addCommond(new BaseCommand());
         clickhouseFacade.addCommond(new LinkCommand());
         clickhouseFacade.addCommond(new FlagCommand());
-        sql = "insert into " + tableName + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
+        columnAndValuesSql = " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
     }
 
     @Override
@@ -120,12 +113,10 @@ public class LogDigester implements DataDigester<RpcBased> {
             Map<String, List<Object[]>> objMap = Maps.newHashMap();
             objMap.put(rpcBased.getTraceId(), batchs);
 
-            // TODO 此修改支持mysql和clickhouse写入,代码不是很友好，后续剥离出来
-            if (CommonStat.isUseCk(dataSourceType)) {
-                clickHouseShardSupport.batchUpdate(sql, objMap);
-            } else {
-                mysqlSupport.batchUpdate(sql, batchs);
-            }
+            String userAppKey = rpcBased.getUserAppKey();
+            String envCode = rpcBased.getEnvCode();
+            ClickhouseTemplateHolder holder = clickhouseTemplateManager.getTemplateHolder(userAppKey, envCode, true);
+            holder.getTemplate().batchUpdate(String.format("insert into %s ", holder.getTableName()) + columnAndValuesSql, objMap);
         } catch (Throwable e) {
             logger.warn("fail to write clickhouse, log: " + rpcBased.getLog() + ", error:" + ExceptionUtils.getStackTrace(e));
         }
@@ -140,21 +131,13 @@ public class LogDigester implements DataDigester<RpcBased> {
     @Override
     public void stop() {
         try {
-            this.clickHouseShardSupport.stop();
+            this.clickhouseTemplateManager.stop();
         } catch (Throwable e) {
-            logger.error("clickhouse stop fail");
+            logger.error("clickhouseTemplateManager stop fail");
         }
     }
 
     public void setDataSourceType(String dataSourceType) {
         this.dataSourceType = dataSourceType;
-    }
-
-    public Remote<Boolean> getClickhouseDisable() {
-        return clickhouseDisable;
-    }
-
-    public Remote<Integer> getClickhouseSampling() {
-        return clickhouseSampling;
     }
 }

@@ -18,6 +18,9 @@ package io.shulie.surge.data.deploy.pradar.link.processor;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import io.shulie.surge.config.clickhouse.ClickhouseTemplateHolder;
+import io.shulie.surge.config.clickhouse.ClickhouseTemplateManager;
+import io.shulie.surge.config.common.model.TenantAppEntity;
 import io.shulie.surge.data.common.utils.DateUtils;
 import io.shulie.surge.data.common.utils.Pair;
 import io.shulie.surge.data.deploy.pradar.link.TaskManager;
@@ -26,15 +29,16 @@ import io.shulie.surge.data.deploy.pradar.link.model.LinkEntranceModel;
 import io.shulie.surge.data.deploy.pradar.link.util.StringUtil;
 import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
 import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
+import io.shulie.surge.data.runtime.common.DataOperations;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
-import io.shulie.surge.data.sink.clickhouse.ClickHouseSupport;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.util.*;
@@ -51,13 +55,13 @@ public class EntranceProcessor extends AbstractProcessor {
     private static final String LINK_ENTRANCE_NAME = "t_amdb_pradar_link_entrance";
 
     @Inject
-    private ClickHouseSupport clickHouseSupport;
+    private ClickhouseTemplateManager clickhouseTemplateManager;
 
     @Inject
     private MysqlSupport mysqlSupport;
 
     @Inject
-    private TaskManager<String, String> taskManager;
+    private TaskManager<String, TenantAppEntity> taskManager;
 
     /**
      * 是否开启入口功能扫描
@@ -78,7 +82,7 @@ public class EntranceProcessor extends AbstractProcessor {
     String linkEntranceInsertSql = "";
     String linkEntranceDeleteSql = "";
 
-    private static int DEFAULT_DELAY_TIME = 2;
+    private static final int DEFAULT_DELAY_TIME = 2;
 
     public void init(String dataSourceType) {
         //设置数据源
@@ -90,10 +94,8 @@ public class EntranceProcessor extends AbstractProcessor {
 
     private Pair<String, String> getStartAndEndTime() {
         long now = System.currentTimeMillis();
-        String startTime = DateFormatUtils.format(
-                now - DEFAULT_DELAY_TIME * 60 * 1000, "yyyy-MM-dd HH:mm:ss");
-        String endTime = DateFormatUtils.format(
-                now - 5000, "yyyy-MM-dd HH:mm:ss");
+        String startTime = DateFormatUtils.format(now - DEFAULT_DELAY_TIME * 60 * 1000, "yyyy-MM-dd HH:mm:ss");
+        String endTime = DateFormatUtils.format(now - 5000, "yyyy-MM-dd HH:mm:ss");
         return new Pair<>(startTime, endTime);
     }
 
@@ -111,12 +113,9 @@ public class EntranceProcessor extends AbstractProcessor {
             return;
         }
         Pair<String, String> timePair = getStartAndEndTime();
-        List<Map<String, Object>> appNames = queryAppNames(timePair);
-        if (CollectionUtils.isNotEmpty(appNames)) {
-            appNames.stream().forEach(appNameMap -> {
-                String key = appNameMap.get("userAppKey") + "#" + appNameMap.get("envCode") + "#" + appNameMap.get("appName");
-                saveEntrance(key, timePair);
-            });
+        List<TenantAppEntity> activeAppNames = queryActiveAppNames(timePair);
+        if (!CollectionUtils.isEmpty(activeAppNames)) {
+            activeAppNames.forEach(appEntity -> saveEntrance(appEntity, timePair));
         }
     }
 
@@ -139,12 +138,11 @@ public class EntranceProcessor extends AbstractProcessor {
             return;
         }
         Pair<String, String> timePair = getStartAndEndTime();
-        List<Map<String, Object>> appNames = queryAppNames(timePair);
-        if (CollectionUtils.isNotEmpty(appNames)) {
-            appNames.stream().forEach(appNameMap -> {
-                String key = appNameMap.get("userAppKey") + "#" + appNameMap.get("envCode") + "#" + appNameMap.get("appName");
-                if (key.hashCode() % taskId == 0) {
-                    saveEntrance(key, timePair);
+        List<TenantAppEntity> activeAppNames = queryActiveAppNames(timePair);
+        if (CollectionUtils.isEmpty(activeAppNames)) {
+            activeAppNames.forEach(appEntity -> {
+                if (appEntity.getAppName().hashCode() % taskId == 0) {
+                    saveEntrance(appEntity, timePair);
                 }
             });
         }
@@ -165,12 +163,9 @@ public class EntranceProcessor extends AbstractProcessor {
             return;
         }
         Pair<String, String> timePair = getStartAndEndTime();
-        List<Map<String, Object>> appNames = queryAppNames(timePair);
-        if (CollectionUtils.isNotEmpty(appNames)) {
-            appNames.stream().forEach(appNameMap -> {
-                String key = appNameMap.get("userAppKey") + "#" + appNameMap.get("envCode") + "#" + appNameMap.get("appName");
-                saveEntrance(key, timePair);
-            });
+        List<TenantAppEntity> activeAppNames = queryActiveAppNames(timePair);
+        if (!CollectionUtils.isEmpty(activeAppNames)) {
+            activeAppNames.forEach(appEntity -> saveEntrance(appEntity, timePair));
         }
     }
 
@@ -194,70 +189,71 @@ public class EntranceProcessor extends AbstractProcessor {
             return;
         }
         Pair<String, String> timePair = getStartAndEndTime();
-        List<Map<String, Object>> appNames = queryAppNames(timePair);
-        if (CollectionUtils.isNotEmpty(appNames)) {
-            Map<String, List<Map<String, Object>>> nameMap = appNames.stream().collect(
-                    Collectors.groupingBy(name -> name.get("userAppKey") + "#" + name.get("envCode") + "#" + name.get("appName")));
-            List<String> nameList = new ArrayList<>(nameMap.keySet());
-            Map<String, List<String>> idMap = taskManager.allotOfAverage(taskIds, nameList);
-            List<String> avgList = idMap.get(currentId);
-            if (CollectionUtils.isNotEmpty(avgList)) {
-                avgList.stream().forEach(avg -> {
-                    Optional<Map<String, Object>> appMap = nameMap.get(avg).stream().findFirst();
-                    if (appMap.isPresent()) {
-                        saveEntrance(appMap.get().get("userAppKey") + "#" + appMap.get().get("envCode") + "#" + appMap.get().get("appName"), timePair);
-                    }
-                });
+        List<TenantAppEntity> activeAppNames = queryActiveAppNames(timePair);
+        if (!CollectionUtils.isEmpty(activeAppNames)) {
+            Map<String, List<TenantAppEntity>> idMap = taskManager.allotOfAverage(taskIds, activeAppNames);
+            List<TenantAppEntity> avgList = idMap.get(currentId);
+            if (!CollectionUtils.isEmpty(avgList)) {
+                avgList.forEach(appEntity -> saveEntrance(appEntity, timePair));
             }
         }
     }
 
-    /**
-     * 读取所有的应用名
-     *
-     * @param timePair
-     * @return
-     */
-    public List<Map<String, Object>> queryAppNames(Pair timePair) {
-        try {
-            //统计当前时间往前两分钟到当前时间往前5s期间有服务端和入口日志的应用列表
-            String appNameSql = "select userAppKey,envCode,appName from t_trace_all where startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and logType in (1,3) group by userAppKey,envCode,appName";
-            if (isUseCk()) {
-                return clickHouseSupport.queryForList(appNameSql);
-            } else {
-                return mysqlSupport.queryForList(appNameSql);
-            }
-        } catch (Throwable e) {
-            logger.error("query appNames error " + ExceptionUtils.getStackTrace(e));
+
+    // 遍历所有的数据源，获取到对应的活动的appName，然后通过appName再去查询对应的trace日志做出口的分析
+    private List<TenantAppEntity> queryActiveAppNames(Pair<String, String> timePair) {
+        // 统计当前时间往前两分钟到当前时间往前5s期间有服务端和入口日志的应用列表
+        String sqlTemplate = "select userAppKey,envCode,appName from %s where startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and logType in (1,3) group by userAppKey,envCode,appName";
+        Map<String, ClickhouseTemplateHolder> templateMap = clickhouseTemplateManager.getQueryTemplateMap();
+        if (templateMap.isEmpty()) {
+            return new ArrayList<>(0);
         }
-        return Collections.EMPTY_LIST;
+        List<TenantAppEntity> result = new ArrayList<>();
+        templateMap.forEach((key, value) -> {
+            DataOperations template = value.getTemplate();
+            String tableName = value.getTableName();
+            try {
+                List<TenantAppEntity> appEntities = template.query(String.format(sqlTemplate, tableName), new BeanPropertyRowMapper<>(TenantAppEntity.class));
+                if (!CollectionUtils.isEmpty(appEntities)) {
+                    result.addAll(appEntities);
+                }
+            } catch (Exception e) {
+                logger.error("entranceProcessor query appNames error key=[{}]", key, e);
+            }
+        });
+        return result;
     }
 
     public static final int SERVICE_LENGTH_FIELD = 256;
 
     /**
      * 保存链路入口信息
+     * @param appEntity 租户应用实体
+     * @param timePair 时间段
      */
-    public void saveEntrance(String key, Pair timePair) {
+    public void saveEntrance(TenantAppEntity appEntity, Pair<String, String> timePair) {
+        String appName = appEntity.getAppName();
         //压测引擎的不处理
-        if (key.contains("pressure-engine")) {
+        if (appName.contains("pressure-engine")) {
             return;
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("saveEntrance:{},startTime,endTime:{}", key, timePair);
+            logger.debug("saveEntrance:{},startTime,endTime:{}", appName, timePair);
         }
         try {
-            List<Map<String, Object>> entranceMapList = queryEntrance(key, timePair);
+            List<Map<String, Object>> entranceMapList = queryEntrance(appEntity, timePair);
             if (CollectionUtils.isEmpty(entranceMapList)) {
                 return;
             }
+            String userAppKey = appEntity.getUserAppKey();
+            String envCode = appEntity.getEnvCode();
             //对于serviceName和methodName超过256的入口,采取截断方式
             entranceMapList = entranceMapList.stream().map(entranceMap -> {
                 //parsedMiddlewareName改名为middlewareName
                 entranceMap.put("middlewareName", StringUtil.formatString(entranceMap.get("parsedMiddlewareName")));
                 entranceMap.remove("parsedMiddlewareName");
-                entranceMap.put("userAppKey", key.split("#")[0]);
-                entranceMap.put("envCode", key.split("#")[1]);
+                entranceMap.put("userAppKey", userAppKey);
+                entranceMap.put("envCode", envCode);
 
                 String oriServiceName = StringUtil.formatString(entranceMap.get("serviceName"));
                 String oriMethodName = StringUtil.formatString(entranceMap.get("methodName"));
@@ -278,7 +274,7 @@ public class EntranceProcessor extends AbstractProcessor {
                             -> new TreeSet<>(Comparator.comparing(LinkEntranceModel::getEntranceId))), ArrayList::new));
             mysqlSupport.batchUpdate(linkEntranceInsertSql, new ArrayList<>(
                     linkEntranceModels.stream().map(LinkEntranceModel::getValues).collect(Collectors.toSet())));
-            logger.info("{} saveEntrance is ok,size: {}", key, entranceMapList.size());
+            logger.info("{} saveEntrance is ok,size: {}", appName, entranceMapList.size());
         } catch (Throwable e) {
             logger.error("saveEntrance error!" + ExceptionUtils.getStackTrace(e));
             //ignore
@@ -292,33 +288,30 @@ public class EntranceProcessor extends AbstractProcessor {
      * 对于logType是trace日志或者server日志,rpcType只有webServer、rpc、MQ类型
      * 综上,两种条件取并集,确实能涵盖服务类型是http,dubbo,rocketMQ,kafka,elasticjob几种
      *
-     * @param key,timePair
+     * @param appEntity 租户应用实体
+     * @param timePair 时间段
      */
-    public List<Map<String, Object>> queryEntrance(String key, Pair timePair) {
-        List<Map<String, Object>> entranceList;
+    public List<Map<String, Object>> queryEntrance(TenantAppEntity appEntity, Pair<String, String> timePair) {
         StringBuilder entranceSql = new StringBuilder();
-        String[] arr = key.split("#");
-        String userAppKey = arr[0];
-        String envCode = arr[1];
-        String appName = arr[2];
+        ClickhouseTemplateHolder holder = clickhouseTemplateManager.getTemplateHolder(appEntity.getUserAppKey(), appEntity.getEnvCode(), false);
+        DataOperations template = holder.getTemplate();
         try {
-            buildQueryCkSql(appName, userAppKey, envCode, timePair, entranceSql);
-            logger.info("queryEntrance:{}", entranceSql);
-            if (this.isUseCk()) {
-                entranceList = clickHouseSupport.queryForList(entranceSql.toString());
-            } else {
-                entranceList = mysqlSupport.queryForList(entranceSql.toString());
-            }
-            return entranceList;
+            buildQueryCkSql(appEntity, holder.getTableName(), timePair, entranceSql);
+            String executeSql = entranceSql.toString();
+            logger.info("queryEntrance:{}", executeSql);
+            return template.queryForList(executeSql);
         } catch (Throwable e) {
             logger.error("query queryEntrance error " + ExceptionUtils.getStackTrace(e));
         }
-        return Collections.EMPTY_LIST;
+        return new ArrayList<>(0);
     }
 
-    private void buildQueryCkSql(String appName, String userAppKey, String envCode, Pair timePair, StringBuilder entranceSql) {
+    private void buildQueryCkSql(TenantAppEntity appEntity, String tableName, Pair<String, String> timePair, StringBuilder entranceSql) {
         //查询入口数据(HTTP/DUBBO/JOB)
-        entranceSql.append(SqlConstants.QUERY_ENTRANCE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and " + "(rpcType in ('" + MiddlewareType.TYPE_WEB_SERVER + "','" + MiddlewareType.TYPE_JOB + "') or logType in ('" + PradarLogType.LOG_TYPE_RPC_SERVER + "','" + PradarLogType.LOG_TYPE_TRACE + "'))  and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "'  limit 100 ");
+        String appName = appEntity.getAppName();
+        String userAppKey = appEntity.getUserAppKey();
+        String envCode = appEntity.getEnvCode();
+        entranceSql.append(String.format(SqlConstants.QUERY_ENTRANCE_SQL, tableName) + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and " + "(rpcType in ('" + MiddlewareType.TYPE_WEB_SERVER + "','" + MiddlewareType.TYPE_JOB + "') or logType in ('" + PradarLogType.LOG_TYPE_RPC_SERVER + "','" + PradarLogType.LOG_TYPE_TRACE + "'))  and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "'  limit 100 ");
     }
 
     /**

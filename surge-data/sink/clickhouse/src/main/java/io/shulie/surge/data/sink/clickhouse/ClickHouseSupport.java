@@ -24,12 +24,12 @@ import com.google.inject.name.Named;
 import io.shulie.surge.data.common.batch.CountRotationPolicy;
 import io.shulie.surge.data.common.batch.RotationBatch;
 import io.shulie.surge.data.common.batch.TimedRotationPolicy;
-import io.shulie.surge.data.common.lifecycle.Lifecycle;
-import io.shulie.surge.data.common.lifecycle.Stoppable;
+import io.shulie.surge.data.runtime.common.DataOperations;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import ru.yandex.clickhouse.BalancedClickhouseDataSource;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  *
  * @author pamirs
  */
-public class ClickHouseSupport implements Lifecycle, Stoppable {
+public class ClickHouseSupport implements DataOperations {
     private static final Logger logger = LoggerFactory.getLogger(ClickHouseSupport.class);
 
     private DataSource clickHouseDataSource;
@@ -225,5 +225,14 @@ public class ClickHouseSupport implements Lifecycle, Stoppable {
      */
     public List<Map<String, Object>> queryForList(String sql) {
         return jdbcTemplate.queryForList(sql);
+    }
+
+    @Override
+    public void execute(String sql) {
+        jdbcTemplate.execute(sql);
+    }
+
+    public <T> List<T> query(String sql, RowMapper<T> rowMapper) {
+        return jdbcTemplate.query(sql, rowMapper);
     }
 }

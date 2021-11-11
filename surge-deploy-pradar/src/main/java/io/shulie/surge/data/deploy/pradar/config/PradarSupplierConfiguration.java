@@ -18,6 +18,7 @@ package io.shulie.surge.data.deploy.pradar.config;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.pamirs.pradar.log.parser.DataType;
+import io.shulie.surge.config.clickhouse.ClickhouseTemplateManagerModule;
 import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
 import io.shulie.surge.data.deploy.pradar.digester.AgentInfoDigester;
@@ -29,8 +30,6 @@ import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.processor.DataQueue;
 import io.shulie.surge.data.runtime.processor.ProcessorConfigSpec;
-import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
-import io.shulie.surge.data.sink.clickhouse.ClickHouseShardModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingModule;
@@ -45,6 +44,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Objects;
+
+import static io.shulie.surge.config.clickhouse.ClickhouseTemplateManager.DATA_SOURCE_KEY;
 
 /**
  * pradar supplier初始化
@@ -116,13 +117,13 @@ public class PradarSupplierConfiguration {
     public DataRuntime initDataRuntime() {
         DataBootstrap bootstrap = DataBootstrap.create("deploy.properties", "pradar");
         DataBootstrapEnhancer.enhancer(bootstrap);
+        bootstrap.getProperties().put(DATA_SOURCE_KEY, StringUtils.isBlank(dataSourceType) ? CommonStat.CLICKHOUSE : dataSourceType);
         bootstrap.install(
                 new PradarModule(workPort),
                 new NettyRemotingModule(),
                 new InfluxDBModule(),
-                new ClickHouseModule(),
-                new ClickHouseShardModule(),
-                new MysqlModule());
+                new MysqlModule(),
+                new ClickhouseTemplateManagerModule());
         DataRuntime dataRuntime = bootstrap.startRuntime();
         return dataRuntime;
     }

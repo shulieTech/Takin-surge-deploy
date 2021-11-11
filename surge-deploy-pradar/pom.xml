@@ -142,6 +142,12 @@
             <version>${surge.deploy.pradar.link.version}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>clickhouse-config</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <build>
         <!--jar包的首名称-->

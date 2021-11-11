@@ -44,6 +44,7 @@
         <module>surge-deploy-pradar-parser</module>
         <module>surge-deploy-pradar-link</module>
         <module>surge-data</module>
+        <module>surge-config</module>
     </modules>
 
     <dependencies>

@@ -17,59 +17,48 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
     <parent>
-        <artifactId>surge-data</artifactId>
+        <artifactId>surge-config</artifactId>
         <groupId>io.shulie.surge.data</groupId>
-        <version>1.0</version>
+        <version>1.0-SNAPSHOT</version>
     </parent>
-
-    <groupId>io.shulie.surge.data</groupId>
-    <artifactId>runtime</artifactId>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>clickhouse-config</artifactId>
 
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-            <version>1.2.72</version>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>runtime</artifactId>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>clickhouse</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.inject</groupId>
-            <artifactId>guice</artifactId>
-            <version>3.0</version>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>mysql</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.8.6</version>
-            <scope>compile</scope>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>surge-deploy-pradar-common</artifactId>
         </dependency>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
+            <groupId>io.shulie.pradar</groupId>
+            <artifactId>log-protocol</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-            <version>5.2.9.RELEASE</version>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>config-common</artifactId>
+            <version>${version}</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-jdbc</artifactId>
-            <version>5.0.6.RELEASE</version>
-            <scope>compile</scope>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
         </dependency>
     </dependencies>
 </project>

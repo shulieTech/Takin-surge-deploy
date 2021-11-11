@@ -17,6 +17,7 @@ package io.shulie.surge.data.deploy.pradar.config;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.shulie.surge.config.clickhouse.ClickhouseTemplateManagerModule;
 import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
@@ -26,9 +27,9 @@ import io.shulie.surge.data.deploy.pradar.link.processor.*;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
-import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
 import io.shulie.surge.deploy.pradar.common.CommonStat;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.slf4j.Logger;
@@ -41,6 +42,8 @@ import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static io.shulie.surge.config.clickhouse.ClickhouseTemplateManager.DATA_SOURCE_KEY;
 
 public class PradarLinkConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(PradarLinkConfiguration.class);
@@ -71,7 +74,8 @@ public class PradarLinkConfiguration {
     public DataRuntime initDataRuntime() {
         DataBootstrap bootstrap = DataBootstrap.create("deploy.properties");
         DataBootstrapEnhancer.enhancer(bootstrap);
-        bootstrap.install(new PradarModule(), new ClickHouseModule(), new MysqlModule());
+        bootstrap.getProperties().put(DATA_SOURCE_KEY, StringUtils.isBlank(this.dataSourceType) ? CommonStat.CLICKHOUSE : this.dataSourceType);
+        bootstrap.install(new PradarModule(), new MysqlModule(), new ClickhouseTemplateManagerModule());
         return bootstrap.startRuntime();
     }
 

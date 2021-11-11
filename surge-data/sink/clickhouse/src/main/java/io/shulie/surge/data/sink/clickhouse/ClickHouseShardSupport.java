@@ -22,8 +22,7 @@ import com.google.inject.name.Named;
 import io.shulie.surge.data.common.batch.CountRotationPolicy;
 import io.shulie.surge.data.common.batch.RotationBatch;
 import io.shulie.surge.data.common.batch.TimedRotationPolicy;
-import io.shulie.surge.data.common.lifecycle.Lifecycle;
-import io.shulie.surge.data.common.lifecycle.Stoppable;
+import io.shulie.surge.data.runtime.common.DataOperations;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -49,7 +48,7 @@ import java.util.stream.Collectors;
  *
  * @author zhouyuan
  */
-public class ClickHouseShardSupport implements Lifecycle, Stoppable {
+public class ClickHouseShardSupport implements DataOperations {
     private static final Logger logger = LoggerFactory.getLogger(ClickHouseShardSupport.class);
     private static final Pattern URL_TEMPLATE = Pattern.compile("jdbc:clickhouse://([a-zA-Z0-9_:,.-]+)(/[a-zA-Z0-9_]+([?][a-zA-Z0-9_]+[=][a-zA-Z0-9_]+([&][a-zA-Z0-9_]+[=][a-zA-Z0-9_]+)*)?)?");
     private List<String> urls;
@@ -210,6 +209,10 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
     }
 
     public boolean isCluster() {
+        return isCluster(urls);
+    }
+
+    public boolean isCluster(List<String> urls) {
         Set<String> urlSet = formatUrl(urls);
         Set<String> var2 = urlSet.stream().map(var -> {
             try {

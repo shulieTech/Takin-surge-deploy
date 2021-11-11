@@ -20,6 +20,8 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
+import io.shulie.surge.config.clickhouse.ClickhouseTemplateHolder;
+import io.shulie.surge.config.clickhouse.ClickhouseTemplateManager;
 import io.shulie.surge.data.deploy.pradar.link.AbstractLinkCache;
 import io.shulie.surge.data.deploy.pradar.link.TaskManager;
 import io.shulie.surge.data.deploy.pradar.link.enums.TraceLogQueryScopeEnum;
@@ -31,9 +33,9 @@ import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParser;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParserFactory;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
+import io.shulie.surge.data.runtime.common.DataOperations;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
-import io.shulie.surge.data.sink.clickhouse.ClickHouseSupport;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -66,7 +68,7 @@ public class LinkProcessor extends AbstractProcessor {
             = " appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,parsedServiceName,methodName,port,remoteIp,userAppKey,envCode,userId ";
 
     @Inject
-    private ClickHouseSupport clickHouseSupport;
+    private ClickhouseTemplateManager clickhouseTemplateManager;
 
     @Inject
     private MysqlSupport mysqlSupport;
@@ -264,9 +266,11 @@ public class LinkProcessor extends AbstractProcessor {
         }
         String userAppKey = String.valueOf(linkConfig.get("userAppKey"));
         String envCode = String.valueOf(linkConfig.get("envCode"));
-
+        ClickhouseTemplateHolder holder = clickhouseTemplateManager.getTemplateHolder(userAppKey, envCode, false);
+        String tableName = holder.getTableName();
+        DataOperations template = holder.getTemplate();
         // k=traceId v=rpcId  用来截取从当前rpcId开始的下游节点
-        String simpleSql = "select traceId,rpcId,logType from t_trace_all where appName='" + appName +
+        String simpleSql = "select traceId,rpcId,logType from " + tableName + " where appName='" + appName +
                 "' and parsedMethod = '" + method +
                 "' and rpcType = '" + rpcType +
                 "' and parsedServiceName = '" + service +
@@ -296,13 +300,7 @@ public class LinkProcessor extends AbstractProcessor {
                 + "' and startDate <='" + DateFormatUtils.format(endCalendar, "yyyy-MM-dd HH:mm:ss")
                 + "' order by startDate desc limit 2";
 
-        List<Map<String, Object>> traceMaps = Lists.newArrayList();
-        if (this.isUseCk()) {
-            traceMaps = clickHouseSupport.queryForList(simpleSql);
-        } else {
-            traceMaps = mysqlSupport.queryForList(simpleSql);
-        }
-
+        List<Map<String, Object>> traceMaps = template.queryForList(simpleSql);
         StringBuilder sql = new StringBuilder();
         Map<String, String> traceFilter = new HashMap<>();
         for (Map<String, Object> traceIdMap : traceMaps) {
@@ -319,7 +317,7 @@ public class LinkProcessor extends AbstractProcessor {
                 sql.append("(");
             }
             sql.append(
-                    "select " + LINK_TOPOLOGY_SQL + " from t_trace_all where traceId ='" + traceId + "'");
+                    "select " + LINK_TOPOLOGY_SQL + " from " + tableName + " where traceId ='" + traceId + "'");
             //and logType!='5'");
             sql.append(" and startDate>='" + DateFormatUtils.format(beginCalendar.getTime(), "yyyy-MM-dd HH:mm:ss")
                     + "'");
@@ -336,15 +334,7 @@ public class LinkProcessor extends AbstractProcessor {
         }
         //add trace log limit
         sql.delete(sql.length() - 11, sql.length());
-        logger.info("queryLinkTopology:{}", sql);
-
-        List<TTrackClickhouseModel> modelList = Lists.newArrayList();
-        if (this.isUseCk()) {
-            modelList = clickHouseSupport.queryForList(sql.toString(), TTrackClickhouseModel.class);
-        } else {
-            modelList = mysqlSupport.query(sql.toString(), new BeanPropertyRowMapper(TTrackClickhouseModel.class));
-        }
-
+        List<TTrackClickhouseModel> modelList = template.query(sql.toString(), new BeanPropertyRowMapper<>(TTrackClickhouseModel.class));
         TTrackClickhouseModel tmpModel = null;
         //首先把跟入口匹配上的数据暂存一份,用于后面为空时的处理
         for (TTrackClickhouseModel model :
@@ -399,22 +389,21 @@ public class LinkProcessor extends AbstractProcessor {
         if (StringUtils.isBlank(traceId)) {
             return Collections.EMPTY_LIST;
         }
+        String userAppKey = String.valueOf(param.get("userAppKey"));
+        String envCode = String.valueOf(param.get("envCode"));
+        ClickhouseTemplateHolder holder = clickhouseTemplateManager.getTemplateHolder(userAppKey, envCode, false);
+        DataOperations template = holder.getTemplate();
+        String tableName = holder.getTableName();
         Map<String, String> traceFilter = new HashMap<>();
         traceFilter.put(traceId, rpcId + "#" + logType);
         logger.info("LinkProcessor query traceIds:{}", traceFilter);
 
         StringBuilder sql = new StringBuilder();
         sql.append(
-                "select " + LINK_TOPOLOGY_SQL + " from t_trace_all where startDate between '" + startTime + "' and '" + endTime + "' and traceId = '" + traceId + "' and logType != 5");
+                "select " + LINK_TOPOLOGY_SQL + " from " + tableName + " where startDate between '" + startTime + "' and '" + endTime + "' and traceId = '" + traceId + "' and logType != 5");
         sql.append(" order by rpcId asc limit " + ("".equals(traceQuerylimit) ? "500" : traceQuerylimit));
 
-        List<TTrackClickhouseModel> modelList = Lists.newArrayList();
-        if (this.isUseCk()) {
-            modelList = clickHouseSupport.queryForList(sql.toString(), TTrackClickhouseModel.class);
-        } else {
-            modelList = mysqlSupport.query(sql.toString(), new BeanPropertyRowMapper(TTrackClickhouseModel.class));
-        }
-
+        List<TTrackClickhouseModel> modelList = template.query(sql.toString(), new BeanPropertyRowMapper<>(TTrackClickhouseModel.class));
         TTrackClickhouseModel tmpModel = null;
         //首先把跟入口匹配上的数据暂存一份,用于后面为空时的处理
         for (TTrackClickhouseModel model :
@@ -559,12 +548,5 @@ public class LinkProcessor extends AbstractProcessor {
 
     public AbstractLinkCache getLinkCache() {
         return linkCache;
-    }
-
-
-    public static void main(String[] args) throws Exception {
-        Long userId = 100000237900002L;
-        Long dbIndex = Long.valueOf(userId.longValue() % 64 % 8);
-        System.out.println(dbIndex);
     }
 }
