@@ -25,7 +25,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>surge-deploy-pradar-link</artifactId>
-    <version>1.0.2.1</version>
+    <version>${surge.deploy.pradar.link.version}</version>
 
     <dependencies>
         <dependency>
@@ -104,7 +104,7 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.shulie.takin</groupId>
+            <groupId>io.shulie.instrument.module</groupId>
             <artifactId>simulator-internal-bootstrap-api</artifactId>
             <version>1.0.0</version>
         </dependency>

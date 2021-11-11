@@ -139,7 +139,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-link</artifactId>
-            <version>1.0.2.1</version>
+            <version>${surge.deploy.pradar.link.version}</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
