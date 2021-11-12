@@ -8,6 +8,7 @@ test-output/
 tmp
 temp
 *.log
+*.out
 .idea/
 *.iml
 bin/

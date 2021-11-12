@@ -17,8 +17,6 @@ package io.shulie.surge.data.deploy.pradar.parser.rpc;
 
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.parser.DefaultRpcBasedParser;
-import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
-import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 
 /**
  * rpc client
@@ -35,11 +33,6 @@ public class RpcClientRpcBasedParser extends DefaultRpcBasedParser {
      */
     @Override
     public String serviceParse(RpcBased rpcBased) {
-        //针对 restful 接口,如果rpcType = 1的时候,里面也含有http的日志,也需要做url格式化,否则在出入口处理的时候distinct将会不生效
-        if ((rpcBased.getRpcType() == MiddlewareType.TYPE_WEB_SERVER) || (rpcBased.getRpcType() == MiddlewareType.TYPE_RPC && (rpcBased.getMiddlewareName() != null && rpcBased.getMiddlewareName().contains("http")))) {
-            String formatUrl = ApiProcessor.merge(rpcBased.getAppName(), rpcBased.getServiceName(), rpcBased.getMethodName());
-            return formatUrl;
-        }
         return super.serviceParse(rpcBased);
     }
 }

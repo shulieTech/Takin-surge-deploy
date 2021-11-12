@@ -125,10 +125,9 @@ public class BaseCommand implements ClickhouseCommand {
         map.put("processTime", System.currentTimeMillis());
         map.put("taskId", rpcBased.getTaskId());
 
-        map.put("userAppKey", StringUtils.isBlank(rpcBased.getUserAppKey()) ? TenantConstants.DEFAULT_USER_APP_KEY : rpcBased.getUserAppKey());
-        map.put("envCode", StringUtils.isBlank(rpcBased.getEnvCode()) ? TenantConstants.DEFAULT_ENV_CODE : rpcBased.getEnvCode());
+        map.put("userAppKey", rpcBased.getUserAppKey());
+        map.put("envCode", rpcBased.getEnvCode());
         map.put("userId", StringUtils.isBlank(rpcBased.getUserId()) ? TenantConstants.DEFAULT_USERID : rpcBased.getUserId());
-
         return map;
     }
 }

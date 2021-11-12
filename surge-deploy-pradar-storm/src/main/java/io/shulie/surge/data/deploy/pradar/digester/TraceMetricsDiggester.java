@@ -36,6 +36,7 @@ import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParserFactory;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
+import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
@@ -96,7 +97,17 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         if (traceMetricsDisable.get()) {
             return;
         }
+
         RpcBased rpcBased = context.getContent();
+        //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
+        //todo 等无涯的接口出来,根据应用名称获取租户和环境
+        if (StringUtils.isBlank(rpcBased.getUserAppKey())) {
+            rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
+        }
+        if (StringUtils.isBlank(rpcBased.getEnvCode())) {
+            rpcBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("envCode"));
+        }
+
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
         if (rpcBasedParser == null) {
             return;
@@ -114,15 +125,15 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                 logger.warn("edgeId is not match:{},edgeTags is {}", edgeId, eagleTags);
             }
             /** 指标计算不参考业务活动的边**/
-            if(appName.startsWith("sto-")||
-                    appName.equals("sas-prod")||
-                    appName.equals("es-api-base-prod")||
+            if (appName.startsWith("sto-") ||
+                    appName.equals("sas-prod") ||
+                    appName.equals("es-api-base-prod") ||
                     appName.equals("automation-biz-prod")
-            ){
+            ) {
                 rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
                 edgeId = rpcBasedParser.edgeId("", rpcBased);
                 eagleTags = rpcBasedParser.edgeTags("", rpcBased);
-            }else{
+            } else {
                 return;
             }
         }
@@ -135,7 +146,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         String parsedMethod = StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), "");
         String rpcType = rpcBased.getRpcType() + "";
         String nodeId = getNodeId(parsedAppName, parsedServiceName, parsedMethod, rpcType);
-        //目前租户标识和环境标识都给空,作为预留位 todo 验证是否可以取到数据
+        //todo 验证取采样率是否兼容租户
         String userAppKey = rpcBased.getUserAppKey();
         String envCode = rpcBased.getEnvCode();
         //获取每个应用的采样率

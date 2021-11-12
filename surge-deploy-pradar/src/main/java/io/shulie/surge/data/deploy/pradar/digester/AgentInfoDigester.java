@@ -2,10 +2,13 @@ package io.shulie.surge.data.deploy.pradar.digester;
 
 import com.google.inject.Inject;
 import com.pamirs.pradar.log.parser.agent.AgentBased;
+import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import io.shulie.surge.data.deploy.pradar.model.AgentInfoModel;
+import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +42,18 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
             if (!Pattern.matches(pattern, agentBased.getIp())) {
                 logger.warn("detect illegal agent log:{},skip it.", agentBased);
                 return;
+            }
+
+            //对于1.1以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
+            //todo 等无涯的接口出来,根据应用名称获取租户和环境
+            if (StringUtils.isBlank(agentBased.getUserAppKey())) {
+                agentBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(agentBased.getAppName()).get("tenantAppKey"));
+            }
+            if (StringUtils.isBlank(agentBased.getEnvCode())) {
+                agentBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(agentBased.getAppName()).get("envCode"));
+            }
+            if (StringUtils.isBlank(agentBased.getUserId())) {
+                agentBased.setUserId(TenantConstants.DEFAULT_USERID);
             }
 
             if (agentBased.getAgentInfo().length() > 40000) {
