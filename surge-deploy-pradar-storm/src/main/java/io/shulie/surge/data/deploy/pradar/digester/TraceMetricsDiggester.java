@@ -206,7 +206,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                         exceptionTypeList.add("assertCode-" + assertCode);
                     }
                 } catch (Throwable e) {
-                    logger.error("rule " + rule.toString());
+                    logger.error("rule:{} calculate fail:{},{}", rule.toString(), e, e.getStackTrace());
                 }
 
             }
