@@ -1,5 +1,6 @@
 package io.shulie.surge.data.deploy.pradar.link.processor;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
@@ -32,6 +33,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
 public class ShadowDatabaseProcessor extends AbstractProcessor {
 
@@ -63,8 +65,9 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
 
     // 查询 数据库、缓存、搜索、文件 等类型的 且 attachment不为空 的业务trace
     private static final String QUERY_SQL =
-        "select appName,rpcType,parsedMethod,parsedMiddlewareName as middlewareName,flagMessage from t_trace_all where rpcType in ('"
-            + ANALYSIS_RPC_TYPE + "') and startDate >= '%s' and appName = '%s'"
+        "select appName,rpcType,parsedMethod,parsedMiddlewareName as middlewareName,flagMessage,userAppKey,envCode "
+            + "from t_trace_all where rpcType in ('" + ANALYSIS_RPC_TYPE + "') and startDate >= '%s' "
+            + "and appName = '%s' and userAppKey = '%s' and envCode = '%s' "
             + "and clusterTest = '0' and flagMessage is not null and flagMessage != ''";
 
     // 表名  插入列  插入数据
@@ -83,20 +86,20 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     private MysqlSupport mysqlSupport;
 
     @Inject
-    private TaskManager<String, String> taskManager;
+    private TaskManager<String, InnerEntity> taskManager;
 
     @Override
     public void share(List<String> taskIds, String currentTaskId) {
         if (executeDisabled()) { return; }
-        List<String> appNameCache = appCache.getAppNameCache();
-        if (CollectionUtils.isEmpty(appNameCache)) {
+        List<InnerEntity> entityCache = appCache.getEntityCache();
+        if (CollectionUtils.isEmpty(entityCache)) {
             return;
         }
-        Map<String, List<String>> avgMap = taskManager.allotOfAverage(taskIds, appNameCache);
-        List<String> avgList = avgMap.get(currentTaskId);
+        Map<String, List<InnerEntity>> avgMap = taskManager.allotOfAverage(taskIds, entityCache);
+        List<InnerEntity> avgList = avgMap.get(currentTaskId);
         if (CollectionUtils.isNotEmpty(avgList)) {
             for (int i = 0, size = avgList.size(); i < size; i++) {
-                analysisAndSave(appNameCache.get(i));
+                analysisAndSave(entityCache.get(i));
             }
         }
     }
@@ -104,13 +107,13 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     @Override
     public void share(int taskId) {
         if (executeDisabled() || taskId == -1) { return; }
-        List<String> appNameCache = appCache.getAppNameCache();
-        if (CollectionUtils.isEmpty(appNameCache)) {
+        List<InnerEntity> entityCache = appCache.getEntityCache();
+        if (CollectionUtils.isEmpty(entityCache)) {
             return;
         }
-        for (int i = 0, size = appNameCache.size(); i < size; i++) {
+        for (int i = 0, size = entityCache.size(); i < size; i++) {
             if (i % taskId == 0) {
-                analysisAndSave(appNameCache.get(i));
+                analysisAndSave(entityCache.get(i));
             }
         }
     }
@@ -118,25 +121,25 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     @Override
     public void share() {
         if (executeDisabled()) { return; }
-        List<String> appNameCache = appCache.getAppNameCache();
-        if (CollectionUtils.isEmpty(appNameCache)) {
+        List<InnerEntity> entityCache = appCache.getEntityCache();
+        if (CollectionUtils.isEmpty(entityCache)) {
             return;
         }
-        for (String appName : appNameCache) {
-            analysisAndSave(appName);
+        for (InnerEntity innerEntity : entityCache) {
+            analysisAndSave(innerEntity);
         }
     }
 
     // 查询5分钟内的trace日志并进行解析
-    public void analysisAndSave(String appName) {
+    public void analysisAndSave(InnerEntity innerEntity) {
         if (logger.isDebugEnabled()) {
-            logger.debug("ShadowDatabaseProcessor execute： {}", appName);
+            logger.debug("ShadowDatabaseProcessor execute： {}", innerEntity);
         }
         try {
-            List<TTrackClickhouseModel> models = queryTraceLog(appName, TraceLogQueryScopeEnum.build(5));
+            List<TTrackClickhouseModel> models = queryTraceLog(innerEntity, TraceLogQueryScopeEnum.build(5));
             analysisAndSave(models);
         } catch (Exception e) {
-            logger.error("Save to {}/{} error! appName：[{}]", SHADOW_DATABASE, BIZ_TABLE, appName, e);
+            logger.error("Save to {}/{} error! innerEntity：[{}]", SHADOW_DATABASE, BIZ_TABLE, innerEntity, e);
         }
     }
 
@@ -147,15 +150,20 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
         List<ShadowDatabaseModel> databaseModelList = new ArrayList<>();
         List<ShadowBizTableModel> bizTableModelList = new ArrayList<>();
         for (TTrackClickhouseModel traceModel : traceModels) {
-            Pair<ShadowDatabaseModel, ShadowBizTableModel> modelPair = TemplateParseHandler.analysisTraceModel(
-                traceModel);
+            Pair<ShadowDatabaseModel, ShadowBizTableModel> modelPair = TemplateParseHandler.analysisTraceModel(traceModel);
             if (modelPair != null) {
+                String userAppKey = traceModel.getUserAppKey();
+                String envCode = traceModel.getEnvCode();
                 ShadowDatabaseModel databaseModel = modelPair.getFirst();
                 ShadowBizTableModel bizTableModel = modelPair.getSecond();
                 if (databaseModel != null) {
+                    databaseModel.setUserAppKey(userAppKey);
+                    databaseModel.setEnvCode(envCode);
                     databaseModelList.add(databaseModel);
                 }
                 if (bizTableModel != null) {
+                    bizTableModel.setUserAppKey(userAppKey);
+                    bizTableModel.setEnvCode(envCode);
                     bizTableModelList.add(bizTableModel);
                 }
             }
@@ -204,7 +212,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     }
 
     // 查询对应应用的trace日志
-    private List<TTrackClickhouseModel> queryTraceLog(String appName, TraceLogQueryScopeEnum timeScope) {
+    private List<TTrackClickhouseModel> queryTraceLog(InnerEntity innerEntity, TraceLogQueryScopeEnum timeScope) {
         Calendar startDate = Calendar.getInstance();
         switch (timeScope) {
             case WEEK:
@@ -219,14 +227,17 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
                 break;
             default:
         }
+
         String querySql = String.format(QUERY_SQL,
-            DateFormatUtils.format(startDate.getTime(), "yyyy-MM-dd HH:mm:ss"), appName);
+            DateFormatUtils.format(startDate.getTime(), "yyyy-MM-dd HH:mm:ss")
+            , innerEntity.getAppName(), innerEntity.getUserAppKey(), innerEntity.getEnvCode());
         return this.isUseCk() ? clickHouseSupport.queryForList(querySql, TTrackClickhouseModel.class)
             : mysqlSupport.queryForList(querySql, TTrackClickhouseModel.class);
     }
 
     private boolean executeDisabled() {
-        return !analysisShadowDatabaseDisable.get() || !isHandler(analysisShadowDatabaseInterval.get());
+        return false;
+        //return !analysisShadowDatabaseDisable.get() || !isHandler(analysisShadowDatabaseInterval.get());
     }
 
     @Override
@@ -246,7 +257,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
 
         private static final Logger logger = LoggerFactory.getLogger(AbstractAppCache.class);
 
-        private List<String> appNameList = Lists.newLinkedList();
+        private List<InnerEntity> appNameList = Lists.newArrayList();
 
         public void autoRefresh(MysqlSupport mysqlSupport) {
             ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
@@ -255,14 +266,45 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
 
         private void refresh(MysqlSupport mysqlSupport) {
             try {
-                appNameList = mysqlSupport.queryForList("select app_name from t_amdb_app order by id", String.class);
+                appNameList = mysqlSupport.query("select app_name appName, user_app_key userAppKey, env_code envCode from t_amdb_app order by id"
+                    , new BeanPropertyRowMapper<>(InnerEntity.class));
             } catch (Exception e) {
                 logger.error("Query app_name failed.", e);
             }
         }
 
-        public List<String> getAppNameCache() {
+        public List<InnerEntity> getEntityCache() {
             return appNameList;
+        }
+    }
+
+    static class InnerEntity implements Serializable {
+        private String appName;
+        private String userAppKey;
+        private String envCode;
+
+        public String getAppName() {
+            return appName;
+        }
+
+        public void setAppName(String appName) {
+            this.appName = appName;
+        }
+
+        public String getUserAppKey() {
+            return userAppKey;
+        }
+
+        public void setUserAppKey(String userAppKey) {
+            this.userAppKey = userAppKey;
+        }
+
+        public String getEnvCode() {
+            return envCode;
+        }
+
+        public void setEnvCode(String envCode) {
+            this.envCode = envCode;
         }
     }
 }

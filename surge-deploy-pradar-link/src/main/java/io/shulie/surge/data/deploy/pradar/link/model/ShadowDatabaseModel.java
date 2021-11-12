@@ -1,6 +1,6 @@
 package io.shulie.surge.data.deploy.pradar.link.model;
 
-public class ShadowDatabaseModel {
+public class ShadowDatabaseModel extends LinkPublicModel {
     // 应用名称
     private String appName;
     // 业务数据源
@@ -28,16 +28,16 @@ public class ShadowDatabaseModel {
 
     public static String getCols() {
         return "(app_name,type,data_source,shadow_data_source,db_name,table_user,password,middleware_type,connection_pool,ext_info,attachment,"
-            + "unique_key,gmt_create,gmt_modify)";
+            + "unique_key,gmt_create,gmt_modify,user_app_key,env_code)";
     }
 
     public static String getParamCols() {
-        return "(?,?,?,?,?,?,?,?,?,?,?,?,now(),now())";
+        return "(?,?,?,?,?,?,?,?,?,?,?,?,now(),now(),?,?)";
     }
 
     public Object[] getValues() {
         return new Object[] {appName, type, dataSource, shadowDataSource, dbName, getTableUser(), password, middlewareType, connectionPool,
-            extInfo, attachment, uniqueKey};
+            extInfo, attachment, uniqueKey, getUserAppKey(), getEnvCode()};
     }
 
     // 唯一索引
