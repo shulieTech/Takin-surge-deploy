@@ -14,7 +14,9 @@ public class SqlMetadataParser {
 
     public static SqlMetaData parse(String url) {
         DbType dbType = DbType.guessDbType(url);
-        return dbType == null ? new SqlMetaData() : Optional.ofNullable(dbType.readMetaData(url)).orElseGet(SqlMetaData::new);
+        return dbType == null
+            ?  Optional.ofNullable(DbType.DEFAULT.readMetaData(url)).orElseGet(SqlMetaData::new)
+            : Optional.ofNullable(dbType.readMetaData(url)).orElseGet(SqlMetaData::new);
     }
 
     public static class SqlMetaData {
@@ -64,9 +66,9 @@ public class SqlMetadataParser {
             this.ignoreShadowPrefix = ignoreShadowPrefix;
         }
 
+        // 现在不需要返回这个数据
         public String getShadowUrl() {
-            if (StringUtils.isBlank(dbName)) { return null; }
-            return prefix + mainUrl.replace(dbName, ignoreShadowPrefix ? dbName : SHADOW_PREFIX + dbName);
+            return "";
         }
     }
 
@@ -79,7 +81,7 @@ public class SqlMetadataParser {
                 sqlMetaData.setMainUrl(mainUrl);
                 sqlMetaData.setPrefix(getMatchedPrefix(url));
                 sqlMetaData.setDbType(MYSQL);
-                sqlMetaData.setDbName(StringUtils.substringAfter(mainUrl, "/"));
+                sqlMetaData.setDbName(StringUtils.substringAfterLast(mainUrl, "/"));
                 return sqlMetaData;
             }
         },
@@ -91,7 +93,7 @@ public class SqlMetadataParser {
                 sqlMetaData.setMainUrl(mainUrl);
                 sqlMetaData.setPrefix(getMatchedPrefix(url));
                 sqlMetaData.setDbType(OCEANBASE);
-                sqlMetaData.setDbName(StringUtils.substringAfter(mainUrl, "/"));
+                sqlMetaData.setDbName(StringUtils.substringAfterLast(mainUrl, "/"));
                 return sqlMetaData;
             }
         },
@@ -208,7 +210,7 @@ public class SqlMetadataParser {
                 int index;
                 if ((index = mainUrl.indexOf(':')) != -1) {
                     mainUrl = mainUrl.substring(index + 1);
-                    sqlMetaData.setDbName(StringUtils.substringAfter(mainUrl, "/"));
+                    sqlMetaData.setDbName(StringUtils.substringAfterLast(mainUrl, "/"));
                 } else {
                     sqlMetaData.setDbName(mainUrl);
                 }
@@ -226,7 +228,7 @@ public class SqlMetadataParser {
                 int index;
                 if ((index = mainUrl.indexOf(':')) != -1) {
                     mainUrl = mainUrl.substring(index + 1);
-                    sqlMetaData.setDbName(StringUtils.substringAfter(mainUrl, "/"));
+                    sqlMetaData.setDbName(StringUtils.substringAfterLast(mainUrl, "/"));
                 } else {
                     sqlMetaData.setDbName(StringUtils.lowerCase(mainUrl));
                 }
@@ -239,7 +241,7 @@ public class SqlMetadataParser {
                 String mainUrl = getMainUrl(url);
                 SqlMetaData sqlMetaData = new SqlMetaData();
                 sqlMetaData.setDbType(POLARDB);
-                sqlMetaData.setDbName(StringUtils.substringAfter(mainUrl, "/"));
+                sqlMetaData.setDbName(StringUtils.substringAfterLast(mainUrl, "/"));
                 sqlMetaData.setPrefix(getMatchedPrefix(url));
                 sqlMetaData.setMainUrl(mainUrl);
                 return sqlMetaData;
@@ -256,13 +258,37 @@ public class SqlMetadataParser {
                 int index;
                 if ((index = mainUrl.indexOf(':')) != -1) {
                     mainUrl = mainUrl.substring(index + 1);
-                    sqlMetaData.setDbName(StringUtils.substringAfter(mainUrl, "/"));
+                    sqlMetaData.setDbName(StringUtils.substringAfterLast(mainUrl, "/"));
                 } else {
                     sqlMetaData.setDbName(mainUrl);
                 }
                 return sqlMetaData;
             }
         },
+        COBAR("jdbc:cobar://", "jdbc:cobar_cluster://") {
+            @Override
+            public SqlMetaData readMetaData(String url) {
+                String mainUrl = getMainUrl(url);
+                SqlMetaData sqlMetaData = new SqlMetaData();
+                sqlMetaData.setMainUrl(mainUrl);
+                sqlMetaData.setPrefix(getMatchedPrefix(url));
+                sqlMetaData.setDbType(COBAR);
+                sqlMetaData.setDbName(StringUtils.substringAfterLast(mainUrl, "/"));
+                return sqlMetaData;
+            }
+        },
+        DEFAULT("default") {
+            @Override
+            SqlMetaData readMetaData(String url) {
+                String mainUrl = getMainUrl(url);
+                SqlMetaData sqlMetaData = new SqlMetaData();
+                sqlMetaData.setMainUrl(mainUrl);
+                sqlMetaData.setPrefix(getMatchedPrefix(url));
+                sqlMetaData.setDbType(DEFAULT);
+                sqlMetaData.setDbName(StringUtils.substringAfterLast(mainUrl, "/"));
+                return sqlMetaData;
+            }
+        }
         ;
 
         protected final String[] prefixs;
