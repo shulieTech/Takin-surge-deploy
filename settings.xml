@@ -10,8 +10,20 @@
             <name>mirror</name>
             <url>https://maven.aliyun.com/nexus/content/groups/public</url>
         </mirror>
-    </mirrors>
 
+    </mirrors>
+    <servers>
+        <server>
+            <id>rdc-releases</id>
+            <username>${deploy_username}</username>
+            <password>${deploy_password}</password>
+        </server>
+        <server>
+            <id>rdc-snapshots</id>
+            <username>${deploy_username}</username>
+            <password>${deploy_password}</password>
+        </server>
+    </servers>
     <profiles>
         <profile>
             <id>rdc</id>
