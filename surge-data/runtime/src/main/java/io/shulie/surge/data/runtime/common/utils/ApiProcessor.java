@@ -209,13 +209,13 @@ public class ApiProcessor {
 
     public static Map<String, String> getTenantConfigByAppName(String appName) {
         Map<String, String> config = Maps.newHashMap();
-        if (tenantConfigMap.containsKey(appName)) {
-            config.put("tenantAppKey", tenantConfigMap.get(appName).split("#")[0]);
-            config.put("envCode", tenantConfigMap.get(appName).split("#")[1]);
-        } else {
-            config.put("tenantAppKey", "default");
-            config.put("envCode", "test");
-        }
+//        if (tenantConfigMap.containsKey(appName)) {
+//            config.put("tenantAppKey", tenantConfigMap.get(appName).split("#")[0]);
+//            config.put("envCode", tenantConfigMap.get(appName).split("#")[1]);
+//        } else {
+        config.put("tenantAppKey", "default");
+        config.put("envCode", "test");
+//        }
         return config;
     }
 
