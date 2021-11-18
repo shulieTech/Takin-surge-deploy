@@ -369,9 +369,16 @@ public class LinkProcessor extends AbstractProcessor {
                     String filterLogType = ary[1];
                     if (model.getRpcId().equals(filterRpcId)) {
                         // 相同RpcID情况处理，如果是选择的当前服务且当前服务是入口，就保留，否则就丢掉
-                        return "0".equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName()
-                                .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
-                                model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
+                        String isTemp = threadLocal.get();
+                        if(isTemp!=null&&"tempLinkTopology".equals(isTemp)) {
+                            return appName.equals(model.getAppName()) && model.getParsedServiceName()
+                                    .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
+                                    model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
+                        }else{
+                           return "0".equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName()
+                                    .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
+                                    model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
+                        }
                     }
                     // 如果是以所选服务的RpcId为开始的就保留，否则就丢掉
                     return model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1;
@@ -385,6 +392,8 @@ public class LinkProcessor extends AbstractProcessor {
                 .map(TTrackClickhouseModel::getRpcBased)
                 .collect(Collectors.toList());
     }
+
+    public static ThreadLocal<String> threadLocal = new ThreadLocal<String>();
 
     public List<RpcBased> getTraceLog(Map<String, String> param) {
         String serviceName = param.get("serviceName");
