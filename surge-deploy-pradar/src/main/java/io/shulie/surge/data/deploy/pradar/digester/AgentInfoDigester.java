@@ -45,7 +45,6 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
             }
 
             //对于1.1以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
-            //todo 等无涯的接口出来,根据应用名称获取租户和环境
             if (StringUtils.isBlank(agentBased.getUserAppKey())) {
                 agentBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(agentBased.getAppName()).get("tenantAppKey"));
             }

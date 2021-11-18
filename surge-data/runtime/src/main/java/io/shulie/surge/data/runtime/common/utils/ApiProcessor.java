@@ -25,6 +25,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import io.shulie.surge.data.common.utils.HttpUtil;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,18 +51,22 @@ public class ApiProcessor {
     private static String staticHost;
     private static String staticUrl;
     private static String staticApiV1Url;
+    private static String staticTenantConfigUrl;
     private static String staticEntryUrl;
     private static String staticPort;
 
     private String host;
     private String url;
     private String apiV1Url;
+    private String tenantConfigUrl;
     private String entryUrl;
     private String port;
 
     private static Gson gson = new Gson();
 
     protected static Map<String, Map<String, List<String>>> API_COLLECTION = new HashMap<>();
+
+    private static Map<String, String> tenantConfigMap = new HashMap<>();
 
     protected static Map<String, Matcher> MATHERS = new HashMap<>();
 
@@ -80,16 +85,29 @@ public class ApiProcessor {
                 }
             });
 
+    private ScheduledExecutorService tenantService =
+            new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread t = new Thread(r);
+                    t.setName("tenantConfig-collector");
+                    t.setDaemon(true);
+                    return t;
+                }
+            });
+
     @Inject
-    public ApiProcessor(@Named("tro.url.ip") String host, @Named("tro.api.path") String url, @Named("tro.api.v1.path") String apiV1Url, @Named("tro.entries.path") String entryUrl, @Named("tro.port") String port) {
+    public ApiProcessor(@Named("tro.url.ip") String host, @Named("tro.api.path") String url, @Named("tro.api.v1.path") String apiV1Url, @Named("tro.tenant.config.path") String tenantConfigUrl, @Named("tro.entries.path") String entryUrl, @Named("tro.port") String port) {
         this.host = host;
         this.url = url;
         this.entryUrl = entryUrl;
         this.apiV1Url = apiV1Url;
+        this.tenantConfigUrl = tenantConfigUrl;
         this.port = port;
         staticHost = host;
         staticUrl = url;
         staticApiV1Url = apiV1Url;
+        staticTenantConfigUrl = tenantConfigUrl;
         staticEntryUrl = entryUrl;
         staticPort = port;
     }
@@ -100,8 +118,14 @@ public class ApiProcessor {
                 new Thread(() -> refresh())
                 , 0
                 , 2
-                , TimeUnit.MINUTES)
-        ;
+                , TimeUnit.MINUTES);
+
+        //每隔5分钟调用一次
+        tenantService.scheduleAtFixedRate(
+                new Thread(() -> queryTenantConfig())
+                , 0
+                , 5
+                , TimeUnit.MINUTES);
     }
 
     private void refresh() {
@@ -109,7 +133,7 @@ public class ApiProcessor {
         try {
             res = gson.fromJson(HttpUtil.doGet(host, Integer.valueOf(port), url, null, null), Map.class);
         } catch (Throwable e) {
-            System.err.println(e.getMessage());
+            logger.error("query all entry rules catch exception:{},{}", e, e.getStackTrace());
         }
         if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
             Object data = res.get("data");
@@ -137,11 +161,61 @@ public class ApiProcessor {
         }
     }
 
+    private void queryTenantConfig() {
+        //重复应用列表
+        Set<String> repeatAppList = new HashSet<>();
+        //唯一应用列表
+        Set<String> uniqueAppList = new HashSet<>();
+        Map<String, Object> res = null;
+        try {
+            res = gson.fromJson(HttpUtil.doGet(host, Integer.valueOf(port), tenantConfigUrl, null, null), Map.class);
+            if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
+                Object data = res.get("data");
+                List<Map<String, Object>> tenantConfigList = (List<Map<String, Object>>) data;
+                if (CollectionUtils.isNotEmpty(tenantConfigList)) {
+                    tenantConfigList.forEach((tenantConfig) -> {
+                        if (!tenantConfig.containsKey("tenantAppKey") || !tenantConfig.containsKey("envAppMap")) {
+                            return;
+                        }
+                        String tenantAppKey = (String) tenantConfig.get("tenantAppKey");
+                        Map<String, Object> envAppMap = (Map<String, Object>) tenantConfig.get("envAppMap");
+                        if (MapUtils.isNotEmpty(envAppMap)) {
+                            envAppMap.forEach((k, v) -> {
+                                List<String> appList = (List<String>) v;
+                                if (CollectionUtils.isNotEmpty(appList)) {
+                                    appList.forEach((appName) -> {
+                                        if (uniqueAppList.contains(appName)) {
+                                            repeatAppList.add(appName + "#" + tenantAppKey);
+                                        } else {
+                                            uniqueAppList.add(appName);
+                                        }
+                                        tenantConfigMap.put(appName, tenantAppKey + "#" + k);
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+                //如果不同环境应用名相同,默认test环境,不考虑不同租户同名应用的情况
+                repeatAppList.forEach((app) -> {
+                    tenantConfigMap.put(app.split("#")[0], app.split("#")[1] + "#test");
+                });
+            }
+        } catch (Exception e) {
+            logger.error("query tenant config catch exception:{},{}", e, e.getStackTrace());
+        }
+    }
+
+
     public static Map<String, String> getTenantConfigByAppName(String appName) {
-        //todo 查询控制台返回的租户配置
         Map<String, String> config = Maps.newHashMap();
-        config.put("tenantAppKey", "default");
-        config.put("envCode", "test");
+        if (tenantConfigMap.containsKey(appName)) {
+            config.put("tenantAppKey", tenantConfigMap.get(appName).split("#")[0]);
+            config.put("envCode", tenantConfigMap.get(appName).split("#")[1]);
+        } else {
+            config.put("tenantAppKey", "default");
+            config.put("envCode", "test");
+        }
         return config;
     }
 
@@ -184,7 +258,7 @@ public class ApiProcessor {
                 logger.error("query apiList catch exception :{},{}", e, e.getStackTrace());
             }
             if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
-                Map<String, Object> data = (Map<String, Object>)res.get("data");
+                Map<String, Object> data = (Map<String, Object>) res.get("data");
                 List<String> dataList = (List<String>) (data.get(appName));
                 if (CollectionUtils.isNotEmpty(dataList)) {
                     apiCache.put(key, dataList);

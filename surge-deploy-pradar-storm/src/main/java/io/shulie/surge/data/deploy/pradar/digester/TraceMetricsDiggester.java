@@ -100,7 +100,6 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
 
         RpcBased rpcBased = context.getContent();
         //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
-        //todo 等无涯的接口出来,根据应用名称获取租户和环境
         if (StringUtils.isBlank(rpcBased.getUserAppKey())) {
             rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
         }
