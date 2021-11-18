@@ -184,8 +184,8 @@ public class ApiProcessor {
                 logger.error("query apiList catch exception :{},{}", e, e.getStackTrace());
             }
             if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
-                Object data = res.get("data");
-                List<String> dataList = (List<String>) data;
+                Map<String, Object> data = (Map<String, Object>)res.get("data");
+                List<String> dataList = (List<String>) (data.get(appName));
                 if (CollectionUtils.isNotEmpty(dataList)) {
                     apiCache.put(key, dataList);
                     return dataList;
