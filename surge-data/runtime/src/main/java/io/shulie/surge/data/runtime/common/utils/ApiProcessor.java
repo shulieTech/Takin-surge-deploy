@@ -243,7 +243,7 @@ public class ApiProcessor {
         String key = tenantAppKey + "#" + envCode + "#" + appName;
         List<String> apiList = apiCache.getIfPresent(key);
         //如果缓存为空,查询tro接口
-        if (CollectionUtils.isEmpty(apiList)) {
+        if (apiList == null) {
             HashMap<String, String> requestHeaders = Maps.newHashMap();
             requestHeaders.put("TenantAppkey", tenantAppKey);
             requestHeaders.put("EnvCode", envCode);
@@ -263,6 +263,9 @@ public class ApiProcessor {
                 if (CollectionUtils.isNotEmpty(dataList)) {
                     apiCache.put(key, dataList);
                     return dataList;
+                } else {
+                    apiCache.put(key, Lists.newArrayList());
+                    return Lists.newArrayList();
                 }
             }
         }
