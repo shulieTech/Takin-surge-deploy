@@ -31,7 +31,10 @@ public class PradarAgentLogParser implements DataParser<String, AgentBased> {
         long now = System.currentTimeMillis();
         AgentBased agentBased = ProtocolParserFactory.getFactory().getAgentProtocolParser(dataVersion).parse(hostIp, dataVersion, content);
         if (agentBased == null) {
-            logger.warn("cannot parse log:" + content);
+            if (content.length() > 256) {
+                content = content.substring(0, 256);
+            }
+            logger.warn("未解析到日志信息->" + content);
             return null;
         }
 
