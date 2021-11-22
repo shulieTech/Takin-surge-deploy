@@ -16,8 +16,6 @@
 package io.shulie.surge.data.deploy.pradar.agg;
 
 import com.google.inject.Singleton;
-import io.shulie.surge.data.common.utils.Pair;
-import io.shulie.surge.data.deploy.pradar.PradarTraceReduceBolt;
 import io.shulie.surge.data.common.aggregation.AggregateSlot;
 import io.shulie.surge.data.common.aggregation.Aggregation;
 import io.shulie.surge.data.common.aggregation.Aggregator;
@@ -25,6 +23,8 @@ import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.common.aggregation.metrics.CallStat;
 import io.shulie.surge.data.common.aggregation.metrics.Metric;
 import io.shulie.surge.data.common.utils.FormatUtils;
+import io.shulie.surge.data.common.utils.Pair;
+import io.shulie.surge.data.deploy.pradar.PradarTraceReduceBolt;
 import io.shulie.surge.data.deploy.pradar.common.PradarRtConstant;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.storm.spout.SpoutOutputCollector;
@@ -91,7 +91,10 @@ public class TraceMetricsAggarator implements Aggregator {
                         int reducerId = reducerIds.get(i).intValue();
                         List<Pair<Metric, CallStat>> job = jobs[i];
                         if (!job.isEmpty()) {
-                            collector.emitDirect(reducerId, PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID, new Values(slotKey * 1000, job));
+                            //storm 2.1.0's collector is Thread-no-safe that cause kyro deserialize fail.need to add mutex.more detail can view STORM-3582
+                            synchronized (this) {
+                                collector.emitDirect(reducerId, PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID, new Values(slotKey * 1000, job));
+                            }
                         }
                     }
                     //logger.info("emit " + slotKeyTime + " to " + reducerIds.size() + " reducers, size=" + size);
