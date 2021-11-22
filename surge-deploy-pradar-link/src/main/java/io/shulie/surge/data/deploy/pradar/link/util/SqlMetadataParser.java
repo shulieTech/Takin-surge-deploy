@@ -10,12 +10,10 @@ import org.apache.commons.lang3.StringUtils;
 
 public class SqlMetadataParser {
 
-    private static final String SHADOW_PREFIX = "PT_";
-
     public static SqlMetaData parse(String url) {
         DbType dbType = DbType.guessDbType(url);
         return dbType == null
-            ?  Optional.ofNullable(DbType.DEFAULT.readMetaData(url)).orElseGet(SqlMetaData::new)
+            ? DbType.DEFAULT.readMetaData(url)
             : Optional.ofNullable(dbType.readMetaData(url)).orElseGet(SqlMetaData::new);
     }
 
@@ -265,6 +263,18 @@ public class SqlMetadataParser {
                 return sqlMetaData;
             }
         },
+        // log4jdbc中url解析：DriverSpy#getUnderlyingDriver
+        LOG4("jdbc:log4") {
+            @Override
+            public SqlMetaData readMetaData(String url) {
+                String actualUrl = StringUtils.substringAfter(url, prefixs[0]);
+                SqlMetaData metaData = SqlMetadataParser.parse(actualUrl);
+                if (metaData != null) {
+                    metaData.setDbType(LOG4);
+                }
+                return metaData;
+            }
+        },
         COBAR("jdbc:cobar://", "jdbc:cobar_cluster://") {
             @Override
             public SqlMetaData readMetaData(String url) {
@@ -277,6 +287,7 @@ public class SqlMetadataParser {
                 return sqlMetaData;
             }
         },
+        //  兜底不常见的数据库代理，解析方式按照mysql解析
         DEFAULT("default") {
             @Override
             SqlMetaData readMetaData(String url) {
