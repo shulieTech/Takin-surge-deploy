@@ -92,7 +92,7 @@ public class TraceMetricsAggarator implements Aggregator {
                         List<Pair<Metric, CallStat>> job = jobs[i];
                         if (!job.isEmpty()) {
                             //storm 2.1.0's collector is Thread-no-safe that cause kyro deserialize fail.need to add mutex.more detail can view STORM-3582
-                            synchronized (this) {
+                            synchronized (SpoutOutputCollector.class) {
                                 collector.emitDirect(reducerId, PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID, new Values(slotKey * 1000, job));
                             }
                         }

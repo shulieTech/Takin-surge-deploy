@@ -92,7 +92,7 @@ public class BaseTraceMetricsAggarator implements Aggregator {
                         int reducerId = reducerIds.get(i).intValue();
                         List<Pair<Metric, CallStat>> job = jobs[i];
                         if (!job.isEmpty()) {
-                            synchronized (this) {
+                            synchronized (SpoutOutputCollector.class) {
                                 collector.emitDirect(reducerId,
                                         metricsStreamId
                                         ,
