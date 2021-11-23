@@ -6,11 +6,10 @@ import com.alibaba.fastjson.TypeReference;
 import com.pamirs.attach.plugin.dynamic.Attachment;
 import com.pamirs.attach.plugin.dynamic.Converter.TemplateConverter.TemplateEnum;
 import com.pamirs.attach.plugin.dynamic.template.RedisTemplate.JedisSingleTemplate;
-import io.shulie.surge.data.common.utils.Pair;
-import io.shulie.surge.data.deploy.pradar.link.model.ShadowBizTableModel;
 import io.shulie.surge.data.deploy.pradar.link.model.ShadowDatabaseModel;
 import io.shulie.surge.data.deploy.pradar.link.model.TTrackClickhouseModel;
 import io.shulie.surge.data.deploy.pradar.link.parse.AbstractTemplateParser;
+import io.shulie.surge.data.deploy.pradar.link.parse.ShadowDatabaseParseResult;
 import io.shulie.surge.data.deploy.pradar.link.parse.TemplateParseHandler;
 
 public class JedisSingleTemplateParser extends AbstractTemplateParser {
@@ -20,7 +19,7 @@ public class JedisSingleTemplateParser extends AbstractTemplateParser {
     }
 
     @Override
-    public Pair<ShadowDatabaseModel, ShadowBizTableModel> doParseTemplate(TTrackClickhouseModel traceModel,
+    public ShadowDatabaseParseResult doParseTemplate(TTrackClickhouseModel traceModel,
         TemplateEnum templateEnum) {
         Attachment<JedisSingleTemplate> attachment = JSON.parseObject(
             TemplateParseHandler.detachAttachment(traceModel),
@@ -35,6 +34,6 @@ public class JedisSingleTemplateParser extends AbstractTemplateParser {
         databaseModel.setAttachment(JSON.toJSONString(template));
         databaseModel.setExtInfo(TemplateParseHandler.getRedisClientModel(template.getModel()));
         databaseModel.setType(templateEnum.getKey());
-        return new Pair<>(databaseModel, null);
+        return new ShadowDatabaseParseResult(databaseModel, null);
     }
 }

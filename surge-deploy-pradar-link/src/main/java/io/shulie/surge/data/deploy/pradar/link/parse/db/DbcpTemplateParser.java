@@ -1,16 +1,22 @@
 package io.shulie.surge.data.deploy.pradar.link.parse.db;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 
 import com.pamirs.attach.plugin.dynamic.Attachment;
 import com.pamirs.attach.plugin.dynamic.Converter.TemplateConverter.TemplateEnum;
 import com.pamirs.attach.plugin.dynamic.template.DbcpTemplate;
-import io.shulie.surge.data.common.utils.Pair;
 import io.shulie.surge.data.deploy.pradar.link.model.ShadowBizTableModel;
 import io.shulie.surge.data.deploy.pradar.link.model.ShadowDatabaseModel;
 import io.shulie.surge.data.deploy.pradar.link.model.TTrackClickhouseModel;
 import io.shulie.surge.data.deploy.pradar.link.parse.AbstractTemplateParser;
+import io.shulie.surge.data.deploy.pradar.link.parse.ShadowDatabaseParseResult;
 import io.shulie.surge.data.deploy.pradar.link.parse.TemplateParseHandler;
 import io.shulie.surge.data.deploy.pradar.link.util.SqlMetadataParser;
 import io.shulie.surge.data.deploy.pradar.link.util.SqlMetadataParser.SqlMetaData;
@@ -24,7 +30,7 @@ public class DbcpTemplateParser extends AbstractTemplateParser {
     }
 
     @Override
-    public Pair<ShadowDatabaseModel, ShadowBizTableModel> doParseTemplate(TTrackClickhouseModel traceModel,
+    public ShadowDatabaseParseResult doParseTemplate(TTrackClickhouseModel traceModel,
         TemplateEnum templateEnum) {
         Attachment<DbcpTemplate> attachment = JSON.parseObject(TemplateParseHandler.detachAttachment(traceModel),
             new TypeReference<Attachment<DbcpTemplate>>() {});
@@ -43,16 +49,23 @@ public class DbcpTemplateParser extends AbstractTemplateParser {
 
         SqlMetaData sqlMetadata = SqlMetadataParser.parse(dataSource);
         databaseModel.setShadowDataSource(sqlMetadata.getShadowUrl());
-        ShadowBizTableModel bizTableModel = null;
         String parsedMethod = traceModel.getParsedMethod();
+        List<ShadowBizTableModel> tableModelList = null;
         if (StringUtils.isNotBlank(parsedMethod)) {
-            bizTableModel = new ShadowBizTableModel();
-            bizTableModel.setAppName(databaseModel.getAppName());
-            bizTableModel.setDataSource(databaseModel.getDataSource());
-            bizTableModel.setBizDatabase(sqlMetadata.getDbName());
-            bizTableModel.setTableUser(databaseModel.getTableUser());
-            bizTableModel.setTableName(parsedMethod);
+            Set<String> uniqueTableName = new HashSet<>(new ArrayList<>(Arrays.asList(parsedMethod.split(","))));
+            tableModelList = new ArrayList<>(uniqueTableName.size());
+            for (String tableName : uniqueTableName) {
+                if (StringUtils.isNotBlank(tableName)) {
+                    ShadowBizTableModel bizTableModel = new ShadowBizTableModel();
+                    bizTableModel.setAppName(databaseModel.getAppName());
+                    bizTableModel.setDataSource(databaseModel.getDataSource());
+                    bizTableModel.setBizDatabase(sqlMetadata.getDbName());
+                    bizTableModel.setTableUser(databaseModel.getTableUser());
+                    bizTableModel.setTableName(tableName);
+                    tableModelList.add(bizTableModel);
+                }
+            }
         }
-        return new Pair<>(databaseModel, bizTableModel);
+        return new ShadowDatabaseParseResult(databaseModel, tableModelList);
     }
 }

@@ -20,6 +20,7 @@ import io.shulie.surge.data.deploy.pradar.link.enums.TraceLogQueryScopeEnum;
 import io.shulie.surge.data.deploy.pradar.link.model.ShadowBizTableModel;
 import io.shulie.surge.data.deploy.pradar.link.model.ShadowDatabaseModel;
 import io.shulie.surge.data.deploy.pradar.link.model.TTrackClickhouseModel;
+import io.shulie.surge.data.deploy.pradar.link.parse.ShadowDatabaseParseResult;
 import io.shulie.surge.data.deploy.pradar.link.parse.TemplateParseHandler;
 import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
@@ -147,16 +148,15 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
         List<ShadowDatabaseModel> databaseModelList = new ArrayList<>();
         List<ShadowBizTableModel> bizTableModelList = new ArrayList<>();
         for (TTrackClickhouseModel traceModel : traceModels) {
-            Pair<ShadowDatabaseModel, ShadowBizTableModel> modelPair = TemplateParseHandler.analysisTraceModel(
-                traceModel);
-            if (modelPair != null) {
-                ShadowDatabaseModel databaseModel = modelPair.getFirst();
-                ShadowBizTableModel bizTableModel = modelPair.getSecond();
+            ShadowDatabaseParseResult parseResult = TemplateParseHandler.analysisTraceModel(traceModel);
+            if (parseResult != null) {
+                ShadowDatabaseModel databaseModel = parseResult.getDatabaseModel();
+                List<ShadowBizTableModel> bizTableModel = parseResult.getTableModelList();
                 if (databaseModel != null) {
                     databaseModelList.add(databaseModel);
                 }
-                if (bizTableModel != null) {
-                    bizTableModelList.add(bizTableModel);
+                if (CollectionUtils.isNotEmpty(bizTableModel)) {
+                    bizTableModelList.addAll(bizTableModel);
                 }
             }
         }

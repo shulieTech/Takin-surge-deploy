@@ -1,9 +1,6 @@
 package io.shulie.surge.data.deploy.pradar.link.parse;
 
 import com.pamirs.attach.plugin.dynamic.Converter.TemplateConverter.TemplateEnum;
-import io.shulie.surge.data.common.utils.Pair;
-import io.shulie.surge.data.deploy.pradar.link.model.ShadowBizTableModel;
-import io.shulie.surge.data.deploy.pradar.link.model.ShadowDatabaseModel;
 import io.shulie.surge.data.deploy.pradar.link.model.TTrackClickhouseModel;
 
 public interface TemplateParser {
@@ -17,6 +14,5 @@ public interface TemplateParser {
      * @param templateEnum {@link TemplateEnum}
      * @return left-影子库/表实体， right-业务表实体(不需要解析时，设置为null)，解析失败返回 null
      */
-    Pair<ShadowDatabaseModel, ShadowBizTableModel> parseTemplate(TTrackClickhouseModel traceModel,
-        TemplateEnum templateEnum);
+    ShadowDatabaseParseResult parseTemplate(TTrackClickhouseModel traceModel, TemplateEnum templateEnum);
 }

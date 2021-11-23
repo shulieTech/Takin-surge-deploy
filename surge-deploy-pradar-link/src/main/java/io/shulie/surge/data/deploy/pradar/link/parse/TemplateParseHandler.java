@@ -11,9 +11,6 @@ import com.pamirs.attach.plugin.dynamic.Type;
 import com.pamirs.attach.plugin.dynamic.Type.MiddleWareType;
 import com.pamirs.attach.plugin.dynamic.template.Info;
 import com.pamirs.attach.plugin.dynamic.template.RedisTemplate.MODEL;
-import io.shulie.surge.data.common.utils.Pair;
-import io.shulie.surge.data.deploy.pradar.link.model.ShadowBizTableModel;
-import io.shulie.surge.data.deploy.pradar.link.model.ShadowDatabaseModel;
 import io.shulie.surge.data.deploy.pradar.link.model.TTrackClickhouseModel;
 import io.shulie.surge.data.deploy.pradar.link.parse.cache.jedis.JedisClusterTemplateParser;
 import io.shulie.surge.data.deploy.pradar.link.parse.cache.jedis.JedisMasterSlaveTemplateParser;
@@ -82,7 +79,7 @@ public class TemplateParseHandler {
         initFormatterTemplate();
     }
 
-    public static Pair<ShadowDatabaseModel, ShadowBizTableModel> analysisTraceModel(TTrackClickhouseModel model) {
+    public static ShadowDatabaseParseResult analysisTraceModel(TTrackClickhouseModel model) {
         String flagMessage = model.getFlagMessage();
         String type = StringUtils.substringBefore(flagMessage, DELIMITER);
         TemplateEnum templateEnum = TemplateConverter.ofKey(type);
