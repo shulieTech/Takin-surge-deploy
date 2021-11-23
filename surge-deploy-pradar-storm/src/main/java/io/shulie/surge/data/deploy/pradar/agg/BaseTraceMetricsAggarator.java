@@ -15,17 +15,12 @@
 
 package io.shulie.surge.data.deploy.pradar.agg;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import io.shulie.surge.data.common.aggregation.AggregateSlot;
 import io.shulie.surge.data.common.aggregation.Aggregation;
 import io.shulie.surge.data.common.aggregation.Aggregator;
 import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.common.aggregation.metrics.CallStat;
 import io.shulie.surge.data.common.aggregation.metrics.Metric;
-import io.shulie.surge.data.common.utils.FormatUtils;
 import io.shulie.surge.data.common.utils.Pair;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.storm.spout.SpoutOutputCollector;
@@ -33,6 +28,10 @@ import org.apache.storm.task.TopologyContext;
 import org.apache.storm.tuple.Values;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import static io.shulie.surge.data.common.utils.CommonUtils.divide;
 import static io.shulie.surge.data.deploy.pradar.common.PradarRtConstant.AGG_TRACE_SECONDS_INTERVAL;
@@ -46,7 +45,7 @@ public class BaseTraceMetricsAggarator implements Aggregator {
     private static Logger logger = LoggerFactory.getLogger(BaseTraceMetricsAggarator.class);
 
     private final Aggregation<Metric, CallStat> aggregation = new Aggregation<>(
-        AGG_TRACE_SECONDS_INTERVAL, AGG_TRACE_SECONDS_LOWER_LIMIT);
+            AGG_TRACE_SECONDS_INTERVAL, AGG_TRACE_SECONDS_LOWER_LIMIT);
 
     private String reduceBoltClassName;
     private String metricsStreamId;
@@ -64,8 +63,8 @@ public class BaseTraceMetricsAggarator implements Aggregator {
      * @param topologyContext
      */
     public void init(Scheduler scheduler,
-        final SpoutOutputCollector collector,
-        final TopologyContext topologyContext) {
+                     final SpoutOutputCollector collector,
+                     final TopologyContext topologyContext) {
         aggregation.start(scheduler, new Aggregation.CommitAction<Metric, CallStat>() {
             @Override
             public void commit(long slotKey, AggregateSlot<Metric, CallStat> slot) {
@@ -77,7 +76,7 @@ public class BaseTraceMetricsAggarator implements Aggregator {
                     List<Integer> reducerIds = topologyContext.getComponentTasks(reduceBoltClassName);
                     final int reducerCount = reducerIds.size();
                     List<Pair<Metric, CallStat>>[] jobs = new List[reducerCount];
-                    int jobSize = (int)divide(size, reducerCount - 1); // 估值
+                    int jobSize = (int) divide(size, reducerCount - 1); // 估值
                     for (int i = 0; i < reducerCount; ++i) {
                         jobs[i] = new ArrayList<>(jobSize);
                     }
@@ -93,10 +92,12 @@ public class BaseTraceMetricsAggarator implements Aggregator {
                         int reducerId = reducerIds.get(i).intValue();
                         List<Pair<Metric, CallStat>> job = jobs[i];
                         if (!job.isEmpty()) {
-                            collector.emitDirect(reducerId,
-                                metricsStreamId
-                                ,
-                                new Values(slotKey * 1000, job));
+                            synchronized (SpoutOutputCollector.class) {
+                                collector.emitDirect(reducerId,
+                                        metricsStreamId
+                                        ,
+                                        new Values(slotKey * 1000, job));
+                            }
                         }
                     }
                 }
