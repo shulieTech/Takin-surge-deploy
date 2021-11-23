@@ -17,6 +17,7 @@ package io.shulie.surge.config.clickhouse;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -34,6 +35,7 @@ import io.shulie.surge.config.common.response.TenantConfigurationResponse;
 import io.shulie.surge.data.common.utils.HttpUtil;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,13 +79,13 @@ public class ClickhouseConfigurationSynchronizer {
         Assert.notNull(mysqlSupport, "mysqlSupport must not null");
         Assert.notNull(properties, "properties must not null");
         this.mysqlSupport = mysqlSupport;
-        troIp = properties.getProperty(TRO_IP);
-        troConfigPath = properties.getProperty(TRO_CONFIG_PATH);
+        this.troIp = properties.getProperty(TRO_IP);
+        this.troConfigPath = properties.getProperty(TRO_CONFIG_PATH);
         String port = properties.getProperty(TRO_PORT);
         if (StringUtils.isAnyBlank(troIp, port, troConfigPath)) {
             throw new RuntimeException(String.format("configuration [%s, %s, %s] must config", TRO_IP, TRO_PORT, TRO_CONFIG_PATH));
         }
-        troPort = Integer.parseInt(port);
+        this.troPort = Integer.parseInt(port);
     }
 
     public List<ClickhouseClusterConfigEntity> loadTenantConfigurationPlan() {
@@ -115,15 +117,10 @@ public class ClickhouseConfigurationSynchronizer {
      * @param clusterConfiguration 集群配置信息
      * @return {@link ClickhouseClusterConfigEntity}
      */
-    private List<ClickhouseClusterConfigEntity> mergeConfiguration(List<TenantConfigEntity> data,
-        Map<String, Configuration> clusterConfiguration) {
-        List<InnerClickhouseConfigEntity> entityList = new ArrayList<>(data.size());
-        data.forEach(entity -> {
-            List<InnerClickhouseConfigEntity> entities = convertConfigEntityToInnerConfig(entity);
-            if (!CollectionUtils.isEmpty(entities)) {
-                entityList.addAll(entities);
-            }
-        });
+    private List<ClickhouseClusterConfigEntity> mergeConfiguration(List<TenantConfigEntity> data, Map<String, Configuration> clusterConfiguration) {
+        List<InnerClickhouseConfigEntity> entityList = data.stream().map(this::convertConfigEntityToInnerConfig)
+            .filter(entities -> !CollectionUtils.isEmpty(entities))
+            .flatMap(Collection::stream).collect(Collectors.toList());
         return entityList.stream().filter(configEntity -> {
             ClickhouseConfigValueEntity entity = configEntity.getEntity();
             boolean available = entity != null && clusterConfiguration.containsKey(entity.getClickhouseNumber());
@@ -131,28 +128,39 @@ public class ClickhouseConfigurationSynchronizer {
                 LOGGER.info("inValid configuration：key: [{}], value: [{}]", configEntity.getConfigKey(), configEntity.getConfigValue());
             }
             return available;
-        }).map(configEntity -> {
-            ClickhouseClusterConfigEntity clusterConfigEntity = new ClickhouseClusterConfigEntity();
-            ClickhouseConfigValueEntity entity = configEntity.getEntity();
-            Configuration configuration = clusterConfiguration.get(entity.getClickhouseNumber());
-            clusterConfigEntity.setUserAppKey(configEntity.getTenantAppKey());
-            clusterConfigEntity.setTenantName(configEntity.getTenantCode());
-            clusterConfigEntity.setEnvCode(configEntity.getEnvCode());
-            clusterConfigEntity.setClusterName(configuration.getName());
-            clusterConfigEntity.setClusterDesc(configuration.getDesc());
-            clusterConfigEntity.setTtl(entity.getTtl());
+        }).map(configEntity -> buildClusterConfigEntity(clusterConfiguration, configEntity)).collect(Collectors.toList());
+    }
 
-            Map<String, String> itemMap = configuration.convertItemsToMap();
-            clusterConfigEntity.setClusterAddress(itemMap.get(URL_KEY));
-            clusterConfigEntity.setUserName(itemMap.get(USER_NAME_KEY));
-            clusterConfigEntity.setPassword(itemMap.get(PASSWORD_KEY));
-            String batchCount = itemMap.get(BATCH_COUNT_KEY);
-            if (!StringUtils.isNumeric(batchCount)) {
-                batchCount = DEFAULT_BATCH_COUNT;
-            }
-            clusterConfigEntity.setBatchCount(Integer.parseInt(batchCount));
-            return clusterConfigEntity;
-        }).collect(Collectors.toList());
+    /**
+     * 构建完整clickhouse租户配置实体
+     *
+     * @param clusterConfiguration 本地clickhouse集群配置
+     * @param configEntity         租户clickhouse集群配置
+     * @return 完整clickhouse租户配置
+     */
+    private ClickhouseClusterConfigEntity buildClusterConfigEntity(
+        Map<String, Configuration> clusterConfiguration, InnerClickhouseConfigEntity configEntity) {
+
+        ClickhouseClusterConfigEntity clusterConfigEntity = new ClickhouseClusterConfigEntity();
+        ClickhouseConfigValueEntity entity = configEntity.getEntity();
+        Configuration configuration = clusterConfiguration.get(entity.getClickhouseNumber());
+        clusterConfigEntity.setUserAppKey(configEntity.getTenantAppKey());
+        clusterConfigEntity.setTenantName(configEntity.getTenantCode());
+        clusterConfigEntity.setEnvCode(configEntity.getEnvCode());
+        clusterConfigEntity.setClusterName(configuration.getName());
+        clusterConfigEntity.setClusterDesc(configuration.getDesc());
+        clusterConfigEntity.setTtl(entity.getTtl());
+
+        Map<String, String> itemMap = configuration.convertItemsToMap();
+        clusterConfigEntity.setClusterAddress(itemMap.get(URL_KEY));
+        clusterConfigEntity.setUserName(itemMap.get(USER_NAME_KEY));
+        clusterConfigEntity.setPassword(itemMap.get(PASSWORD_KEY));
+        String batchCount = itemMap.get(BATCH_COUNT_KEY);
+        if (!StringUtils.isNumeric(batchCount)) {
+            batchCount = DEFAULT_BATCH_COUNT;
+        }
+        clusterConfigEntity.setBatchCount(Integer.parseInt(batchCount));
+        return clusterConfigEntity;
     }
 
     /**
@@ -179,7 +187,7 @@ public class ClickhouseConfigurationSynchronizer {
         if (CollectionUtils.isEmpty(configurationList)) {
             return null;
         }
-        return configurationList.stream().map(ConfigurationRowEntity::convert)
+        return configurationList.stream().map(ConfigurationRowEntity::convertToConfiguration)
             .filter(entity -> !CollectionUtils.isEmpty(entity.getItems()))
             .collect(Collectors.toMap(Configuration::getNumber, Function.identity(),
                 (oldValue, newValue) -> {
@@ -201,7 +209,7 @@ public class ClickhouseConfigurationSynchronizer {
         private String key;
         private String value;
 
-        public Configuration convert() {
+        public Configuration convertToConfiguration() {
             Configuration configuration = new Configuration();
             configuration.setName(getName());
             configuration.setNumber(getNumber());
@@ -234,6 +242,7 @@ public class ClickhouseConfigurationSynchronizer {
      * 内部clickhouse配置
      */
     @Data
+    @EqualsAndHashCode(callSuper = true)
     static class InnerClickhouseConfigEntity extends TenantConfigItemEntity {
         private String tenantAppKey;
         private String tenantCode;
