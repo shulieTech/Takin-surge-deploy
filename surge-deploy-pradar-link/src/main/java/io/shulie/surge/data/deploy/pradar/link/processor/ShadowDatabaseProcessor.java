@@ -11,7 +11,7 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import io.shulie.surge.config.clickhouse.ClickhouseTemplateHolder;
 import io.shulie.surge.config.clickhouse.ClickhouseTemplateManager;
-import io.shulie.surge.config.common.model.TenantAppEntity;
+import io.shulie.surge.data.deploy.pradar.link.model.TenantAppEntity;
 import io.shulie.surge.data.common.utils.Pair;
 import io.shulie.surge.data.deploy.pradar.link.TaskManager;
 import io.shulie.surge.data.deploy.pradar.link.model.ShadowBizTableModel;

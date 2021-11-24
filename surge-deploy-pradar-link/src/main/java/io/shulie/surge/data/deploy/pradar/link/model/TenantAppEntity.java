@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-package io.shulie.surge.config.common.model;
+package io.shulie.surge.data.deploy.pradar.link.model;
 
 import java.io.Serializable;
 
