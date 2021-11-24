@@ -15,8 +15,11 @@
 
 package io.shulie.surge.data.deploy.pradar.parser.rpc;
 
+import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.parser.DefaultRpcBasedParser;
+import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
+import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 
 /**
  * rpc client
@@ -33,6 +36,13 @@ public class RpcClientRpcBasedParser extends DefaultRpcBasedParser {
      */
     @Override
     public String serviceParse(RpcBased rpcBased) {
+        //对于下游接不了探针的远程调用,如oss,第三方接口,由于接不了探针,可以在入口规则处配置客户端应用的出口规则,也可用于适配
+        if (!TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
+            if ((rpcBased.getRpcType() == MiddlewareType.TYPE_WEB_SERVER) || (rpcBased.getRpcType() == MiddlewareType.TYPE_RPC && (rpcBased.getServiceName() != null && rpcBased.getServiceName().contains("/")))) {
+                String formatUrl = ApiProcessor.matchEntryRule(rpcBased.getUserAppKey(), rpcBased.getEnvCode(), rpcBased.getAppName(), rpcBased.getServiceName(), rpcBased.getMethodName());
+                return formatUrl;
+            }
+        }
         return super.serviceParse(rpcBased);
     }
 }

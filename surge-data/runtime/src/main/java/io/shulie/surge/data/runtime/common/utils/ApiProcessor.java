@@ -219,8 +219,8 @@ public class ApiProcessor {
         return config;
     }
 
-    //5分钟的本地缓存,10000个应用(真正配置了入口规则的还是少数,不会撑爆内存)
-    private static Cache<String, List<String>> apiCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+    //10分钟的本地缓存,10000个应用(真正配置了入口规则的还是少数,不会撑爆内存)
+    private static Cache<String, List<String>> apiCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
     public static String matchEntryRule(String tenantAppKey, String envCode, String appName, String url, String type) {
         List<String> apiList = getApiList(tenantAppKey, envCode, appName);

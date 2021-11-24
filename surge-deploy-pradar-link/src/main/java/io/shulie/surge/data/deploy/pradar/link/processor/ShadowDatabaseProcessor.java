@@ -15,22 +15,9 @@
 
 package io.shulie.surge.data.deploy.pradar.link.processor;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import io.shulie.surge.data.common.utils.Pair;
 import io.shulie.surge.data.deploy.pradar.link.TaskManager;
 import io.shulie.surge.data.deploy.pradar.link.enums.TraceLogQueryScopeEnum;
 import io.shulie.surge.data.deploy.pradar.link.model.ShadowBizTableModel;
@@ -50,6 +37,13 @@ import org.apache.commons.lang3.time.DateFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
+
+import java.io.Serializable;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class ShadowDatabaseProcessor extends AbstractProcessor {
 
@@ -76,15 +70,15 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     private Remote<Long> analysisShadowDatabaseInterval;
 
     private static final String ANALYSIS_RPC_TYPE = StringUtils.join(
-        new String[] {String.valueOf(MiddlewareType.TYPE_DB), String.valueOf(MiddlewareType.TYPE_CACHE),
-            String.valueOf(MiddlewareType.TYPE_SEARCH), String.valueOf(MiddlewareType.TYPE_FS)}, "','");
+            new String[]{String.valueOf(MiddlewareType.TYPE_DB), String.valueOf(MiddlewareType.TYPE_CACHE),
+                    String.valueOf(MiddlewareType.TYPE_SEARCH), String.valueOf(MiddlewareType.TYPE_FS)}, "','");
 
     // 查询 数据库、缓存、搜索、文件 等类型的 且 attachment不为空 的业务trace
     private static final String QUERY_SQL =
-        "select appName,rpcType,parsedMethod,parsedMiddlewareName as middlewareName,flagMessage,userAppKey,envCode "
-            + "from t_trace_all where rpcType in ('" + ANALYSIS_RPC_TYPE + "') and startDate >= '%s' "
-            + "and appName = '%s' and userAppKey = '%s' and envCode = '%s' "
-            + "and clusterTest = '0' and flagMessage is not null and flagMessage != ''";
+            "select appName,rpcType,parsedMethod,parsedMiddlewareName as middlewareName,flagMessage,userAppKey,envCode "
+                    + "from t_trace_all where rpcType in ('" + ANALYSIS_RPC_TYPE + "') and startDate >= '%s' "
+                    + "and appName = '%s' and userAppKey = '%s' and envCode = '%s' "
+                    + "and clusterTest = '0' and flagMessage is not null and flagMessage != ''";
 
     // 表名  插入列  插入数据
     private static final String INSERT_SQL_TEMPLATE = "INSERT IGNORE INTO %s %s VALUES %s ";
@@ -106,7 +100,9 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
 
     @Override
     public void share(List<String> taskIds, String currentTaskId) {
-        if (executeDisabled()) { return; }
+        if (executeDisabled()) {
+            return;
+        }
         List<InnerEntity> entityCache = appCache.getEntityCache();
         if (CollectionUtils.isEmpty(entityCache)) {
             return;
@@ -122,7 +118,9 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
 
     @Override
     public void share(int taskId) {
-        if (executeDisabled() || taskId == -1) { return; }
+        if (executeDisabled() || taskId == -1) {
+            return;
+        }
         List<InnerEntity> entityCache = appCache.getEntityCache();
         if (CollectionUtils.isEmpty(entityCache)) {
             return;
@@ -136,7 +134,9 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
 
     @Override
     public void share() {
-        if (executeDisabled()) { return; }
+        if (executeDisabled()) {
+            return;
+        }
         List<InnerEntity> entityCache = appCache.getEntityCache();
         if (CollectionUtils.isEmpty(entityCache)) {
             return;
@@ -178,7 +178,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
                     databaseModelList.add(databaseModel);
                 }
                 if (CollectionUtils.isNotEmpty(bizTableModel)) {
-                    bizTableModel.forEach(model->{
+                    bizTableModel.forEach(model -> {
                         model.setUserAppKey(userAppKey);
                         model.setEnvCode(envCode);
                     });
@@ -203,7 +203,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
                 return isUnique;
             }).collect(Collectors.toList());
             mysqlSupport.batchUpdate(insertShadowDatabaseSql,
-                databaseModelList.stream().map(ShadowDatabaseModel::getValues).collect(Collectors.toList()));
+                    databaseModelList.stream().map(ShadowDatabaseModel::getValues).collect(Collectors.toList()));
             if (logger.isDebugEnabled()) {
                 logger.debug("ShadowDatabaseProcessor save is ok. databaseSize：[{}]", databaseModelList.size());
             }
@@ -222,7 +222,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
                 return isUnique;
             }).collect(Collectors.toList());
             mysqlSupport.batchUpdate(insertShadowBizTableSql,
-                bizTableModelList.stream().map(ShadowBizTableModel::getValues).collect(Collectors.toList()));
+                    bizTableModelList.stream().map(ShadowBizTableModel::getValues).collect(Collectors.toList()));
             if (logger.isDebugEnabled()) {
                 logger.debug("ShadowDatabaseProcessor save is ok. bizTableSize：[{}]", bizTableModelList.size());
             }
@@ -234,23 +234,23 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
         Calendar startDate = Calendar.getInstance();
         switch (timeScope) {
             case WEEK:
-                startDate.add(Calendar.DATE, (int)(-1 * timeScope.getTime()));
+                startDate.add(Calendar.DATE, (int) (-1 * timeScope.getTime()));
                 break;
             case DAY:
-                startDate.add(Calendar.DATE, (int)(-1 * timeScope.getTime()));
+                startDate.add(Calendar.DATE, (int) (-1 * timeScope.getTime()));
                 break;
             case MINUTE:
             case MIN_CUS:
-                startDate.add(Calendar.MINUTE, (int)(-1 * timeScope.getTime()));
+                startDate.add(Calendar.MINUTE, (int) (-1 * timeScope.getTime()));
                 break;
             default:
         }
 
         String querySql = String.format(QUERY_SQL,
-            DateFormatUtils.format(startDate.getTime(), "yyyy-MM-dd HH:mm:ss")
-            , innerEntity.getAppName(), innerEntity.getUserAppKey(), innerEntity.getEnvCode());
+                DateFormatUtils.format(startDate.getTime(), "yyyy-MM-dd HH:mm:ss")
+                , innerEntity.getAppName(), innerEntity.getUserAppKey(), innerEntity.getEnvCode());
         return this.isUseCk() ? clickHouseSupport.queryForList(querySql, TTrackClickhouseModel.class)
-            : mysqlSupport.queryForList(querySql, TTrackClickhouseModel.class);
+                : mysqlSupport.queryForList(querySql, TTrackClickhouseModel.class);
     }
 
     private boolean executeDisabled() {
@@ -265,9 +265,9 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
         this.setDataSourceType(dataSourceType);
         appCache.autoRefresh(mysqlSupport);
         insertShadowDatabaseSql = String.format(INSERT_SQL_TEMPLATE, SHADOW_DATABASE, ShadowDatabaseModel.getCols(),
-            ShadowDatabaseModel.getParamCols());
+                ShadowDatabaseModel.getParamCols());
         insertShadowBizTableSql = String.format(INSERT_SQL_TEMPLATE, BIZ_TABLE, ShadowBizTableModel.getCols(),
-            ShadowBizTableModel.getParamCols());
+                ShadowBizTableModel.getParamCols());
     }
 
     public static class AbstractAppCache {
@@ -284,7 +284,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
         private void refresh(MysqlSupport mysqlSupport) {
             try {
                 appNameList = mysqlSupport.query("select app_name appName, user_app_key userAppKey, env_code envCode from t_amdb_app order by id"
-                    , new BeanPropertyRowMapper<>(InnerEntity.class));
+                        , new BeanPropertyRowMapper<>(InnerEntity.class));
             } catch (Exception e) {
                 logger.error("Query app_name failed.", e);
             }
