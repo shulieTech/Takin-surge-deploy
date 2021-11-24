@@ -37,7 +37,6 @@
 
     <properties>
         <surge.data.version>1.0</surge.data.version>
-        <surge.data.common.version>1.1</surge.data.common.version>
     </properties>
 
     <dependencyManagement>
@@ -60,7 +59,7 @@
             <dependency>
                 <groupId>io.shulie.surge.data</groupId>
                 <artifactId>common</artifactId>
-                <version>1.0</version>
+                <version>${surge.data.common.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.shulie.surge.data</groupId>
