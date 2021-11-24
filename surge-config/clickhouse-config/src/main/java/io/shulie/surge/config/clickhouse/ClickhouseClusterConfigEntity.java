@@ -33,7 +33,7 @@ public class ClickhouseClusterConfigEntity implements Serializable {
     private String clusterName;     // 集群名称
     private String clusterDesc;     // 租户说明
     private String clusterAddress;  // 租户地址
-    private String userName;        // 帐号
+    private String userName;        // 账号
     private String password;        // 密码
     private String ttl;             // 数据有效期
     private Integer batchCount;     // 执行批数

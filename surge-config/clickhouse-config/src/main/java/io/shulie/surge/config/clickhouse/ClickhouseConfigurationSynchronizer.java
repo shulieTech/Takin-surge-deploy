@@ -88,14 +88,14 @@ public class ClickhouseConfigurationSynchronizer {
         this.troPort = Integer.parseInt(port);
     }
 
-    public List<ClickhouseClusterConfigEntity> loadTenantConfigurationPlan() {
-        TenantConfigurationResponse response = queryClickhouseConfig();
-        List<TenantConfigEntity> data;
-        if (response == null || CollectionUtils.isEmpty(data = response.getData())) {
-            return new ArrayList<>(0);
-        }
+    public List<ClickhouseClusterConfigEntity> syncTenantClusterConfiguration() {
         Map<String, Configuration> configurationMap = loadLocalClusterConfiguration();
         if (CollectionUtils.isEmpty(configurationMap)) {
+            return new ArrayList<>(0);
+        }
+        TenantConfigurationResponse response = queryTenantClusterConfiguration();
+        List<TenantConfigEntity> data;
+        if (response == null || CollectionUtils.isEmpty(data = response.getData())) {
             return new ArrayList<>(0);
         }
         return mergeConfiguration(data, configurationMap);
@@ -106,7 +106,7 @@ public class ClickhouseConfigurationSynchronizer {
      *
      * @return 租户存储方案
      */
-    private TenantConfigurationResponse queryClickhouseConfig() {
+    private TenantConfigurationResponse queryTenantClusterConfiguration() {
         return JSON.parseObject(HttpUtil.doGet(troIp, troPort, troConfigPath, null, null), TenantConfigurationResponse.class);
     }
 
@@ -128,7 +128,7 @@ public class ClickhouseConfigurationSynchronizer {
                 LOGGER.info("inValid configuration：key: [{}], value: [{}]", configEntity.getConfigKey(), configEntity.getConfigValue());
             }
             return available;
-        }).map(configEntity -> buildClusterConfigEntity(clusterConfiguration, configEntity)).collect(Collectors.toList());
+        }).map(configEntity -> buildClusterConfigurationEntity(clusterConfiguration, configEntity)).collect(Collectors.toList());
     }
 
     /**
@@ -138,7 +138,7 @@ public class ClickhouseConfigurationSynchronizer {
      * @param configEntity         租户clickhouse集群配置
      * @return 完整clickhouse租户配置
      */
-    private ClickhouseClusterConfigEntity buildClusterConfigEntity(
+    private ClickhouseClusterConfigEntity buildClusterConfigurationEntity(
         Map<String, Configuration> clusterConfiguration, InnerClickhouseConfigEntity configEntity) {
 
         ClickhouseClusterConfigEntity clusterConfigEntity = new ClickhouseClusterConfigEntity();

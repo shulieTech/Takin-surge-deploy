@@ -32,7 +32,7 @@ public class ClickhouseTemplateManagerProvider implements Provider<ClickhouseTem
     @Inject
     public ClickhouseTemplateManagerProvider(MysqlSupport mysqlSupport, @Named(DATA_SOURCE_KEY) String dataSourceType) {
         singleton = new ClickhouseTemplateManager(mysqlSupport, dataSourceType);
-        singleton.init(DataBootstrap.readConfig("deploy.properties"));
+        singleton.initClusterConfiguration(DataBootstrap.readConfig("deploy.properties"));
     }
 
     @Override

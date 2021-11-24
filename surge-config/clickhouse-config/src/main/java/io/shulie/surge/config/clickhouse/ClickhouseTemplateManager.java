@@ -150,16 +150,16 @@ public class ClickhouseTemplateManager implements Lifecycle, Stoppable {
      *
      * @param properties 配置参数
      */
-    public void init(Properties properties) {
+    public void initClusterConfiguration(Properties properties) {
         if (isUseCk() && initialized.compareAndSet(false, true)) {
             // 默认数据源：私有化部署和非多环境版本agent使用,现阶段必须配置
-            boolean configured = initDefaultDatasource(properties);
+            boolean configured = initDefaultClusterConfiguration(properties);
             if (!configured) {
                 throw new IllegalStateException(
                     String.format("configuration file must configure [%s, %s]", CONFIG_CLICKHOUSE_URL, CONFIG_CLICKHOUSE_PASSWORD));
             }
             // 根据租户配置设置clickhouse操作客户端
-            refreshClickhouseConfiguration(properties);
+            refreshTenantClusterConfiguration(properties);
         }
     }
 
@@ -168,8 +168,8 @@ public class ClickhouseTemplateManager implements Lifecycle, Stoppable {
      *
      * @param synchronizer 租户集群配置同步器
      */
-    public void initClickhouseTemplatesByConfig(ClickhouseConfigurationSynchronizer synchronizer) {
-        List<ClickhouseClusterConfigEntity> data = synchronizer.loadTenantConfigurationPlan();
+    private void syncTenantClusterConfigurationAndRefreshHolder(ClickhouseConfigurationSynchronizer synchronizer) {
+        List<ClickhouseClusterConfigEntity> data = synchronizer.syncTenantClusterConfiguration();
         for (ClickhouseClusterConfigEntity configEntity : data) {
             String clusterAddress = configEntity.getClusterAddress();
             String userName = configEntity.getUserName();
@@ -193,7 +193,7 @@ public class ClickhouseTemplateManager implements Lifecycle, Stoppable {
      * @param properties 配置文件
      * @return 默认数据源是否初始化成功，true-成功
      */
-    public boolean initDefaultDatasource(Properties properties) {
+    public boolean initDefaultClusterConfiguration(Properties properties) {
         String url = properties.getProperty(CONFIG_CLICKHOUSE_URL);
         String userName = properties.getProperty(CONFIG_CLICKHOUSE_USER_NAME);
         String password = properties.getProperty(CONFIG_CLICKHOUSE_PASSWORD);
@@ -260,6 +260,9 @@ public class ClickhouseTemplateManager implements Lifecycle, Stoppable {
             }
             // 租户未配置存储方案时使用默认数据源
             if (templateHolder == null) {
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("not found clickhouse-cluster configuration by uniqueKey, use default configuration. uniqueKey=[{}]", uniqueKey);
+                }
                 return getTemplateHolder(generateUniqueKey("", ""), isAdd);
             }
             return templateHolder;
@@ -291,7 +294,7 @@ public class ClickhouseTemplateManager implements Lifecycle, Stoppable {
      * @throws Exception 文件读取/建表异常
      */
     public void createTableByScriptFile(ClickhouseClusterConfigEntity entity) throws Exception {
-        Assert.notNull(entity, "entity must not null");
+        Assert.notNull(entity, "clickhouse-cluster configuration entity must not null");
         if (entity.isProd()) {
             ClickHouseShardSupport shardSupport = new ClickHouseShardSupport();
             List<String> urls = shardSupport.splitUrl(reBuildUrlIfNecessary(entity.getClusterAddress()));
@@ -376,7 +379,7 @@ public class ClickhouseTemplateManager implements Lifecycle, Stoppable {
             // 获取脚本文件内容
             String tableScript = FileUtils.readFileToString(scriptFile, StandardCharsets.UTF_8.name());
             if (StringUtils.isBlank(tableScript)) {
-                throw new IllegalStateException("script file [" + scriptFile.getPath() + "] content is empty");
+                throw new IllegalStateException("clickhouse-cluster script file [" + scriptFile.getPath() + "] content is empty");
             }
             ClickhouseTableNameGenerator router = new DefaultClickhouseTableNameGenerator(isCluster);
             return tableScript.replace(TABLE_NAME_PLACEHOLDER, router.generateLocalTableName(entity))
@@ -384,7 +387,7 @@ public class ClickhouseTemplateManager implements Lifecycle, Stoppable {
                 .replace(TTL_PLACEHOLDER, entity.getTtl())
                 .replace(CLUSTER_NAME_PLACEHOLDER, isCluster ? DEFAULT_CLUSTER_NAME : "");
         }
-        throw new IllegalStateException("script file[" + scriptFile.getPath() + "] not exists");
+        throw new IllegalStateException("clickhouse-cluster script file[" + scriptFile.getPath() + "] not exists");
     }
 
     @Override
@@ -430,13 +433,13 @@ public class ClickhouseTemplateManager implements Lifecycle, Stoppable {
      *
      * @param properties 配置文件，主要是获取控制台配置
      */
-    private void refreshClickhouseConfiguration(Properties properties) {
+    private void refreshTenantClusterConfiguration(Properties properties) {
         if (!StringUtils.isAnyBlank(properties.getProperty(TRO_IP), properties.getProperty(TRO_PORT), TRO_CONFIG_PATH)) {
             ClickhouseConfigurationSynchronizer synchronizer = new ClickhouseConfigurationSynchronizer(mysqlSupport, properties);
             Executors.newScheduledThreadPool(1, new NamedThreadFactory("refresh-clickhouse-cluster-configuration"))
                 .scheduleAtFixedRate(() -> {
                     try {
-                        initClickhouseTemplatesByConfig(synchronizer);
+                        syncTenantClusterConfigurationAndRefreshHolder(synchronizer);
                     } catch (Exception e) {
                         LOGGER.error("init clickhouse-cluster configuration fail", e);
                     }
