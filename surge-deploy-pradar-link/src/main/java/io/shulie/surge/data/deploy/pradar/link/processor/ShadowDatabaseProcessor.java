@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Shulie Technology, Co.Ltd
+ * Email: shulie@shulie.io
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.shulie.surge.data.deploy.pradar.link.processor;
 
 import java.io.Serializable;
@@ -21,6 +36,7 @@ import io.shulie.surge.data.deploy.pradar.link.enums.TraceLogQueryScopeEnum;
 import io.shulie.surge.data.deploy.pradar.link.model.ShadowBizTableModel;
 import io.shulie.surge.data.deploy.pradar.link.model.ShadowDatabaseModel;
 import io.shulie.surge.data.deploy.pradar.link.model.TTrackClickhouseModel;
+import io.shulie.surge.data.deploy.pradar.link.parse.ShadowDatabaseParseResult;
 import io.shulie.surge.data.deploy.pradar.link.parse.TemplateParseHandler;
 import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
@@ -150,21 +166,23 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
         List<ShadowDatabaseModel> databaseModelList = new ArrayList<>();
         List<ShadowBizTableModel> bizTableModelList = new ArrayList<>();
         for (TTrackClickhouseModel traceModel : traceModels) {
-            Pair<ShadowDatabaseModel, ShadowBizTableModel> modelPair = TemplateParseHandler.analysisTraceModel(traceModel);
-            if (modelPair != null) {
+            ShadowDatabaseParseResult parseResult = TemplateParseHandler.analysisTraceModel(traceModel);
+            if (parseResult != null) {
+                ShadowDatabaseModel databaseModel = parseResult.getDatabaseModel();
                 String userAppKey = traceModel.getUserAppKey();
                 String envCode = traceModel.getEnvCode();
-                ShadowDatabaseModel databaseModel = modelPair.getFirst();
-                ShadowBizTableModel bizTableModel = modelPair.getSecond();
+                List<ShadowBizTableModel> bizTableModel = parseResult.getTableModelList();
                 if (databaseModel != null) {
                     databaseModel.setUserAppKey(userAppKey);
                     databaseModel.setEnvCode(envCode);
                     databaseModelList.add(databaseModel);
                 }
-                if (bizTableModel != null) {
-                    bizTableModel.setUserAppKey(userAppKey);
-                    bizTableModel.setEnvCode(envCode);
-                    bizTableModelList.add(bizTableModel);
+                if (CollectionUtils.isNotEmpty(bizTableModel)) {
+                    bizTableModel.forEach(model->{
+                        model.setUserAppKey(userAppKey);
+                        model.setEnvCode(envCode);
+                    });
+                    bizTableModelList.addAll(bizTableModel);
                 }
             }
         }
