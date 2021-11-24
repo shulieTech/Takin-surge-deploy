@@ -26,6 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>common</artifactId>
+    <version>${surge.data.common.version}</version>
 
     <dependencies>
         <dependency>

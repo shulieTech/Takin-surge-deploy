@@ -35,11 +35,10 @@
         <module>suppliers</module>
     </modules>
 
-
     <properties>
         <surge.data.version>1.0</surge.data.version>
+        <surge.data.common.version>1.1</surge.data.common.version>
     </properties>
-
 
     <dependencyManagement>
         <dependencies>
