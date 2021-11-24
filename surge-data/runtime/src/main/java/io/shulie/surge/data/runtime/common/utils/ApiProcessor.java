@@ -209,13 +209,13 @@ public class ApiProcessor {
 
     public static Map<String, String> getTenantConfigByAppName(String appName) {
         Map<String, String> config = Maps.newHashMap();
-//        if (tenantConfigMap.containsKey(appName)) {
-//            config.put("tenantAppKey", tenantConfigMap.get(appName).split("#")[0]);
-//            config.put("envCode", tenantConfigMap.get(appName).split("#")[1]);
-//        } else {
-        config.put("tenantAppKey", "default");
-        config.put("envCode", "test");
-//        }
+        if (tenantConfigMap.containsKey(appName)) {
+            config.put("tenantAppKey", tenantConfigMap.get(appName).split("#")[0]);
+            config.put("envCode", tenantConfigMap.get(appName).split("#")[1]);
+        } else {
+            config.put("tenantAppKey", "default");
+            config.put("envCode", "test");
+        }
         return config;
     }
 
@@ -345,7 +345,8 @@ public class ApiProcessor {
         return url;
     }
 
-    private static AtomicReference<String> getMatchAppName(List<String> matchUrls, String defaultAppName, List<Map<String, Object>> businessActivities) {
+    private static AtomicReference<String> getMatchAppName(List<String> matchUrls, String
+            defaultAppName, List<Map<String, Object>> businessActivities) {
         AtomicReference<String> appName = new AtomicReference<String>();
         businessActivities.forEach(map -> {
             if (matchUrls.get(0).equals(map.get("serviceName"))) {
