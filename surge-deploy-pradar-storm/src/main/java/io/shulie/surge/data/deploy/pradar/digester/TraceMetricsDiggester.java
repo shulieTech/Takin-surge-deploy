@@ -99,6 +99,11 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         }
 
         RpcBased rpcBased = context.getContent();
+        RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
+        if (rpcBasedParser == null) {
+            return;
+        }
+
         //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
         if (StringUtils.isBlank(rpcBased.getUserAppKey())) {
             rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
@@ -107,10 +112,6 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
             rpcBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("envCode"));
         }
 
-        RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
-        if (rpcBasedParser == null) {
-            return;
-        }
         // 生成唯一边Id ,同步zk集合，判断此流量是否要统计
         String edgeId = rpcBasedParser.edgeId("", rpcBased);
         Map<String, Object> eagleTags = rpcBasedParser.edgeTags("", rpcBased);
