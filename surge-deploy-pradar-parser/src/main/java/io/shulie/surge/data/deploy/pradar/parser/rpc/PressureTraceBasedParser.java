@@ -17,7 +17,6 @@ package io.shulie.surge.data.deploy.pradar.parser.rpc;
 
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.parser.DefaultRpcBasedParser;
-import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 
 /**
  * @author sunshiyu
@@ -31,6 +30,8 @@ public class PressureTraceBasedParser extends DefaultRpcBasedParser {
      */
     @Override
     public String serviceParse(RpcBased rpcBased) {
-        return ApiProcessor.matchBusinessActivity(rpcBased.getTaskId(), rpcBased.getServiceName(), rpcBased.getMethodName());
+        //临时放开调用tro,控制台需要userAppKey和envCode
+        return rpcBased.getServiceName();
+        //return ApiProcessor.matchBusinessActivity(rpcBased.getTaskId(), rpcBased.getServiceName(), rpcBased.getMethodName());
     }
 }
