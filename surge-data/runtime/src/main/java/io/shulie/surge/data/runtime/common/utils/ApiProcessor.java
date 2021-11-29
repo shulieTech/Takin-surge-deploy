@@ -711,6 +711,16 @@ final class Matcher {
     protected String match3(String url, String type, List<String> apiPatterns) {
         if (apiPatterns == null) {
             apiPatterns = apiMap.get(type);
+        } else {
+            List<String> tmpApiList = Lists.newArrayList();
+            apiPatterns.stream().forEach(apiPattern -> {
+                String api = apiPattern.split("#")[0];
+                String method = apiPattern.split("#")[1];
+                if (type.equalsIgnoreCase(method)) {
+                    tmpApiList.add(api);
+                }
+            });
+            apiPatterns = tmpApiList;
         }
         if (CollectionUtils.isEmpty(apiPatterns)) {
             apiPatterns = Lists.newArrayList();
@@ -768,9 +778,9 @@ final class Matcher {
 
     public static void main(String[] args) {
         Map<String, List<String>> newApiMap = Maps.newHashMap();
-        newApiMap.put("GET", Arrays.asList("/hello/{name}", "/{id}/{name}", "/path/{id}/test", "/path/{id}/test/{num}", "/path/{id}", "/{id}/{name}/test", "/{id}"));
+        newApiMap.put("PUT", Arrays.asList("/hello/{name}", "/gxp-data-hub/{topic}/{year}/{month}/{day}/{json}", "/{id}/{name}", "/path/{id}/test", "/path/{id}/test/{num}", "/path/{id}", "/{id}/{name}/test", "/{id}"));
         ApiProcessor.API_COLLECTION.put("test", newApiMap);
-        System.out.println(ApiProcessor.merge("test", "/123/hello/sdsds/dsds", "GET"));
+        System.out.println(ApiProcessor.merge("test", "/gxp-data-hub/sto_package_trace_send_dflow&210/20211124/19/41/{sto_package_trace_send_dflow&210}_87fadf313e9744bba57698fd7899f565.json", "PUT"));
         System.out.println(ApiProcessor.merge("test", "/hello/sdsds/dsds", "GET"));
         System.out.println(ApiProcessor.merge("test", "/hello/yyy", "GET"));
         System.out.println(ApiProcessor.merge("test", "/mmm/nnn", "GET"));
