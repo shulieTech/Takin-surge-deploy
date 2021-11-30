@@ -338,8 +338,11 @@ public class ExitProcessor extends AbstractProcessor {
                     //更新下游应用为服务端应用
                     value.put("downAppName", serverMap.get(key.substring(0, key.lastIndexOf("#"))).get("appName"));
                 } else {
+                    //fix 对于服务端接不了探针的第三方应用,如果配置了出口规则,则需要用出口规则替换
+                    value.put("serviceName", value.get("defaultWhiteInfo"));
                     logger.info("external service invoke detect:{}", value);
                 }
+
                 //使用defaultWhiteInfo临时保存了parsedServiceName,为了不影响结果,还需要置为空
                 value.put("defaultWhiteInfo", "");
                 result.add(value);
