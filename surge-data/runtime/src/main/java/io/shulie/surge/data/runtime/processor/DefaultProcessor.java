@@ -129,7 +129,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
     @Override
     public void publish(DigestContext<OUT> data) throws InterruptedException {
         canPublish(1);
-        if (data == null || removeDelay(null,data.getEventTime(), data.getProcessTime(), String.valueOf(data))) {
+        if (data == null || removeDelay(null, data.getEventTime(), data.getProcessTime(), String.valueOf(data))) {
             return;
         }
         long seq = ringBuffer.next();
@@ -244,13 +244,6 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      */
     protected abstract DataParser<IN, OUT> getDataParser(Map<String, Object> header);
 
-
-    /**
-     * 拆分log
-     * @param in
-     * @return
-     */
-    protected abstract List<IN> splitLog(IN in);
 
     public void setProcessorConfig(ProcessorConfigSpec processorConfig) {
         this.processorConfig = processorConfig;

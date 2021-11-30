@@ -114,8 +114,8 @@ public class ExitProcessor extends AbstractProcessor {
         List<Map<String, Object>> appNames = queryAppNames(timePair);
         if (CollectionUtils.isNotEmpty(appNames)) {
             appNames.stream().forEach(appNameMap -> {
-                String appName = String.valueOf(appNameMap.get("appName"));
-                saveExit(appName, timePair);
+                String key = appNameMap.get("userAppKey") + "#" + appNameMap.get("envCode") + "#" + appNameMap.get("appName");
+                saveExit(key, timePair);
             });
         }
     }
@@ -142,9 +142,9 @@ public class ExitProcessor extends AbstractProcessor {
         List<Map<String, Object>> appNames = queryAppNames(timePair);
         if (CollectionUtils.isNotEmpty(appNames)) {
             appNames.stream().forEach(appNameMap -> {
-                String appName = String.valueOf(appNameMap.get("appName"));
-                if (appName.hashCode() % taskId == 0) {
-                    saveExit(appName, timePair);
+                String key = appNameMap.get("userAppKey") + "#" + appNameMap.get("envCode") + "#" + appNameMap.get("appName");
+                if (key.hashCode() % taskId == 0) {
+                    saveExit(key, timePair);
                 }
             });
         }
@@ -168,8 +168,8 @@ public class ExitProcessor extends AbstractProcessor {
         List<Map<String, Object>> appNames = queryAppNames(timePair);
         if (CollectionUtils.isNotEmpty(appNames)) {
             appNames.stream().forEach(appNameMap -> {
-                String appName = String.valueOf(appNameMap.get("appName"));
-                saveExit(appName, timePair);
+                String key = appNameMap.get("userAppKey") + "#" + appNameMap.get("envCode") + "#" + appNameMap.get("appName");
+                saveExit(key, timePair);
             });
         }
     }
@@ -197,7 +197,7 @@ public class ExitProcessor extends AbstractProcessor {
         List<Map<String, Object>> appNames = queryAppNames(timePair);
         if (CollectionUtils.isNotEmpty(appNames)) {
             Map<String, List<Map<String, Object>>> nameMap = appNames.stream().collect(
-                    Collectors.groupingBy(name -> String.valueOf(name.get("appName"))));
+                    Collectors.groupingBy(name -> name.get("userAppKey") + "#" + name.get("envCode") + "#" + name.get("appName")));
             List<String> nameList = new ArrayList<>(nameMap.keySet());
             Map<String, List<String>> idMap = taskManager.allotOfAverage(taskIds, nameList);
             List<String> avgList = idMap.get(currentId);
@@ -205,7 +205,7 @@ public class ExitProcessor extends AbstractProcessor {
                 avgList.stream().forEach(avg -> {
                     Optional<Map<String, Object>> appMap = nameMap.get(avg).stream().findFirst();
                     if (appMap.isPresent()) {
-                        saveExit(String.valueOf(appMap.get().get("appName")), timePair);
+                        saveExit(appMap.get().get("userAppKey") + "#" + appMap.get().get("envCode") + "#" + appMap.get().get("appName"), timePair);
                     }
                 });
             }
@@ -221,7 +221,7 @@ public class ExitProcessor extends AbstractProcessor {
     public List<Map<String, Object>> queryAppNames(Pair timePair) {
         try {
             //统计当前时间往前两分钟到当前时间往前5s期间所有远程调用日志的应用列表
-            String appNameSql = "select appName from t_trace_all where startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and logType=2  and clusterTest = '0' group by appName";
+            String appNameSql = "select userAppKey,envCode,appName  from t_trace_all where startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and logType=2 group by userAppKey,envCode,appName";
             if (isUseCk()) {
                 return clickHouseSupport.queryForList(appNameSql);
             } else {
@@ -238,21 +238,24 @@ public class ExitProcessor extends AbstractProcessor {
     /**
      * 保存链路出口(远程调用)/出口信息
      */
-    public void saveExit(String appName, Pair timePair) {
+    public void saveExit(String key, Pair timePair) {
         //压测引擎的不处理
-        if ("pressure-engine".equals(appName)) {
+        if (key.contains("pressure-engine")) {
             return;
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("saveExit:{},startTime,endTime:{}", appName, timePair);
+            logger.debug("saveExit:{},startTime,endTime:{}", key, timePair);
         }
         try {
-            List<Map<String, Object>> exitMapList = queryExit(appName, timePair);
+            List<Map<String, Object>> exitMapList = queryExit(key, timePair);
             if (CollectionUtils.isEmpty(exitMapList)) {
                 return;
             }
             //对于serviceName和methodName超过256的出口(远程调用),采取截断方式
             exitMapList = exitMapList.stream().map(exitMap -> {
+                exitMap.put("userAppKey", key.split("#")[0]);
+                exitMap.put("envCode", key.split("#")[1]);
+
                 String oriServiceName = StringUtil.formatString(exitMap.get("serviceName"));
                 String oriMethodName = StringUtil.formatString(exitMap.get("methodName"));
                 if (oriServiceName.length() > SERVICE_LENGTH_FIELD) {
@@ -272,31 +275,36 @@ public class ExitProcessor extends AbstractProcessor {
                             -> new TreeSet<>(Comparator.comparing(LinkEntranceModel::getEntranceId))), ArrayList::new));
             mysqlSupport.batchUpdate(linkEntranceInsertSql, new ArrayList<>(
                     linkEntranceModels.stream().map(LinkEntranceModel::getValues).collect(Collectors.toSet())));
-            logger.info("{} saveExit is ok,size: {}", appName, exitMapList.size());
+            logger.info("{} saveExit is ok,size: {}", key, exitMapList.size());
         } catch (Throwable e) {
-            logger.error("Save to pradar_link_exit error!" + ExceptionUtils.getStackTrace(e));
+            logger.error("saveExit error!" + ExceptionUtils.getStackTrace(e));
             //ignore
         }
     }
 
 
     /**
-     * @param appName,timePair
+     * @param appNameKey,timePair
      * @return
      */
-    public List<Map<String, Object>> queryExit(String appName, Pair timePair) {
+    public List<Map<String, Object>> queryExit(String appNameKey, Pair timePair) {
         List<Map<String, Object>> result = Lists.newArrayList();
         List<Map<String, Object>> exitList;
         Map<String, Map<String, Object>> clientMap = Maps.newHashMap();
         Map<String, Map<String, Object>> serverMap = Maps.newHashMap();
         StringBuilder exitSql = new StringBuilder();
 
+        String[] arr = appNameKey.split("#");
+        String userAppKey = arr[0];
+        String envCode = arr[1];
+        String appName = arr[2];
+
         try {
             if (this.isUseCk()) {
-                buildQueryCkSql(appName, timePair, exitSql);
+                buildQueryCkSql(appName, userAppKey, envCode, timePair, exitSql);
                 exitList = clickHouseSupport.queryForList(exitSql.toString());
             } else {
-                buildQueryMysqlSql(appName, timePair, exitSql);
+                buildQueryMysqlSql(appName, userAppKey, envCode, timePair, exitSql);
                 exitList = mysqlSupport.queryForList(exitSql.toString());
             }
             logger.info("queryExit:{}", exitSql);
@@ -338,8 +346,11 @@ public class ExitProcessor extends AbstractProcessor {
                     //更新下游应用为服务端应用
                     value.put("downAppName", serverMap.get(key.substring(0, key.lastIndexOf("#"))).get("appName"));
                 } else {
+                    //fix 对于服务端接不了探针的第三方应用,如果配置了出口规则,则需要用出口规则替换
+                    value.put("serviceName", value.get("defaultWhiteInfo"));
                     logger.info("external service invoke detect:{}", value);
                 }
+
                 //使用defaultWhiteInfo临时保存了parsedServiceName,为了不影响结果,还需要置为空
                 value.put("defaultWhiteInfo", "");
                 result.add(value);
@@ -352,28 +363,28 @@ public class ExitProcessor extends AbstractProcessor {
         return Collections.EMPTY_LIST;
     }
 
-    private void buildQueryCkSql(String appName, Pair timePair, StringBuilder exitSql) {
+    private void buildQueryCkSql(String appName, String userAppKey, String envCode, Pair timePair, StringBuilder exitSql) {
         //查询DUBBO,FEIGN以及GRPC的出口数据
-        exitSql.append(SqlConstants.QUERY_EXIT_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and clusterTest = '0' and parsedMiddlewareName in ('DUBBO','FEIGN','GRPC') limit 100 ").append(SqlConstants.UNION_ALL);
+        exitSql.append(SqlConstants.QUERY_EXIT_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and parsedMiddlewareName in ('DUBBO','FEIGN','GRPC') and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' limit 100 ").append(SqlConstants.UNION_ALL);
         //查询默认白名单(flagMessage不为空)的HTTP出口数据
-        exitSql.append(SqlConstants.QUERY_DEFAULT_WHITE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and clusterTest = '0' and parsedMiddlewareName = 'HTTP' and flagMessage != '' limit 100 ").append(SqlConstants.UNION_ALL);
+        exitSql.append(SqlConstants.QUERY_DEFAULT_WHITE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and parsedMiddlewareName = 'HTTP' and flagMessage != '' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' limit 100 ").append(SqlConstants.UNION_ALL);
         //查询所有非默认白名单(flagMessage为空)的出口(2分钟前到现在往前5s)和所有上游应用名称是目前客户端应用的服务端出口(远程调用)
         //可能存在客户端日志已经产生了,但是服务端日志还没有产生或者写入ck,此时会把这种有服务端的日志标识成第三方服务
-        exitSql.append(SqlConstants.QUERY_ALL_SQL + " (( startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and logType=2 and flagMessage='') or (startDate >= '" + timePair.getFirst() + "' and upAppName='" + appName + "' and logType=3 )) and parsedServiceName != '' and parsedMiddlewareName = 'HTTP' and clusterTest = '0' ");
+        exitSql.append(SqlConstants.QUERY_ALL_SQL + " (( startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and logType=2 and flagMessage='') or (startDate >= '" + timePair.getFirst() + "' and upAppName='" + appName + "' and logType=3 )) and parsedServiceName != '' and parsedMiddlewareName = 'HTTP' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' ");
     }
 
-    private void buildQueryMysqlSql(String appName, Pair timePair, StringBuilder exitSql) {
+    private void buildQueryMysqlSql(String appName, String userAppKey, String envCode, Pair timePair, StringBuilder exitSql) {
         /**
          * mysql的UNION ALL必须把语句用括号包裹
          */
 
         //查询DUBBO,FEIGN以及GRPC的出口数据
-        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_EXIT_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2  and clusterTest = '0' and parsedMiddlewareName in ('DUBBO','FEIGN','GRPC') limit 100 ").append(SqlConstants.BRACKETS_RIGHT).append(SqlConstants.UNION_ALL);
+        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_EXIT_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and parsedMiddlewareName in ('DUBBO','FEIGN','GRPC') and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "'  limit 100 ").append(SqlConstants.BRACKETS_RIGHT).append(SqlConstants.UNION_ALL);
         //查询默认白名单(flagMessage不为空)的HTTP出口数据
-        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_DEFAULT_WHITE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2  and clusterTest = '0' and parsedMiddlewareName = 'HTTP' and flagMessage != '' limit 100 ").append(SqlConstants.BRACKETS_RIGHT).append(SqlConstants.UNION_ALL);
+        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_DEFAULT_WHITE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and parsedMiddlewareName = 'HTTP' and flagMessage != '' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "'  limit 100 ").append(SqlConstants.BRACKETS_RIGHT).append(SqlConstants.UNION_ALL);
         //查询所有非默认白名单(flagMessage为空)的出口(2分钟前到现在往前5s)和所有上游应用名称是目前客户端应用的服务端出口(远程调用)
         //可能存在客户端日志已经产生了,但是服务端日志还没有产生或者写入ck,此时会把这种有服务端的日志标识成第三方服务
-        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_ALL_SQL + " (( startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and logType=2 and flagMessage='') or (startDate >= '" + timePair.getFirst() + "' and upAppName='" + appName + "' and logType=3 )) and parsedServiceName != '' and parsedMiddlewareName = 'HTTP' and clusterTest = '0' ").append(SqlConstants.BRACKETS_RIGHT);
+        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_ALL_SQL + " (( startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and logType=2 and flagMessage='') or (startDate >= '" + timePair.getFirst() + "' and upAppName='" + appName + "' and logType=3 )) and parsedServiceName != '' and parsedMiddlewareName = 'HTTP' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' ").append(SqlConstants.BRACKETS_RIGHT);
     }
 
 }

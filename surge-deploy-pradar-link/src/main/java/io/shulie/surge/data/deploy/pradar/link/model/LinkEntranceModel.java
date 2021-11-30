@@ -15,6 +15,7 @@
 
 package io.shulie.surge.data.deploy.pradar.link.model;
 
+import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
 import org.apache.commons.beanutils.BeanUtils;
 
@@ -23,7 +24,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-public class LinkEntranceModel {
+public class LinkEntranceModel extends LinkPublicModel {
     String entranceId;
     String appName;
     String serviceName;
@@ -39,19 +40,19 @@ public class LinkEntranceModel {
     String defaultWhiteInfo;
 
     public static String getCols() {
-        return "(entrance_id,app_name,service_name,method_name,middleware_name,rpc_type,extend,link_type,up_app_name,middleware_detail,down_app_name,default_white_info,gmt_modify)";
+        return "(entrance_id,app_name,service_name,method_name,middleware_name,rpc_type,extend,link_type,up_app_name,middleware_detail,down_app_name,default_white_info,user_app_key,env_code,user_id,gmt_modify)";
     }
 
     public static String getParamCols() {
-        return "(?,?,?,?,?,?,?,?,?,?,?,?,now())";
+        return "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())";
     }
 
     public Object[] getValues() {
-        return new Object[]{entranceId, appName, serviceName, methodName, middlewareName, rpcType, extend, linkType, upAppName, middlewareDetail, downAppName, defaultWhiteInfo};
+        return new Object[]{entranceId, appName, serviceName, methodName, middlewareName, rpcType, extend, linkType, upAppName, middlewareDetail, downAppName, defaultWhiteInfo, getUserAppKey(), getEnvCode(), getUserId()};
     }
 
     public static String getOnDuplicateCols() {
-        return "ON DUPLICATE KEY UPDATE service_name=VALUES(service_name),method_name=VALUES(method_name),middleware_name=VALUES(middleware_name),link_type=VALUES(link_type),up_app_name=VALUES(up_app_name),middleware_detail=VALUES(middleware_detail),down_app_name=VALUES(down_app_name),default_white_info=VALUES(default_white_info),gmt_modify=VALUES(gmt_modify)";
+        return "ON DUPLICATE KEY UPDATE service_name=VALUES(service_name),method_name=VALUES(method_name),middleware_name=VALUES(middleware_name),link_type=VALUES(link_type),up_app_name=VALUES(up_app_name),middleware_detail=VALUES(middleware_detail),down_app_name=VALUES(down_app_name),default_white_info=VALUES(default_white_info),user_app_key=VALUES(user_app_key),env_code=VALUES(env_code),user_id=VALUES(user_id),gmt_modify=VALUES(gmt_modify)";
     }
 
     public static LinkEntranceModel parseFromDataMap(Map<String, Object> dataMap) {
@@ -66,12 +67,14 @@ public class LinkEntranceModel {
             if ("1".equals(dataMap.get("linkType")) && "HTTP".equals(dataMap.get("middlewareName"))) {
                 calConditionList = Arrays.asList(new String[]{"serviceName", "appName", "rpcType", "middlewareName", "extend", "linkType", "middlewareDetail"});
             }
+
             for (String key : calConditionList) {
                 sb.append(dataMap.get(key)).append('|');
             }
             sb.deleteCharAt(sb.length() - 1);
             linkEntranceModel.setEntranceId(Md5Utils.md5(sb.toString()));
             linkEntranceModel.setGmtModify(new Date());
+            linkEntranceModel.setUserId(TenantConstants.DEFAULT_USERID);
             return linkEntranceModel;
         } catch (Exception e) {
             e.printStackTrace();

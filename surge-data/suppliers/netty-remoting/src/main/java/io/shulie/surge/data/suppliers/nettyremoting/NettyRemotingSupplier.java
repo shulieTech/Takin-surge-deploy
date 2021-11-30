@@ -138,7 +138,7 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
                     header.put("hostIp", hostIp);
                     header.put("dataVersion", dataVersion);
                     header.put("dataType", dataType);
-                    queue.publish(header, queue.splitLog(content));
+                    queue.publish(header, queue.splitLog(content, dataType));
                 } catch (RingBufferIllegalStateException e) {
                     logger.error(e.getMessage());
                     response.setSuccess(false);

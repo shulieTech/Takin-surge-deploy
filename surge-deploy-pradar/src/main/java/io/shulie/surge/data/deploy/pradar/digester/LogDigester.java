@@ -28,11 +28,13 @@ import io.shulie.surge.data.deploy.pradar.digester.command.FlagCommand;
 import io.shulie.surge.data.deploy.pradar.digester.command.LinkCommand;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
+import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
 import io.shulie.surge.deploy.pradar.common.CommonStat;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,10 +102,18 @@ public class LogDigester implements DataDigester<RpcBased> {
             if (rpcBased == null) {
                 return;
             }
-            if (!PradarUtils.isTraceSampleAccepted(context.getContent().getTraceId(), clickhouseSampling.get())) {
+            if (!PradarUtils.isTraceSampleAccepted(rpcBased, clickhouseSampling.get())) {
                 return;
             }
             rpcBased.setDataLogTime(context.getProcessTime());
+            //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
+            if (StringUtils.isBlank(rpcBased.getUserAppKey())) {
+                rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
+            }
+            if (StringUtils.isBlank(rpcBased.getEnvCode())) {
+                rpcBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("envCode"));
+            }
+
             List<Object[]> batchs = Lists.newArrayList();
             batchs.add(clickhouseFacade.toObjects(clickhouseFacade.invoke(rpcBased)));
             Map<String, List<Object[]>> objMap = Maps.newHashMap();

@@ -126,6 +126,11 @@ public class E2ETraceReduceBolt extends BaseBasicBolt {
                     influxdbTags.put("rpcType", tags[4]);
                     influxdbTags.put("clusterTest", tags[5]);
                     influxdbTags.put("exceptionType", tags[6]);
+                    //放入租户标识
+                    influxdbTags.put("tenantAppKey", tags[7]);
+                    //放入环境标识
+                    influxdbTags.put("envCode", tags[8]);
+                    
                     // 总次数/成功次数/totalRt/错误次数/totalQps
                     Map<String, Object> fields = Maps.newHashMap();
                     fields.put("totalCount", callStat.get(0));
@@ -142,7 +147,7 @@ public class E2ETraceReduceBolt extends BaseBasicBolt {
                         fields.put("rt", callStat.get(2) / (double) callStat.get(0));
                     }
                     fields.put("traceId", callStat.getTraceId());
-                    
+
                     // 写入influxDB
                     influxDbSupport.write(metricsDataBase, metricsId, influxdbTags, fields, slotKey * 1000);
                 });

@@ -31,13 +31,12 @@ import io.shulie.surge.data.common.aggregation.metrics.Metric;
 import io.shulie.surge.data.deploy.pradar.agg.E2ETraceMetricsAggarator;
 import io.shulie.surge.data.deploy.pradar.agg.TraceMetricsAggarator;
 import io.shulie.surge.data.deploy.pradar.common.*;
-import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
-import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParser;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParserFactory;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
+import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
@@ -98,15 +97,21 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         if (traceMetricsDisable.get()) {
             return;
         }
+
         RpcBased rpcBased = context.getContent();
-        //客户端rpc日志不计算指标,只计算服务端日志,和链路拓扑图保持一致
-        if (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType()) {
-            return;
-        }
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
         if (rpcBasedParser == null) {
             return;
         }
+
+        //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
+        if (StringUtils.isBlank(rpcBased.getUserAppKey())) {
+            rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
+        }
+        if (StringUtils.isBlank(rpcBased.getEnvCode())) {
+            rpcBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("envCode"));
+        }
+
         // 生成唯一边Id ,同步zk集合，判断此流量是否要统计
         String edgeId = rpcBasedParser.edgeId("", rpcBased);
         Map<String, Object> eagleTags = rpcBasedParser.edgeTags("", rpcBased);
@@ -141,11 +146,15 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         String parsedMethod = StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), "");
         String rpcType = rpcBased.getRpcType() + "";
         String nodeId = getNodeId(parsedAppName, parsedServiceName, parsedMethod, rpcType);
-        //目前租户标识和环境标识都给空,作为预留位
-        String userAppKey = "";
-        String envCode = "";
+        //todo 验证取采样率是否兼容租户
+        String userAppKey = rpcBased.getUserAppKey();
+        String envCode = rpcBased.getEnvCode();
         //获取每个应用的采样率
-        int sampling = appConfigUtil.getAppSamplingByAppName(userAppKey, envCode, rpcBased.getAppName());
+        int sampling = 1;
+        //对于调试流量,agent不采样,采样率默认为1
+        if (!rpcBased.getFlags().isDebugTest()) {
+            sampling = appConfigUtil.getAppSamplingByAppName(userAppKey, envCode, rpcBased.getAppName());
+        }
 
         // 断言列表,兼容老的nodeId查询
         Map<String, Rule> nodeAssertListMap = Maps.newHashMap();
@@ -197,7 +206,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                         exceptionTypeList.add("assertCode-" + assertCode);
                     }
                 } catch (Throwable e) {
-                    logger.error("rule " + rule.toString());
+                    logger.error("rule:{} calculate fail:{},{}", rule.toString(), e, e.getStackTrace());
                 }
 
             }
@@ -208,7 +217,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
             long errorCount = 1;
             String[] tags = new String[]{edgeId, parsedAppName, parsedServiceName, parsedMethod, rpcType,
                     rpcBased.isClusterTest() ? "1" : "0",
-                    exceptionType};
+                    exceptionType, userAppKey, envCode};
             CallStat callStat = new CallStat(rpcBased.getTraceId(),
                     sampling * 1L, sampling * successCount, sampling * rpcBased.getCost(),
                     sampling * errorCount, sampling);
@@ -233,6 +242,8 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
             sqlStatement = "null";
         }
         tags.add(Md5Utils.md5(sqlStatement));
+        tags.add(userAppKey);
+        tags.add(envCode);
 
         //如果sql长度超过1024,做截取,必须要在生成md5后做处理
         if (sqlStatement.length() > 1024) {

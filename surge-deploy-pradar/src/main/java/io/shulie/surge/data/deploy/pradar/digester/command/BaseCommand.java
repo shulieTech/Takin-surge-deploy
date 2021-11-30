@@ -18,7 +18,9 @@ package io.shulie.surge.data.deploy.pradar.digester.command;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
 import java.util.Date;
@@ -73,6 +75,11 @@ public class BaseCommand implements ClickhouseCommand {
         meta.add("receiveTime");
         meta.add("processTime");
         meta.add("taskId");
+
+        meta.add("userAppKey");
+        meta.add("envCode");
+        meta.add("userId");
+
         return meta;
     }
 
@@ -117,6 +124,10 @@ public class BaseCommand implements ClickhouseCommand {
         map.put("receiveTime", rpcBased.getDataLogTime());
         map.put("processTime", System.currentTimeMillis());
         map.put("taskId", rpcBased.getTaskId());
+
+        map.put("userAppKey", rpcBased.getUserAppKey());
+        map.put("envCode", rpcBased.getEnvCode());
+        map.put("userId", StringUtils.isBlank(rpcBased.getUserId()) ? TenantConstants.DEFAULT_USERID : rpcBased.getUserId());
         return map;
     }
 }

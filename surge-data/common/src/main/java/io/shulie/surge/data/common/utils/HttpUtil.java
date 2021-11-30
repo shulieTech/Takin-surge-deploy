@@ -16,6 +16,8 @@
 package io.shulie.surge.data.common.utils;
 
 
+import org.apache.commons.collections.MapUtils;
+
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -35,7 +37,7 @@ public class HttpUtil {
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-    public static String doGet(String host, int port, String url, Map<String, String> params) {
+    public static String doGet(String host, int port, String url, Map<String, String> requestHeaders, Map<String, String> params) {
         InputStream input = null;
         OutputStream output = null;
         Socket socket = null;
@@ -52,6 +54,11 @@ public class HttpUtil {
                 request.append(" HTTP/1.1\r\n");
             } else {
                 request.append("GET " + url + " HTTP/1.1\r\n");
+            }
+            if (MapUtils.isNotEmpty(requestHeaders)) {
+                requestHeaders.forEach((k, v) -> {
+                    request.append(k + ": " + v + "\r\n");
+                });
             }
 
             request.append("Host: " + host + ":" + port + "\r\n");

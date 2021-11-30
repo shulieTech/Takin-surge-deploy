@@ -171,6 +171,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>common</artifactId>
+            <version>${surge.data.common.version}</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>

@@ -25,6 +25,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import io.shulie.surge.data.common.utils.HttpUtil;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,19 +48,25 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ApiProcessor {
     private final static Logger logger = LoggerFactory.getLogger(ApiProcessor.class);
 
-    private static String staticUri;
-    private static String staticPath;
-    private static String staticEntryPath;
+    private static String staticHost;
+    private static String staticUrl;
+    private static String staticApiV1Url;
+    private static String staticTenantConfigUrl;
+    private static String staticEntryUrl;
     private static String staticPort;
 
-    private String URI;
-    private String PATH;
-    private String ENTRY_PATH;
-    private String PORT;
+    private String host;
+    private String url;
+    private String apiV1Url;
+    private String tenantConfigUrl;
+    private String entryUrl;
+    private String port;
 
     private static Gson gson = new Gson();
 
     protected static Map<String, Map<String, List<String>>> API_COLLECTION = new HashMap<>();
+
+    private static Map<String, String> tenantConfigMap = new HashMap<>();
 
     protected static Map<String, Matcher> MATHERS = new HashMap<>();
 
@@ -78,16 +85,30 @@ public class ApiProcessor {
                 }
             });
 
+    private ScheduledExecutorService tenantService =
+            new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread t = new Thread(r);
+                    t.setName("tenantConfig-collector");
+                    t.setDaemon(true);
+                    return t;
+                }
+            });
+
     @Inject
-    public ApiProcessor(@Named("tro.url.ip") String url, @Named("tro.api.path") String path,
-                        @Named("tro.entries.path") String entryPath, @Named("tro.port") String port) {
-        this.URI = url;
-        this.PATH = path;
-        this.ENTRY_PATH = entryPath;
-        this.PORT = port;
-        staticUri = url;
-        staticPath = path;
-        staticEntryPath = entryPath;
+    public ApiProcessor(@Named("tro.url.ip") String host, @Named("tro.api.path") String url, @Named("tro.api.v1.path") String apiV1Url, @Named("tro.tenant.config.path") String tenantConfigUrl, @Named("tro.entries.path") String entryUrl, @Named("tro.port") String port) {
+        this.host = host;
+        this.url = url;
+        this.entryUrl = entryUrl;
+        this.apiV1Url = apiV1Url;
+        this.tenantConfigUrl = tenantConfigUrl;
+        this.port = port;
+        staticHost = host;
+        staticUrl = url;
+        staticApiV1Url = apiV1Url;
+        staticTenantConfigUrl = tenantConfigUrl;
+        staticEntryUrl = entryUrl;
         staticPort = port;
     }
 
@@ -97,16 +118,22 @@ public class ApiProcessor {
                 new Thread(() -> refresh())
                 , 0
                 , 2
-                , TimeUnit.MINUTES)
-        ;
+                , TimeUnit.MINUTES);
+
+        //每隔5分钟调用一次
+        tenantService.scheduleAtFixedRate(
+                new Thread(() -> queryTenantConfig())
+                , 0
+                , 5
+                , TimeUnit.MINUTES);
     }
 
     private void refresh() {
         Map<String, Object> res = new HashMap<>();
         try {
-            res = gson.fromJson(HttpUtil.doGet(URI, Integer.valueOf(PORT), PATH, null), Map.class);
+            res = gson.fromJson(HttpUtil.doGet(host, Integer.valueOf(port), url, null, null), Map.class);
         } catch (Throwable e) {
-            System.err.println(e.getMessage());
+            logger.error("query all entry rules catch exception:{},{}", e, e.getStackTrace());
         }
         if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
             Object data = res.get("data");
@@ -133,6 +160,118 @@ public class ApiProcessor {
             MATHERS.clear();
         }
     }
+
+    private void queryTenantConfig() {
+        //重复应用列表
+        Set<String> repeatAppList = new HashSet<>();
+        //唯一应用列表
+        Set<String> uniqueAppList = new HashSet<>();
+        Map<String, Object> res = null;
+        try {
+            res = gson.fromJson(HttpUtil.doGet(host, Integer.valueOf(port), tenantConfigUrl, null, null), Map.class);
+            if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
+                Object data = res.get("data");
+                List<Map<String, Object>> tenantConfigList = (List<Map<String, Object>>) data;
+                if (CollectionUtils.isNotEmpty(tenantConfigList)) {
+                    tenantConfigList.forEach((tenantConfig) -> {
+                        if (!tenantConfig.containsKey("tenantAppKey") || !tenantConfig.containsKey("envAppMap")) {
+                            return;
+                        }
+                        String tenantAppKey = (String) tenantConfig.get("tenantAppKey");
+                        Map<String, Object> envAppMap = (Map<String, Object>) tenantConfig.get("envAppMap");
+                        if (MapUtils.isNotEmpty(envAppMap)) {
+                            envAppMap.forEach((k, v) -> {
+                                List<String> appList = (List<String>) v;
+                                if (CollectionUtils.isNotEmpty(appList)) {
+                                    appList.forEach((appName) -> {
+                                        if (uniqueAppList.contains(appName)) {
+                                            repeatAppList.add(appName + "#" + tenantAppKey);
+                                        } else {
+                                            uniqueAppList.add(appName);
+                                        }
+                                        tenantConfigMap.put(appName, tenantAppKey + "#" + k);
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+                //如果不同环境应用名相同,默认test环境,不考虑不同租户同名应用的情况
+                repeatAppList.forEach((app) -> {
+                    tenantConfigMap.put(app.split("#")[0], app.split("#")[1] + "#test");
+                });
+            }
+        } catch (Exception e) {
+            logger.error("query tenant config catch exception:{},{}", e, e.getStackTrace());
+        }
+    }
+
+
+    public static Map<String, String> getTenantConfigByAppName(String appName) {
+        Map<String, String> config = Maps.newHashMap();
+        if (tenantConfigMap.containsKey(appName)) {
+            config.put("tenantAppKey", tenantConfigMap.get(appName).split("#")[0]);
+            config.put("envCode", tenantConfigMap.get(appName).split("#")[1]);
+        } else {
+            config.put("tenantAppKey", "default");
+            config.put("envCode", "test");
+        }
+        return config;
+    }
+
+    //10分钟的本地缓存,10000个应用(真正配置了入口规则的还是少数,不会撑爆内存)
+    private static Cache<String, List<String>> apiCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build();
+
+    public static String matchEntryRule(String tenantAppKey, String envCode, String appName, String url, String type) {
+        List<String> apiList = getApiList(tenantAppKey, envCode, appName);
+        if (CollectionUtils.isNotEmpty(apiList)) {
+            Matcher matcher = new Matcher();
+            return matcher.match3(url, type, apiList);
+        }
+        return url;
+    }
+
+    /**
+     * 这里传进来的已经是确定的租户和环境,对于1.6版本和1.7没指定租户和环境的日志,要根据应用名称获取租户和环境
+     *
+     * @param tenantAppKey
+     * @param envCode
+     * @param appName
+     */
+    private static List<String> getApiList(String tenantAppKey, String envCode, String appName) {
+        //先从缓存里面拿,key的格式:tenantAppKey + "#" + envCode + "#" + appName
+        String key = tenantAppKey + "#" + envCode + "#" + appName;
+        List<String> apiList = apiCache.getIfPresent(key);
+        //如果缓存为空,查询tro接口
+        if (apiList == null) {
+            HashMap<String, String> requestHeaders = Maps.newHashMap();
+            requestHeaders.put("TenantAppkey", tenantAppKey);
+            requestHeaders.put("EnvCode", envCode);
+
+            HashMap<String, String> params = Maps.newHashMap();
+            params.put("appName", appName);
+
+            Map<String, Object> res = null;
+            try {
+                res = gson.fromJson(HttpUtil.doGet(staticHost, Integer.valueOf(staticPort), staticApiV1Url, requestHeaders, params), Map.class);
+            } catch (Throwable e) {
+                logger.error("query apiList catch exception :{},{}", e, e.getStackTrace());
+            }
+            if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
+                Map<String, Object> data = (Map<String, Object>) res.get("data");
+                List<String> dataList = (List<String>) (data.get(appName));
+                if (CollectionUtils.isNotEmpty(dataList)) {
+                    apiCache.put(key, dataList);
+                    return dataList;
+                } else {
+                    apiCache.put(key, Lists.newArrayList());
+                    return Lists.newArrayList();
+                }
+            }
+        }
+        return apiList;
+    }
+
 
     //10分钟的本地缓存,1000个压测报告
     private static Cache<String, List<Map<String, Object>>> cache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
@@ -206,7 +345,8 @@ public class ApiProcessor {
         return url;
     }
 
-    private static AtomicReference<String> getMatchAppName(List<String> matchUrls, String defaultAppName, List<Map<String, Object>> businessActivities) {
+    private static AtomicReference<String> getMatchAppName(List<String> matchUrls, String
+            defaultAppName, List<Map<String, Object>> businessActivities) {
         AtomicReference<String> appName = new AtomicReference<String>();
         businessActivities.forEach(map -> {
             if (matchUrls.get(0).equals(map.get("serviceName"))) {
@@ -226,12 +366,12 @@ public class ApiProcessor {
      * 根据报告ID查询业务活动
      */
     private static List<Map<String, Object>> getBusinessActivityByReportId(String taskId) {
-        Map<String, Object> res = new HashMap<>();
+        Map<String, Object> res = null;
         HashMap<String, String> param = Maps.newHashMap();
         param.put("reportId", taskId);
 
         try {
-            res = gson.fromJson(HttpUtil.doGet(staticUri, Integer.valueOf(staticPort), staticEntryPath, param), Map.class);
+            res = gson.fromJson(HttpUtil.doGet(staticHost, Integer.valueOf(staticPort), staticEntryUrl, null, param), Map.class);
         } catch (Throwable e) {
             logger.error("query businessActivity catch exception :{},{}", e, e.getStackTrace());
         }
@@ -315,7 +455,7 @@ public class ApiProcessor {
             matcher = new Matcher(apiMaps);
             MATHERS.putIfAbsent(appName, matcher);
         }
-        return matcher.match3(url, type);
+        return matcher.match3(url, type, null);
     }
 
     @Deprecated
@@ -352,6 +492,9 @@ public class ApiProcessor {
 final class Matcher {
     final static Logger logger = LoggerFactory.getLogger(Matcher.class);
     private Map<String, List<String>> apiMap;
+
+    public Matcher() {
+    }
 
     public Matcher(Map<String, List<String>> apiMap) {
         this.apiMap = apiMap;
@@ -422,6 +565,7 @@ final class Matcher {
      * @param type
      * @return
      */
+    @Deprecated
     protected String match2(String url, String type) {
         List<String> apis = apiMap.get(type);
         if (CollectionUtils.isEmpty(apis)) {
@@ -556,8 +700,28 @@ final class Matcher {
         return res;
     }
 
-    protected String match3(String url, String type) {
-        List<String> apiPatterns = apiMap.get(type);
+    /**
+     * 支持传入指定规则解析
+     *
+     * @param url
+     * @param type
+     * @param apiPatterns
+     * @return
+     */
+    protected String match3(String url, String type, List<String> apiPatterns) {
+        if (apiPatterns == null) {
+            apiPatterns = apiMap.get(type);
+        } else {
+            List<String> tmpApiList = Lists.newArrayList();
+            apiPatterns.stream().forEach(apiPattern -> {
+                String api = apiPattern.split("#")[0];
+                String method = apiPattern.split("#")[1];
+                if (type.equalsIgnoreCase(method)) {
+                    tmpApiList.add(api);
+                }
+            });
+            apiPatterns = tmpApiList;
+        }
         if (CollectionUtils.isEmpty(apiPatterns)) {
             apiPatterns = Lists.newArrayList();
             for (Map.Entry<String, List<String>> entry : apiMap.entrySet()) {
@@ -614,9 +778,9 @@ final class Matcher {
 
     public static void main(String[] args) {
         Map<String, List<String>> newApiMap = Maps.newHashMap();
-        newApiMap.put("GET", Arrays.asList("/hello/{name}", "/{id}/{name}", "/path/{id}/test", "/path/{id}/test/{num}", "/path/{id}", "/{id}/{name}/test", "/{id}"));
+        newApiMap.put("PUT", Arrays.asList("/hello/{name}", "/gxp-data-hub/{topic}/{year}/{month}/{day}/{json}", "/{id}/{name}", "/path/{id}/test", "/path/{id}/test/{num}", "/path/{id}", "/{id}/{name}/test", "/{id}"));
         ApiProcessor.API_COLLECTION.put("test", newApiMap);
-        System.out.println(ApiProcessor.merge("test", "/123/hello/sdsds/dsds", "GET"));
+        System.out.println(ApiProcessor.merge("test", "/gxp-data-hub/sto_package_trace_send_dflow&210/20211124/19/41/{sto_package_trace_send_dflow&210}_87fadf313e9744bba57698fd7899f565.json", "PUT"));
         System.out.println(ApiProcessor.merge("test", "/hello/sdsds/dsds", "GET"));
         System.out.println(ApiProcessor.merge("test", "/hello/yyy", "GET"));
         System.out.println(ApiProcessor.merge("test", "/mmm/nnn", "GET"));
