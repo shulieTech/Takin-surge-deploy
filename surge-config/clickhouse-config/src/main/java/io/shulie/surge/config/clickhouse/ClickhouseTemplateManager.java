@@ -260,9 +260,7 @@ public class ClickhouseTemplateManager implements Lifecycle, Stoppable {
             }
             // 租户未配置存储方案时使用默认数据源
             if (templateHolder == null) {
-                if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info("not found clickhouse-cluster configuration by uniqueKey, use default configuration. uniqueKey=[{}]", uniqueKey);
-                }
+                LOGGER.info("not found clickhouse-cluster configuration by uniqueKey, use default configuration. uniqueKey=[{}]", uniqueKey);
                 return getTemplateHolder(generateUniqueKey("", ""), isAdd);
             }
             return templateHolder;

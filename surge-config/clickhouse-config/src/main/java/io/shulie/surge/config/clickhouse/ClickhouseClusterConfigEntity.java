@@ -39,7 +39,7 @@ public class ClickhouseClusterConfigEntity implements Serializable {
     private Integer batchCount;     // 执行批数
 
     public String getTtl() {
-        return StringUtils.isBlank(ttl) ? "3" : ttl;
+        return StringUtils.isBlank(ttl) || !StringUtils.isNumeric(ttl) ? "3" : ttl;
     }
 
     public boolean isProd() {

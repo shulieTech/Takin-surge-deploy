@@ -15,6 +15,9 @@
 
 package io.shulie.surge.config.clickhouse;
 
+/**
+ * clickhouse表名生成器，根据clickhouse集群配置 {@link ClickhouseClusterConfigEntity}
+ */
 public interface ClickhouseTableNameGenerator {
 
     /**

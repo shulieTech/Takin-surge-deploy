@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import com.alibaba.fastjson.JSON;
 
+import com.google.common.collect.Lists;
 import io.shulie.surge.config.common.ConfigurationTypeEnum;
 import io.shulie.surge.config.common.model.Configuration;
 import io.shulie.surge.config.common.model.ConfigurationItem;
@@ -91,12 +92,11 @@ public class ClickhouseConfigurationSynchronizer {
     public List<ClickhouseClusterConfigEntity> syncTenantClusterConfiguration() {
         Map<String, Configuration> configurationMap = loadLocalClusterConfiguration();
         if (CollectionUtils.isEmpty(configurationMap)) {
-            return new ArrayList<>(0);
+            return Lists.newArrayList();
         }
-        TenantConfigurationResponse response = queryTenantClusterConfiguration();
-        List<TenantConfigEntity> data;
-        if (response == null || CollectionUtils.isEmpty(data = response.getData())) {
-            return new ArrayList<>(0);
+        List<TenantConfigEntity> data = queryTenantClusterConfiguration();
+        if (CollectionUtils.isEmpty(data)) {
+            return Lists.newArrayList();
         }
         return mergeConfiguration(data, configurationMap);
     }
@@ -106,8 +106,10 @@ public class ClickhouseConfigurationSynchronizer {
      *
      * @return 租户存储方案
      */
-    private TenantConfigurationResponse queryTenantClusterConfiguration() {
-        return JSON.parseObject(HttpUtil.doGet(troIp, troPort, troConfigPath, null, null), TenantConfigurationResponse.class);
+    private List<TenantConfigEntity> queryTenantClusterConfiguration() {
+        TenantConfigurationResponse response = JSON.parseObject(
+            HttpUtil.doGet(troIp, troPort, troConfigPath, null, null), TenantConfigurationResponse.class);
+        return response == null ? null : response.getData();
     }
 
     /**
@@ -201,13 +203,13 @@ public class ClickhouseConfigurationSynchronizer {
      */
     @Data
     static class ConfigurationRowEntity {
-        private String number;
-        private String name;
-        private String desc;
-        private String type;
-        private String availableEnv;
-        private String key;
-        private String value;
+        private String number;  // 集群编码
+        private String name;    // 集群名称
+        private String desc;    // 集群描述
+        private String type;    // 集群类型，见 ConfigurationTypeEnum
+        private String availableEnv;    // 适用环境
+        private String key;     // 配置项key
+        private String value;   // 配置项value
 
         public Configuration convertToConfiguration() {
             Configuration configuration = new Configuration();
@@ -219,7 +221,7 @@ public class ClickhouseConfigurationSynchronizer {
             String key = getKey();
             String value = getValue();
             if (!StringUtils.isAnyBlank(key, value)) {
-                List<ConfigurationItem> items = new ArrayList<>(1);
+                List<ConfigurationItem> items = new ArrayList<>(5);
                 items.add(new ConfigurationItem(key, value));
                 configuration.setItems(items);
             }
@@ -232,10 +234,10 @@ public class ClickhouseConfigurationSynchronizer {
      */
     @Data
     static class ClickhouseConfigValueEntity implements Serializable {
-        private String clickhouseNumber;
-        private String clickhouseName;
-        private String clickhouseDesc;
-        private String ttl;
+        private String clickhouseNumber;    // clickhouse集群编码
+        private String clickhouseName;      // clickhouse集群名称
+        private String clickhouseDesc;      // clickhouse集群描述
+        private String ttl;                 // clickhouse数据过期时间
     }
 
     /**
@@ -257,7 +259,7 @@ public class ClickhouseConfigurationSynchronizer {
         private ClickhouseConfigValueEntity getEntity() {
             String configValue;
             if (entity == null && StringUtils.isNotBlank(configValue = getConfigValue())) {
-                return entity = JSON.parseObject(configValue, ClickhouseConfigValueEntity.class);
+                entity = JSON.parseObject(configValue, ClickhouseConfigValueEntity.class);
             }
             return entity;
         }
