@@ -54,7 +54,7 @@ public class ApiProcessor {
     private static String staticTenantConfigUrl;
     private static String staticEntryUrl;
     private static String staticPort;
-    private static String staticDefaultTenantAppKey;
+    public static String staticDefaultTenantAppKey;
 
     private String host;
     private String url;
@@ -217,7 +217,6 @@ public class ApiProcessor {
             config.put("tenantAppKey", tenantConfigMap.get(appName).split("#")[0]);
             config.put("envCode", tenantConfigMap.get(appName).split("#")[1]);
         } else {
-
             config.put("tenantAppKey", StringUtils.defaultString(staticDefaultTenantAppKey, "default"));
             config.put("envCode", "test");
         }
