@@ -54,6 +54,7 @@ public class ApiProcessor {
     private static String staticTenantConfigUrl;
     private static String staticEntryUrl;
     private static String staticPort;
+    private static String staticDefaultTenantAppKey;
 
     private String host;
     private String url;
@@ -61,6 +62,7 @@ public class ApiProcessor {
     private String tenantConfigUrl;
     private String entryUrl;
     private String port;
+    private String defaultTenantAppKey;
 
     private static Gson gson = new Gson();
 
@@ -97,19 +99,21 @@ public class ApiProcessor {
             });
 
     @Inject
-    public ApiProcessor(@Named("tro.url.ip") String host, @Named("tro.api.path") String url, @Named("tro.api.v1.path") String apiV1Url, @Named("tro.tenant.config.path") String tenantConfigUrl, @Named("tro.entries.path") String entryUrl, @Named("tro.port") String port) {
+    public ApiProcessor(@Named("tro.url.ip") String host, @Named("tro.api.path") String url, @Named("tro.api.v1.path") String apiV1Url, @Named("tro.tenant.config.path") String tenantConfigUrl, @Named("tro.entries.path") String entryUrl, @Named("tro.port") String port, @Named("config.tenant.defaultTenantAppKey") String defaultTenantAppKey) {
         this.host = host;
         this.url = url;
         this.entryUrl = entryUrl;
         this.apiV1Url = apiV1Url;
         this.tenantConfigUrl = tenantConfigUrl;
         this.port = port;
+        this.defaultTenantAppKey = defaultTenantAppKey;
         staticHost = host;
         staticUrl = url;
         staticApiV1Url = apiV1Url;
         staticTenantConfigUrl = tenantConfigUrl;
         staticEntryUrl = entryUrl;
         staticPort = port;
+        staticDefaultTenantAppKey = defaultTenantAppKey;
     }
 
 
@@ -213,7 +217,8 @@ public class ApiProcessor {
             config.put("tenantAppKey", tenantConfigMap.get(appName).split("#")[0]);
             config.put("envCode", tenantConfigMap.get(appName).split("#")[1]);
         } else {
-            config.put("tenantAppKey", "default");
+
+            config.put("tenantAppKey", StringUtils.defaultString(staticDefaultTenantAppKey, "default"));
             config.put("envCode", "test");
         }
         return config;
