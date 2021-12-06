@@ -18,6 +18,7 @@ package io.shulie.surge.data.deploy.pradar.digester;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.pradar.log.rule.RuleFactory;
 import io.shulie.pradar.log.rule.RuleFactory.Rule;
@@ -82,7 +83,7 @@ public class E2EAssertionDigester implements DataDigester<RpcBased> {
         }
 
         //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
-        if (StringUtils.isBlank(rpcBased.getUserAppKey())) {
+        if (StringUtils.isBlank(rpcBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
             rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
         }
         if (StringUtils.isBlank(rpcBased.getEnvCode())) {
