@@ -32,6 +32,8 @@ import io.shulie.surge.data.common.aggregation.metrics.Metric;
 import io.shulie.surge.data.deploy.pradar.agg.E2ETraceMetricsAggarator;
 import io.shulie.surge.data.deploy.pradar.agg.TraceMetricsAggarator;
 import io.shulie.surge.data.deploy.pradar.common.*;
+import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
+import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParser;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParserFactory;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
@@ -105,6 +107,10 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         }
 
         RpcBased rpcBased = context.getContent();
+        //客户端rpc日志不计算指标,只计算服务端日志,和链路拓扑图保持一致
+        if (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType()) {
+            return;
+        }
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
         if (rpcBasedParser == null) {
             return;

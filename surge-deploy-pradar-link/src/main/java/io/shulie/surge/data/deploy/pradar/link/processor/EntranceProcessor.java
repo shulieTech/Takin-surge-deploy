@@ -221,7 +221,7 @@ public class EntranceProcessor extends AbstractProcessor {
     public List<Map<String, Object>> queryAppNames(Pair timePair) {
         try {
             //统计当前时间往前两分钟到当前时间往前5s期间有服务端和入口日志的应用列表
-            String appNameSql = "select userAppKey,envCode,appName from t_trace_all where startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and logType in (1,3) group by userAppKey,envCode,appName";
+            String appNameSql = "select userAppKey,envCode,appName from t_trace_all where startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and logType in (1,3) and clusterTest = '0' group by userAppKey,envCode,appName";
             if (isUseCk()) {
                 return clickHouseSupport.queryForList(appNameSql);
             } else {
@@ -318,7 +318,8 @@ public class EntranceProcessor extends AbstractProcessor {
 
     private void buildQueryCkSql(String appName, String userAppKey, String envCode, Pair timePair, StringBuilder entranceSql) {
         //查询入口数据(HTTP/DUBBO/JOB)
-        entranceSql.append(SqlConstants.QUERY_ENTRANCE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and " + "(rpcType in ('" + MiddlewareType.TYPE_WEB_SERVER + "','" + MiddlewareType.TYPE_JOB + "') or logType in ('" + PradarLogType.LOG_TYPE_RPC_SERVER + "','" + PradarLogType.LOG_TYPE_TRACE + "'))  and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "'  limit 100 ");
+        //排除压测流量
+        entranceSql.append(SqlConstants.QUERY_ENTRANCE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and clusterTest = '0' and " + "(rpcType in ('" + MiddlewareType.TYPE_WEB_SERVER + "','" + MiddlewareType.TYPE_JOB + "') or logType in ('" + PradarLogType.LOG_TYPE_RPC_SERVER + "','" + PradarLogType.LOG_TYPE_TRACE + "'))  and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "'  limit 100 ");
     }
 
     /**

@@ -221,7 +221,7 @@ public class ExitProcessor extends AbstractProcessor {
     public List<Map<String, Object>> queryAppNames(Pair timePair) {
         try {
             //统计当前时间往前两分钟到当前时间往前5s期间所有远程调用日志的应用列表
-            String appNameSql = "select userAppKey,envCode,appName  from t_trace_all where startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and logType=2 group by userAppKey,envCode,appName";
+            String appNameSql = "select userAppKey,envCode,appName  from t_trace_all where startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and logType=2 and clusterTest = '0' group by userAppKey,envCode,appName";
             if (isUseCk()) {
                 return clickHouseSupport.queryForList(appNameSql);
             } else {
@@ -365,12 +365,12 @@ public class ExitProcessor extends AbstractProcessor {
 
     private void buildQueryCkSql(String appName, String userAppKey, String envCode, Pair timePair, StringBuilder exitSql) {
         //查询DUBBO,FEIGN以及GRPC的出口数据
-        exitSql.append(SqlConstants.QUERY_EXIT_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and parsedMiddlewareName in ('DUBBO','FEIGN','GRPC') and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' limit 100 ").append(SqlConstants.UNION_ALL);
+        exitSql.append(SqlConstants.QUERY_EXIT_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and clusterTest = '0' and parsedMiddlewareName in ('DUBBO','FEIGN','GRPC') and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' limit 100 ").append(SqlConstants.UNION_ALL);
         //查询默认白名单(flagMessage不为空)的HTTP出口数据
-        exitSql.append(SqlConstants.QUERY_DEFAULT_WHITE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and parsedMiddlewareName = 'HTTP' and flagMessage != '' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' limit 100 ").append(SqlConstants.UNION_ALL);
+        exitSql.append(SqlConstants.QUERY_DEFAULT_WHITE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and clusterTest = '0' and parsedMiddlewareName = 'HTTP' and flagMessage != '' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' limit 100 ").append(SqlConstants.UNION_ALL);
         //查询所有非默认白名单(flagMessage为空)的出口(2分钟前到现在往前5s)和所有上游应用名称是目前客户端应用的服务端出口(远程调用)
         //可能存在客户端日志已经产生了,但是服务端日志还没有产生或者写入ck,此时会把这种有服务端的日志标识成第三方服务
-        exitSql.append(SqlConstants.QUERY_ALL_SQL + " (( startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and logType=2 and flagMessage='') or (startDate >= '" + timePair.getFirst() + "' and upAppName='" + appName + "' and logType=3 )) and parsedServiceName != '' and parsedMiddlewareName = 'HTTP' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' ");
+        exitSql.append(SqlConstants.QUERY_ALL_SQL + " (( startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and logType=2 and flagMessage='') or (startDate >= '" + timePair.getFirst() + "' and upAppName='" + appName + "' and logType=3 )) and parsedServiceName != '' and parsedMiddlewareName = 'HTTP' and clusterTest = '0' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' ");
     }
 
     private void buildQueryMysqlSql(String appName, String userAppKey, String envCode, Pair timePair, StringBuilder exitSql) {
@@ -379,12 +379,12 @@ public class ExitProcessor extends AbstractProcessor {
          */
 
         //查询DUBBO,FEIGN以及GRPC的出口数据
-        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_EXIT_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and parsedMiddlewareName in ('DUBBO','FEIGN','GRPC') and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "'  limit 100 ").append(SqlConstants.BRACKETS_RIGHT).append(SqlConstants.UNION_ALL);
+        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_EXIT_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and clusterTest = '0' and parsedMiddlewareName in ('DUBBO','FEIGN','GRPC') and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "'  limit 100 ").append(SqlConstants.BRACKETS_RIGHT).append(SqlConstants.UNION_ALL);
         //查询默认白名单(flagMessage不为空)的HTTP出口数据
-        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_DEFAULT_WHITE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and parsedMiddlewareName = 'HTTP' and flagMessage != '' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "'  limit 100 ").append(SqlConstants.BRACKETS_RIGHT).append(SqlConstants.UNION_ALL);
+        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_DEFAULT_WHITE_SQL + "startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and parsedServiceName != '' and logType=2 and clusterTest = '0' and parsedMiddlewareName = 'HTTP' and flagMessage != '' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "'  limit 100 ").append(SqlConstants.BRACKETS_RIGHT).append(SqlConstants.UNION_ALL);
         //查询所有非默认白名单(flagMessage为空)的出口(2分钟前到现在往前5s)和所有上游应用名称是目前客户端应用的服务端出口(远程调用)
         //可能存在客户端日志已经产生了,但是服务端日志还没有产生或者写入ck,此时会把这种有服务端的日志标识成第三方服务
-        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_ALL_SQL + " (( startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and logType=2 and flagMessage='') or (startDate >= '" + timePair.getFirst() + "' and upAppName='" + appName + "' and logType=3 )) and parsedServiceName != '' and parsedMiddlewareName = 'HTTP' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' ").append(SqlConstants.BRACKETS_RIGHT);
+        exitSql.append(SqlConstants.BRACKETS_LEFT).append(SqlConstants.QUERY_ALL_SQL + " (( startDate between '" + timePair.getFirst() + "' and '" + timePair.getSecond() + "' and appName='" + appName + "' and logType=2 and flagMessage='') or (startDate >= '" + timePair.getFirst() + "' and upAppName='" + appName + "' and logType=3 )) and parsedServiceName != '' and parsedMiddlewareName = 'HTTP' and clusterTest = '0' and userAppKey = '" + userAppKey + "' and envCode = '" + envCode + "' ").append(SqlConstants.BRACKETS_RIGHT);
     }
 
 }
