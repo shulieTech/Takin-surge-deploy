@@ -69,6 +69,11 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
     private Remote<Boolean> traceMetricsDisable;
 
     @Inject
+    @DefaultValue("sto-%,sas-prod,es-api-base-prod,automation-biz-prod,galaxy")
+    @Named("/pradar/config/rt/traceMetricsConfig")
+    private Remote<String> traceMetricsConfig;
+
+    @Inject
     private TraceMetricsAggarator traceMetricsAggarator;
 
     @Inject
@@ -120,21 +125,18 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         /** 指标计算不参考业务活动的边**/
         String appName = rpcBased.getAppName();
         if (!eagleLoader.contains(edgeId)) {
-            //重复的边ID只打印一次
-            if (StringUtils.isBlank(cache.getIfPresent(edgeId))) {
-                cache.put(edgeId, edgeId);
-                logger.warn("edgeId is not match:{},edgeTags is {}", edgeId, eagleTags);
-            }
             /** 指标计算不参考业务活动的边**/
-            if (appName.startsWith("sto-") ||
-                    appName.equals("sas-prod") ||
-                    appName.equals("es-api-base-prod") ||
-                    appName.equals("automation-biz-prod")
-            ) {
+            String appNameConfig = traceMetricsConfig.get();
+            if (checkAppName(appNameConfig, appName)) {
                 rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
                 edgeId = rpcBasedParser.edgeId("", rpcBased);
                 eagleTags = rpcBasedParser.edgeTags("", rpcBased);
             } else {
+                //重复的边ID只打印一次
+                if (StringUtils.isBlank(cache.getIfPresent(edgeId))) {
+                    cache.put(edgeId, edgeId);
+                    logger.warn("edgeId is not match:{},edgeTags is {}", edgeId, eagleTags);
+                }
                 return;
             }
         }
@@ -259,6 +261,26 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                 traceMetrics.getTotalCount(), traceMetrics.getSuccessCount(), traceMetrics.getTotalRt(),
                 traceMetrics.getFailureCount(), traceMetrics.getHitCount(), traceMetrics.getQps().longValue(), 1, traceMetrics.getE2eSuccessCount(), traceMetrics.getE2eErrorCount(), traceMetrics.getMaxRt());
         slot.addToSlot(Metric.of(PradarRtConstant.METRICS_ID_TRACE, tags.toArray(new String[tags.size()]), "", new String[]{}), callStat);
+    }
+
+    private boolean checkAppName(String appNameConfig, String appName) {
+        if (StringUtils.isNotBlank(appNameConfig)) {
+            String[] appNameArr = appNameConfig.split(",");
+            for (int i = 0; i < appNameArr.length; i++) {
+                //如果含有百分号,启用前缀匹配
+                if (appNameArr[i].contains("%")) {
+                    if (appName.startsWith(appNameArr[i].split("%")[0])) {
+                        return true;
+                    }
+                } else {
+                    //否则采用等值匹配
+                    if (appName.equals(appNameArr[i])) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     @Override
