@@ -63,8 +63,7 @@ public class LinkProcessor extends AbstractProcessor {
     private static final String NEW_LINE_MATCHER = "\r\n";
 
     private static final String LINK_TOPOLOGY_SQL
-            = " appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,"
-            + "parsedServiceName,methodName,port,remoteIp ";
+            = " appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,parsedServiceName,methodName,port,remoteIp,userAppKey,envCode,userId ";
 
     @Inject
     private ClickHouseSupport clickHouseSupport;
@@ -263,11 +262,16 @@ public class LinkProcessor extends AbstractProcessor {
         if (StringUtils.isBlank(rpcType) || "null".equals(rpcType)) {
             return Collections.EMPTY_LIST;
         }
+        String userAppKey = String.valueOf(linkConfig.get("userAppKey"));
+        String envCode = String.valueOf(linkConfig.get("envCode"));
+
         // k=traceId v=rpcId  用来截取从当前rpcId开始的下游节点
         String simpleSql = "select traceId,rpcId,logType from t_trace_all where appName='" + appName +
                 "' and parsedMethod = '" + method +
                 "' and rpcType = '" + rpcType +
-                "' and parsedServiceName = '" + service + "'";
+                "' and parsedServiceName = '" + service +
+                "' and userAppKey = '" + userAppKey +
+                "' and envCode = '" + envCode + "'";
         Calendar beginCalendar = Calendar.getInstance();
         switch (queryScope) {
             case WEEK:
@@ -330,9 +334,10 @@ public class LinkProcessor extends AbstractProcessor {
         if (sql.length() <= 0) {
             return new ArrayList<>();
         }
-        logger.info("LinkProcessor query traceIds:{}", traceFilter);
         //add trace log limit
         sql.delete(sql.length() - 11, sql.length());
+        logger.info("queryLinkTopology:{}", sql);
+
         List<TTrackClickhouseModel> modelList = Lists.newArrayList();
         if (this.isUseCk()) {
             modelList = clickHouseSupport.queryForList(sql.toString(), TTrackClickhouseModel.class);
@@ -347,7 +352,7 @@ public class LinkProcessor extends AbstractProcessor {
             String ary[] = traceFilter.get(model.getTraceId()).split("#");
             String filterRpcId = ary[0];
             String filterLogType = ary[1];
-            if (model.getRpcId().equals(filterRpcId) && appName.equals(model.getAppName()) && service.equals(model.getParsedServiceName()) && method.equals(model.getMethodName()) && filterLogType.equals(model.getLogType() + "")) {
+            if (model.getRpcId().equals(filterRpcId) && appName.equals(model.getAppName()) && service.equals(model.getParsedServiceName()) && method.equals(model.getMethodName()) && filterLogType.equals(model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode())) {
                 // 相同RpcID情况处理，如果是选择的当前服务且当前服务是入口，就保留，否则就丢掉
                 tmpModel = model;
                 break;
@@ -368,17 +373,16 @@ public class LinkProcessor extends AbstractProcessor {
                         if(isTemp!=null&&"tempLinkTopology".equals(isTemp)) {
                             return appName.equals(model.getAppName()) && model.getParsedServiceName()
                                     .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
-                                    model.getLogType() + "");
+                                    model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
                         }else{
-                            return "0".equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName()
+                           return "0".equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName()
                                     .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
-                                    model.getLogType() + "");
+                                    model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
                         }
                     }
                     // 如果是以所选服务的RpcId为开始的就保留，否则就丢掉
                     return model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1;
-                })
-                .collect(Collectors.toList());
+                }).collect(Collectors.toList());
         //当选择的入口rpcId不为0时,且当前节点为最后一个节点,此时链路图不会展示,需要兼容这种情况
         if (modelList.isEmpty() && tmpModel != null) {
             modelList.add(tmpModel);
@@ -515,6 +519,16 @@ public class LinkProcessor extends AbstractProcessor {
             edgeTags.put("fromAppId", fromAppId);
             edgeTags.put("toAppId", toAppId);
             edgeTags.put("linkId", linkId);
+
+            fromAppTags.put("userAppKey", rpcBased.getUserAppKey());
+            fromAppTags.put("envCode", rpcBased.getEnvCode());
+            fromAppTags.put("userId", rpcBased.getUserId());
+            toAppTags.put("userAppKey", rpcBased.getUserAppKey());
+            toAppTags.put("envCode", rpcBased.getEnvCode());
+            toAppTags.put("userId", rpcBased.getUserId());
+            edgeTags.put("userAppKey", rpcBased.getUserAppKey());
+            edgeTags.put("envCode", rpcBased.getEnvCode());
+            edgeTags.put("userId", rpcBased.getUserId());
             //如果只有一条日志,并且是rpcId不为0的入口日志,则不生成上游应用节点,用虚拟节点指向
             if (isCalculateNonTraceLogUpAppNode) {
                 LinkNodeModel fromNodeModel = LinkNodeModel.parseFromDataMap(fromAppTags);

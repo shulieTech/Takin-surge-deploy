@@ -93,8 +93,9 @@ public interface DataQueue<IN extends Serializable, OUT extends Serializable> ex
      * 拆分日志
      *
      * @param content
+     * @param dataType
      * @return
      */
-    List<String> splitLog(String content);
+    List<String> splitLog(String content, Byte dataType);
 
 }

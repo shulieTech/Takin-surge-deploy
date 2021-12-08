@@ -18,6 +18,7 @@ package io.shulie.surge.data.deploy.pradar.digester;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.pradar.log.rule.RuleFactory;
 import io.shulie.pradar.log.rule.RuleFactory.Rule;
@@ -33,6 +34,7 @@ import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParserFactory;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
+import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
@@ -79,6 +81,15 @@ public class E2EAssertionDigester implements DataDigester<RpcBased> {
         if (rpcBasedParser == null) {
             return;
         }
+
+        //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
+        if (StringUtils.isBlank(rpcBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
+            rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
+        }
+        if (StringUtils.isBlank(rpcBased.getEnvCode())) {
+            rpcBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("envCode"));
+        }
+
         String parsedAppName = StringUtils.defaultString(rpcBasedParser.appNameParse(rpcBased), "");
         String parsedServiceName = StringUtils.defaultString(rpcBasedParser.serviceParse(rpcBased), "");
         String parsedMethod = StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), "");
@@ -130,7 +141,7 @@ public class E2EAssertionDigester implements DataDigester<RpcBased> {
             }
             // 是否压测流量
             String clusterTest = rpcBased.isClusterTest() ? "1" : "0";
-            Integer simpling = appConfigUtil.getAppSamplingByAppName("", "", rpcBased.getAppName());
+            Integer simpling = appConfigUtil.getAppSamplingByAppName(rpcBased.getUserAppKey(), rpcBased.getEnvCode(), rpcBased.getAppName());
             // 写入断言指标
             for (String exceptionType : exceptionTypeList) {
                 long successCount = 0;

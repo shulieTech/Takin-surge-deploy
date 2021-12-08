@@ -18,6 +18,7 @@ package io.shulie.surge.data.deploy.pradar.config;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import com.pamirs.pradar.log.parser.DataType;
 import com.pamirs.pradar.logger.Logger;
 import com.pamirs.pradar.logger.LoggerFactory;
 import io.shulie.surge.data.deploy.pradar.parser.PradarPaserFactory;
@@ -52,9 +53,14 @@ public class PradarProcessor extends DefaultProcessor<String, DigestContext> {
     }
 
     @Override
-    public List<String> splitLog(String content) {
+    public List<String> splitLog(String content, Byte dataType) {
 //        logger.info("recevie log {}", content);
-        Iterable<String> iterator = Splitter.on("\r\n").omitEmptyStrings().split(content);
+        Iterable<String> iterator;
+        if (dataType.equals(DataType.AGENT_LOG)) {
+            iterator = Splitter.on("\n").omitEmptyStrings().split(content);
+        } else {
+            iterator = Splitter.on("\r\n").omitEmptyStrings().split(content);
+        }
         return Lists.newArrayList(iterator);
     }
 

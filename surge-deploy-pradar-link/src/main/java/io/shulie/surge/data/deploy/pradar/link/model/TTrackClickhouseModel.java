@@ -20,7 +20,7 @@ import com.pamirs.pradar.log.parser.trace.RpcBased;
 
 import java.util.Map;
 
-public class TTrackClickhouseModel {
+public class TTrackClickhouseModel extends LinkPublicModel{
     private String appName;
     private String traceId;
     private String entranceNodeId;
@@ -110,6 +110,9 @@ public class TTrackClickhouseModel {
         rpcBased.setVersion(version);
         rpcBased.setHostIp(hostIp);
         rpcBased.setAgentId(agentId);
+        rpcBased.setUserId(getUserId());
+        rpcBased.setUserAppKey(getUserAppKey());
+        rpcBased.setEnvCode(getEnvCode());
         return rpcBased;
     }
 

@@ -88,7 +88,7 @@ public class AppConfigUtil {
                 //获取应用采样率
                 paramMap.put("configKey", "trace.samplingInterval");
                 try {
-                    res = JSON.parseObject(HttpUtil.doGet(URI, Integer.valueOf(PORT), PATH, paramMap));
+                    res = JSON.parseObject(HttpUtil.doGet(URI, Integer.valueOf(PORT), PATH, null, paramMap));
                     if (res != null && res.containsKey("data")) {
                         sampling = StringUtil.formatString(res.get("data"));
                         logger.info("get app sampling:{},params is {}", sampling, paramMap);

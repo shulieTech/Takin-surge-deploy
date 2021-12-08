@@ -78,7 +78,7 @@ public class SqlCollectDigester implements DataDigester<RpcBased> {
             if (rpcBased == null || rpcBased.getRpcType() != MiddlewareType.TYPE_DB) {
                 return;
             }
-            if (!PradarUtils.isTraceSampleAccepted(context.getContent().getTraceId(), sqlCollectSampling.get())) {
+            if (!PradarUtils.isTraceSampleAccepted(rpcBased, sqlCollectSampling.get())) {
                 return;
             }
             if (StringUtils.isBlank(rpcBased.getCallbackMsg())) {

@@ -19,12 +19,10 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Date;
 import java.util.Map;
-
 import static io.shulie.surge.data.deploy.pradar.link.processor.EntranceProcessor.SERVICE_LENGTH_FIELD;
 
-public class LinkEdgeModel {
+public class LinkEdgeModel extends LinkPublicModel {
     String linkId;
     String service;
     String method;
@@ -41,19 +39,19 @@ public class LinkEdgeModel {
     String edgeId;
 
     public static String getCols() {
-        return "(link_id,service,method,extend,app_name,trace_app_name,server_app_name,rpc_type,log_type,middleware_name,entrance_id,from_app_id,to_app_id,edge_id,gmt_modify)";
+        return "(link_id,service,method,extend,app_name,trace_app_name,server_app_name,rpc_type,log_type,middleware_name,entrance_id,from_app_id,to_app_id,edge_id,user_app_key,env_code,user_id,gmt_modify)";
     }
 
     public static String getParamCols() {
-        return "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())";
+        return "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())";
     }
 
     public static String getOnDuplicateCols() {
-        return " ON DUPLICATE KEY UPDATE service=VALUES(service),method=VALUES(method),extend=VALUES(extend),app_name=VALUES(app_name),trace_app_name=VALUES(trace_app_name),server_app_name=VALUES(server_app_name),rpc_type=VALUES(rpc_type),log_type=VALUES(log_type),middleware_name=VALUES(middleware_name),entrance_id=VALUES(entrance_id),from_app_id=VALUES(from_app_id),to_app_id=VALUES(to_app_id),gmt_modify=VALUES(gmt_modify)";
+        return " ON DUPLICATE KEY UPDATE service=VALUES(service),method=VALUES(method),extend=VALUES(extend),app_name=VALUES(app_name),trace_app_name=VALUES(trace_app_name),server_app_name=VALUES(server_app_name),rpc_type=VALUES(rpc_type),log_type=VALUES(log_type),middleware_name=VALUES(middleware_name),entrance_id=VALUES(entrance_id),from_app_id=VALUES(from_app_id),to_app_id=VALUES(to_app_id),user_app_key=VALUES(user_app_key),env_code=VALUES(env_code),user_id=VALUES(user_id),gmt_modify=VALUES(gmt_modify)";
     }
 
     public Object[] getValues() {
-        return new Object[]{linkId, service, method, extend, appName, traceAppName, serverAppName, rpcType, logType, middlewareName, entranceId, fromAppId, toAppId, edgeId};
+        return new Object[]{linkId, service, method, extend, appName, traceAppName, serverAppName, rpcType, logType, middlewareName, entranceId, fromAppId, toAppId, edgeId, getUserAppKey(), getEnvCode(), getUserId()};
     }
 
     public String getLinkId() {
