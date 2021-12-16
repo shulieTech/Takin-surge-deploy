@@ -146,10 +146,10 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
             if (pair == null) {
                 return;
             }
-            mysqlSupport.update(LinkSqlContants.LINK_NODE_INSERT_SQL, new Object[]{pair.getLeft().getLinkId(), pair.getLeft().getAppName(), pair.getLeft().getTraceAppName(), pair.getLeft().getMiddlewareName(), pair.getLeft().getExtend(), pair.getLeft().getAppId()});
+            mysqlSupport.update(LinkSqlContants.LINK_NODE_INSERT_SQL, new Object[]{pair.getLeft().getLinkId(), pair.getLeft().getAppName(), pair.getLeft().getTraceAppName(), pair.getLeft().getMiddlewareName(), pair.getLeft().getExtend(), pair.getLeft().getAppId(), pair.getLeft().getUserAppKey(), pair.getLeft().getEnvCode()});
 
             mysqlSupport.update(LinkSqlContants.LINK_EDGE_INSERT_SQL, new Object[]{pair.getRight().getLinkId(), pair.getRight().getService(), pair.getRight().getMethod(), pair.getRight().getExtend(), pair.getRight().getAppName(), pair.getRight().getTraceAppName(), pair.getRight().getServerAppName(),
-                    pair.getRight().getRpcType(), pair.getRight().getLogType(), pair.getRight().getMiddlewareName(), pair.getRight().getEntranceId(), pair.getRight().getFromAppId(), pair.getRight().getToAppId(), pair.getRight().getEdgeId()});
+                    pair.getRight().getRpcType(), pair.getRight().getLogType(), pair.getRight().getMiddlewareName(), pair.getRight().getEntranceId(), pair.getRight().getFromAppId(), pair.getRight().getToAppId(), pair.getRight().getEdgeId(), pair.getRight().getUserAppKey(), pair.getRight().getEnvCode()});
         } catch (Throwable e) {
             logger.error(ExceptionUtils.getStackTrace(e));
         }
@@ -180,8 +180,11 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
         edgeTags.put("toAppId", toAppId);
         edgeTags.put("traceAppName", "");
         edgeTags.put("linkId", linkId);
-
+        edgeTags.put("userAppKey", rpcBased.getUserAppKey());
+        edgeTags.put("envCode", rpcBased.getEnvCode());
         LinkNodeModel toNodeModel = LinkNodeModel.parseFromDataMap(toAppTags);
+        toNodeModel.setUserAppKey(rpcBased.getUserAppKey());
+        toNodeModel.setEnvCode(rpcBased.getEnvCode());
         if (StringUtils.isNotBlank((String) toAppTags.get("middlewareName"))) {
             Map<String, Object> toNodeExtendInfo = new HashMap();
             toNodeExtendInfo.put("ip", rpcBased.getRemoteIp());

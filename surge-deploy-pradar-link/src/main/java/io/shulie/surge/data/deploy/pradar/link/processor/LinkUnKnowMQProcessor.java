@@ -23,6 +23,7 @@ import io.shulie.surge.data.deploy.pradar.link.LinkSqlContants;
 import io.shulie.surge.data.deploy.pradar.link.TaskManager;
 import io.shulie.surge.data.deploy.pradar.link.model.LinkEdgeModel;
 import io.shulie.surge.data.deploy.pradar.link.model.LinkNodeModel;
+import io.shulie.surge.data.deploy.pradar.link.util.StringUtil;
 import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
 import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
@@ -108,10 +109,10 @@ public class LinkUnKnowMQProcessor implements Processor {
      */
     private void processLinkExt(Pair<LinkNodeModel, LinkEdgeModel> pair) {
         try {
-            mysqlSupport.update(LinkSqlContants.LINK_NODE_INSERT_SQL, new Object[]{pair.getLeft().getLinkId(), pair.getLeft().getAppName(), pair.getLeft().getTraceAppName(), pair.getLeft().getMiddlewareName(), pair.getLeft().getExtend(), pair.getLeft().getAppId()});
+            mysqlSupport.update(LinkSqlContants.LINK_NODE_INSERT_SQL, new Object[]{pair.getLeft().getLinkId(), pair.getLeft().getAppName(), pair.getLeft().getTraceAppName(), pair.getLeft().getMiddlewareName(), pair.getLeft().getExtend(), pair.getLeft().getAppId(), pair.getLeft().getUserAppKey(), pair.getLeft().getEnvCode()});
 
             mysqlSupport.update(LinkSqlContants.LINK_EDGE_INSERT_SQL, new Object[]{pair.getRight().getLinkId(), pair.getRight().getService(), pair.getRight().getMethod(), pair.getRight().getExtend(), pair.getRight().getAppName(), pair.getRight().getTraceAppName(), pair.getRight().getServerAppName(),
-                    pair.getRight().getRpcType(), pair.getRight().getLogType(), pair.getRight().getMiddlewareName(), pair.getRight().getEntranceId(), pair.getRight().getFromAppId(), pair.getRight().getToAppId(), pair.getRight().getEdgeId()});
+                    pair.getRight().getRpcType(), pair.getRight().getLogType(), pair.getRight().getMiddlewareName(), pair.getRight().getEntranceId(), pair.getRight().getFromAppId(), pair.getRight().getToAppId(), pair.getRight().getEdgeId(), pair.getRight().getUserAppKey(), pair.getRight().getEnvCode()});
         } catch (Throwable e) {
             logger.error(ExceptionUtils.getStackTrace(e));
         }
@@ -135,6 +136,8 @@ public class LinkUnKnowMQProcessor implements Processor {
         nodeModel.setAppName(UNKNOW_APP);
         nodeModel.setMiddlewareName("");
         nodeModel.setExtend(String.valueOf(mqEdge.get("extend")));
+        nodeModel.setUserAppKey(StringUtil.formatString(mqEdge.get("user_app_key")));
+        nodeModel.setEnvCode(StringUtil.formatString(mqEdge.get("env_code")));
 
         //构建一个虚拟节点和边
         LinkEdgeModel edgeModel = new LinkEdgeModel();
@@ -150,6 +153,8 @@ public class LinkUnKnowMQProcessor implements Processor {
         edgeModel.setMiddlewareName(String.valueOf(mqEdge.get("middleware_name")));
         edgeModel.setFromAppId(String.valueOf(mqEdge.get("to_app_id")));
         edgeModel.setToAppId(toAppId);
+        edgeModel.setUserAppKey(StringUtil.formatString(mqEdge.get("user_app_key")));
+        edgeModel.setEnvCode(StringUtil.formatString(mqEdge.get("env_code")));
 
         Map<String, Object> tags = Maps.newLinkedHashMap();
         tags.put("linkId", linkId);
