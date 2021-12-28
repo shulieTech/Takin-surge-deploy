@@ -280,8 +280,8 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                         return true;
                     }
                     //后缀匹配
-                    if (appNameArr[i].startsWith("%")) {
-                        return appName.endsWith(appNameArr[i].split("%")[1]);
+                    if (appNameArr[i].startsWith("%") && appName.endsWith(appNameArr[i].split("%")[1])) {
+                        return true;
                     }
                 } else {
                     //否则采用等值匹配
