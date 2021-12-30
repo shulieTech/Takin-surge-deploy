@@ -275,7 +275,12 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
             for (int i = 0; i < appNameArr.length; i++) {
                 //如果含有百分号,启用前缀匹配
                 if (appNameArr[i].contains("%")) {
-                    if (appName.startsWith(appNameArr[i].split("%")[0])) {
+                    //前缀匹配
+                    if (StringUtils.isNotBlank(appNameArr[i].split("%")[0]) && appName.startsWith(appNameArr[i].split("%")[0])) {
+                        return true;
+                    }
+                    //后缀匹配
+                    if (appNameArr[i].startsWith("%") && appName.endsWith(appNameArr[i].split("%")[1])) {
                         return true;
                     }
                 } else {
