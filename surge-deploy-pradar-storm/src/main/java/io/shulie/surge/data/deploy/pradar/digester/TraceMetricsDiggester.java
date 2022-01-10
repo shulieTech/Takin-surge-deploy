@@ -162,7 +162,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         int sampling = 1;
         //对于调试流量,agent不采样,采样率默认为1
         if (!rpcBased.getFlags().isDebugTest()) {
-            sampling = appConfigUtil.getAppSamplingByAppName(userAppKey, envCode, rpcBased.getAppName());
+            sampling = appConfigUtil.getAppSamplingByAppName(userAppKey, envCode, rpcBased.getAppName(), clusterTest);
         }
 
         // 断言列表,兼容老的nodeId查询

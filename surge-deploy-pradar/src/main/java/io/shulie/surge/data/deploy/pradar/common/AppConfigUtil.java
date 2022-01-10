@@ -73,20 +73,27 @@ public class AppConfigUtil {
     /**
      * 采样率缓存
      */
-    LoadingCache<String, Integer> samplingCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build(new CacheLoader<String, Integer>() {
+    LoadingCache<String, Integer> samplingCache = CacheBuilder.newBuilder().expireAfterWrite(2, TimeUnit.MINUTES).build(new CacheLoader<String, Integer>() {
         @Override
         public Integer load(String appName) throws Exception {
             // 应用自定义采样率
             String[] params = appName.split("@~@");
             String sampling = null;
-            if (params.length == 3) {
+            if (params.length == 4) {
                 Map<String, Object> res = null;
                 Map<String, String> paramMap = Maps.newHashMap();
                 paramMap.put("userAppKey", params[0]);
                 paramMap.put("envCode", params[1]);
                 paramMap.put("appName", params[2]);
-                //获取应用采样率
-                paramMap.put("configKey", "trace.samplingInterval");
+
+                //如果是压测流量,取压测流量采样率
+                if ("true".equals(params[3])) {
+                    //获取应用压测采样率
+                    paramMap.put("configKey", "trace.ct.samplingInterval");
+                } else {
+                    //获取应用采样率
+                    paramMap.put("configKey", "trace.samplingInterval");
+                }
                 try {
                     res = JSON.parseObject(HttpUtil.doGet(URI, Integer.valueOf(PORT), PATH, null, paramMap));
                     if (res != null && res.containsKey("data")) {
@@ -146,9 +153,9 @@ public class AppConfigUtil {
      * @param appName
      * @return
      */
-    public int getAppSamplingByAppName(String userAppKey, String envCode, String appName) {
+    public int getAppSamplingByAppName(String userAppKey, String envCode, String appName, String clusterTest) {
         try {
-            return samplingCache.get(userAppKey + "@~@" + envCode + "@~@" + appName);
+            return samplingCache.get(userAppKey + "@~@" + envCode + "@~@" + appName + "@~@" + clusterTest);
         } catch (Throwable e) {
             e.printStackTrace();
         }
