@@ -50,19 +50,21 @@ public class ApiProcessor {
 
     private static String staticHost;
     private static String staticUrl;
-    private static String staticApiV1Url;
+    private static String staticPort;
     private static String staticTenantConfigUrl;
     private static String staticEntryUrl;
-    private static String staticPort;
     public static String staticDefaultTenantAppKey;
 
     private String host;
     private String url;
-    private String apiV1Url;
+    private String port;
     private String tenantConfigUrl;
     private String entryUrl;
-    private String port;
     private String defaultTenantAppKey;
+
+    private String amdbHost;
+    private String amdbUrl;
+    private String amdbPort;
 
     private static Gson gson = new Gson();
 
@@ -71,10 +73,6 @@ public class ApiProcessor {
     private static Map<String, String> tenantConfigMap = new HashMap<>();
 
     protected static Map<String, Matcher> MATHERS = new HashMap<>();
-
-
-    public ApiProcessor() {
-    }
 
     private ScheduledExecutorService service =
             new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
@@ -98,18 +96,26 @@ public class ApiProcessor {
                 }
             });
 
+    //10分钟的本地缓存,1000个压测报告
+    private static Cache<String, List<Map<String, Object>>> cache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
+
+    public ApiProcessor() {
+    }
+
     @Inject
-    public ApiProcessor(@Named("tro.url.ip") String host, @Named("tro.api.path") String url, @Named("tro.api.v1.path") String apiV1Url, @Named("tro.tenant.config.path") String tenantConfigUrl, @Named("tro.entries.path") String entryUrl, @Named("tro.port") String port, @Named("config.tenant.defaultTenantAppKey") String defaultTenantAppKey) {
+    public ApiProcessor(@Named("tro.url.ip") String host, @Named("tro.api.path") String url, @Named("tro.tenant.config.path") String tenantConfigUrl, @Named("amdb.url.ip") String amdbHost, @Named("amdb.api.apiUrl.path") String amdbUrl, @Named("amdb.port") String amdbPort, @Named("tro.entries.path") String entryUrl, @Named("tro.port") String port, @Named("config.tenant.defaultTenantAppKey") String defaultTenantAppKey) {
         this.host = host;
         this.url = url;
         this.entryUrl = entryUrl;
-        this.apiV1Url = apiV1Url;
         this.tenantConfigUrl = tenantConfigUrl;
         this.port = port;
         this.defaultTenantAppKey = defaultTenantAppKey;
+        this.amdbHost = amdbHost;
+        this.amdbPort = amdbPort;
+        this.amdbUrl = amdbUrl;
+
         staticHost = host;
         staticUrl = url;
-        staticApiV1Url = apiV1Url;
         staticTenantConfigUrl = tenantConfigUrl;
         staticEntryUrl = entryUrl;
         staticPort = port;
@@ -119,7 +125,7 @@ public class ApiProcessor {
 
     public void init() {
         service.scheduleAtFixedRate(
-                new Thread(() -> refresh())
+                new Thread(() -> refreshV2())
                 , 0
                 , 2
                 , TimeUnit.MINUTES);
@@ -132,6 +138,41 @@ public class ApiProcessor {
                 , TimeUnit.MINUTES);
     }
 
+    private void refreshV2() {
+        Map<String, Object> res = new HashMap<>();
+        try {
+            res = gson.fromJson(HttpUtil.doGet(amdbHost, Integer.valueOf(amdbPort), amdbUrl, null, null), Map.class);
+        } catch (Throwable e) {
+            logger.error("query all entry rules catch exception:{},{}", e, e.getStackTrace());
+        }
+        if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
+            Object data = res.get("data");
+            Map<String, List<String>> map = (Map<String, List<String>>) data;
+            for (String appName : map.keySet()) {
+                List<String> apiList = map.get(appName);
+                Map<String, List<String>> newApiMap = Maps.newHashMap();
+                for (String api : apiList) {
+                    String[] splits = api.split("#");
+                    String url = splits[0];
+                    String type = splits[1];
+                    if (Objects.isNull(newApiMap.get(type))) {
+                        List<String> list = new ArrayList<>();
+                        list.add(url);
+                        newApiMap.put(type, list);
+                    } else {
+                        List<String> newList = newApiMap.get(type);
+                        newList.add(url);
+                        newApiMap.put(type, newList);
+                    }
+                }
+                API_COLLECTION.put(appName, newApiMap);
+            }
+            MATHERS.clear();
+        }
+    }
+
+
+    @Deprecated
     private void refresh() {
         Map<String, Object> res = new HashMap<>();
         try {
@@ -222,63 +263,6 @@ public class ApiProcessor {
         }
         return config;
     }
-
-    //10分钟的本地缓存,10000个应用(真正配置了入口规则的还是少数,不会撑爆内存)
-    private static Cache<String, List<String>> apiCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build();
-
-    public static String matchEntryRule(String tenantAppKey, String envCode, String appName, String url, String type) {
-        List<String> apiList = getApiList(tenantAppKey, envCode, appName);
-        if (CollectionUtils.isNotEmpty(apiList)) {
-            Matcher matcher = new Matcher();
-            return matcher.match3(url, type, apiList);
-        }
-        return url;
-    }
-
-    /**
-     * 这里传进来的已经是确定的租户和环境,对于1.6版本和1.7没指定租户和环境的日志,要根据应用名称获取租户和环境
-     *
-     * @param tenantAppKey
-     * @param envCode
-     * @param appName
-     */
-    private static List<String> getApiList(String tenantAppKey, String envCode, String appName) {
-        //先从缓存里面拿,key的格式:tenantAppKey + "#" + envCode + "#" + appName
-        String key = tenantAppKey + "#" + envCode + "#" + appName;
-        List<String> apiList = apiCache.getIfPresent(key);
-        //如果缓存为空,查询tro接口
-        if (apiList == null) {
-            HashMap<String, String> requestHeaders = Maps.newHashMap();
-            requestHeaders.put("TenantAppkey", tenantAppKey);
-            requestHeaders.put("EnvCode", envCode);
-
-            HashMap<String, String> params = Maps.newHashMap();
-            params.put("appName", appName);
-
-            Map<String, Object> res = null;
-            try {
-                res = gson.fromJson(HttpUtil.doGet(staticHost, Integer.valueOf(staticPort), staticApiV1Url, requestHeaders, params), Map.class);
-            } catch (Throwable e) {
-                logger.error("query apiList catch exception :{},{}", e, e.getStackTrace());
-            }
-            if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
-                Map<String, Object> data = (Map<String, Object>) res.get("data");
-                List<String> dataList = (List<String>) (data.get(appName));
-                if (CollectionUtils.isNotEmpty(dataList)) {
-                    apiCache.put(key, dataList);
-                    return dataList;
-                } else {
-                    apiCache.put(key, Lists.newArrayList());
-                    return Lists.newArrayList();
-                }
-            }
-        }
-        return apiList;
-    }
-
-
-    //10分钟的本地缓存,1000个压测报告
-    private static Cache<String, List<Map<String, Object>>> cache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
     /**
      * 匹配报告ID下的业务活动
