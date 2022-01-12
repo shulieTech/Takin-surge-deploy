@@ -91,6 +91,16 @@ public class LinkProcessor extends AbstractProcessor {
     private Remote<Long> intervalTime;
 
     @Inject
+    @DefaultValue("false")
+    @Named("/pradar/config/rt/linkProcess/isFilterTakinFlag")
+    private Remote<Boolean> isFilterTakinFlag;
+
+    @Inject
+    @DefaultValue("takin-web,takin-cloud,takin-amdb")
+    @Named("/pradar/config/rt/linkProcess/filterTakinConfig")
+    private Remote<String> filterTakinConfig;
+
+    @Inject
     @Named("config.link.trace.query.limit")
     private String traceQuerylimit;
 
@@ -255,6 +265,8 @@ public class LinkProcessor extends AbstractProcessor {
     }
 
     public List<RpcBased> getTraceLog(Map<String, Object> linkConfig, TraceLogQueryScopeEnum queryScope) {
+        //是否TAKIN相关应用的业务活动
+        Boolean isTakinConcerndFlag = false;
         String method = String.valueOf(linkConfig.get("method"));
         String appName = String.valueOf(linkConfig.get("appName"));
         String rpcType = String.valueOf(linkConfig.get("rpcType"));
@@ -264,6 +276,20 @@ public class LinkProcessor extends AbstractProcessor {
         }
         String userAppKey = String.valueOf(linkConfig.get("userAppKey"));
         String envCode = String.valueOf(linkConfig.get("envCode"));
+
+        //如果业务活动的应用名称含有TAKIN关键字,说明是TAKIN相关的业务活动,此时不用在链路图中过滤TAKIN相关的边
+        List<String> filterTakinAppList;
+        if (isFilterTakinFlag.get()) {
+            String[] filterTakinApps = filterTakinConfig.get().split(",");
+            if (filterTakinApps.length != 0) {
+                filterTakinAppList = Arrays.asList(filterTakinApps);
+                if (filterTakinAppList.contains(appName.toLowerCase())) {
+                    isTakinConcerndFlag = true;
+                }
+            } else {
+                filterTakinAppList = Lists.newArrayList();
+            }
+        }
 
         // k=traceId v=rpcId  用来截取从当前rpcId开始的下游节点
         String simpleSql = "select traceId,rpcId,logType from t_trace_all where appName='" + appName +
@@ -359,23 +385,29 @@ public class LinkProcessor extends AbstractProcessor {
             }
         }
 
+        Boolean finalIsTakinConcerndFlag = isTakinConcerndFlag;
         modelList = modelList.stream().
                 filter(model -> {
                     if (model.getLogType() == 5) {
                         return false;
                     }
+                    //如果过滤开关打开,并且是非TAKIN相关业务活动,过滤调用链中TAKIN相关应用的边
+                    if (isFilterTakinFlag.get() && !finalIsTakinConcerndFlag && (filterTakinAppList.contains(model.getAppName().toLowerCase()) || filterTakinAppList.contains(model.getUpAppName().toLowerCase()))) {
+                        return false;
+                    }
+
                     String ary[] = traceFilter.get(model.getTraceId()).split("#");
                     String filterRpcId = ary[0];
                     String filterLogType = ary[1];
                     if (model.getRpcId().equals(filterRpcId)) {
                         // 相同RpcID情况处理，如果是选择的当前服务且当前服务是入口，就保留，否则就丢掉
                         String isTemp = threadLocal.get();
-                        if(isTemp!=null&&"tempLinkTopology".equals(isTemp)) {
+                        if (isTemp != null && "tempLinkTopology".equals(isTemp)) {
                             return appName.equals(model.getAppName()) && model.getParsedServiceName()
                                     .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
                                     model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
-                        }else{
-                           return "0".equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName()
+                        } else {
+                            return "0".equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName()
                                     .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
                                     model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
                         }
