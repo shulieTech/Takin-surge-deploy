@@ -278,7 +278,7 @@ public class LinkProcessor extends AbstractProcessor {
         String envCode = String.valueOf(linkConfig.get("envCode"));
 
         //如果业务活动的应用名称含有TAKIN关键字,说明是TAKIN相关的业务活动,此时不用在链路图中过滤TAKIN相关的边
-        List<String> filterTakinAppList;
+        List<String> filterTakinAppList = null;
         if (isFilterTakinFlag.get()) {
             String[] filterTakinApps = filterTakinConfig.get().split(",");
             if (filterTakinApps.length != 0) {
@@ -386,13 +386,14 @@ public class LinkProcessor extends AbstractProcessor {
         }
 
         Boolean finalIsTakinConcerndFlag = isTakinConcerndFlag;
+        List<String> finalFilterTakinAppList = filterTakinAppList;
         modelList = modelList.stream().
                 filter(model -> {
                     if (model.getLogType() == 5) {
                         return false;
                     }
                     //如果过滤开关打开,并且是非TAKIN相关业务活动,过滤调用链中TAKIN相关应用的边
-                    if (isFilterTakinFlag.get() && !finalIsTakinConcerndFlag && (filterTakinAppList.contains(model.getAppName().toLowerCase()) || filterTakinAppList.contains(model.getUpAppName().toLowerCase()))) {
+                    if (isFilterTakinFlag.get() && !finalIsTakinConcerndFlag && (finalFilterTakinAppList.contains(model.getAppName().toLowerCase()) || finalFilterTakinAppList.contains(model.getUpAppName().toLowerCase()))) {
                         return false;
                     }
 
