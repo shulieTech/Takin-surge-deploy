@@ -413,6 +413,10 @@ public class LinkProcessor extends AbstractProcessor {
                                     model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
                         }
                     }
+                    // 针对MQ类型的,由于生产和消费的日志rpcId都一致,当设置消费者为入口时,需要把生产者的日志过滤掉
+                    if (model.getRpcId().equals(filterRpcId) && model.getLogType() == 2) {
+                        return false;
+                    }
                     // 如果是以所选服务的RpcId为开始的就保留，否则就丢掉
                     return model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1;
                 }).collect(Collectors.toList());
