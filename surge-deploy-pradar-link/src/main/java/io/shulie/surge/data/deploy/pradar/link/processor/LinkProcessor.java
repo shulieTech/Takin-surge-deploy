@@ -408,7 +408,7 @@ public class LinkProcessor extends AbstractProcessor {
                                     .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
                                     model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
                         } else {
-                            return "0".equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName()
+                            return appName.equals(model.getAppName()) && model.getParsedServiceName()
                                     .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
                                     model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
                         }
@@ -482,9 +482,8 @@ public class LinkProcessor extends AbstractProcessor {
                     String filterLogType = ary[1];
                     if (model.getRpcId().equals(filterRpcId)) {
                         // 相同RpcID情况处理，如果是选择的当前服务且当前服务是入口，就保留，否则就丢掉
-                        return "0".equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName()
-                                .contains(serviceName) && methodName.equals(model.getMethodName()) && filterLogType.equals(
-                                model.getLogType() + "");
+                        return appName.equals(model.getAppName()) && model.getParsedServiceName()
+                                .contains(serviceName) && methodName.equals(model.getMethodName()) && filterLogType.equals(model.getLogType() + "");
                     }
                     // 针对MQ类型的,由于生产和消费的日志rpcId都一致,当设置消费者为入口时,需要把生产者的日志过滤掉
                     if (model.getRpcType() == 3 && model.getRpcId().equals(filterRpcId) && model.getLogType() == 2) {
