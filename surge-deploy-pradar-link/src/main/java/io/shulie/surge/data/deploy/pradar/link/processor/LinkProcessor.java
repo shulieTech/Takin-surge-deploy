@@ -420,11 +420,11 @@ public class LinkProcessor extends AbstractProcessor {
                     // 如果是以所选服务的RpcId为开始的就保留，否则就丢掉
                     return model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1;
                 }).collect(Collectors.toList());
+
         //当选择的入口rpcId不为0时,且当前节点为最后一个节点,此时链路图不会展示,需要兼容这种情况
         if (modelList.isEmpty() && tmpModel != null) {
             modelList.add(tmpModel);
         }
-
         return modelList.stream()
                 .map(TTrackClickhouseModel::getRpcBased)
                 .collect(Collectors.toList());
@@ -486,15 +486,20 @@ public class LinkProcessor extends AbstractProcessor {
                                 .contains(serviceName) && methodName.equals(model.getMethodName()) && filterLogType.equals(
                                 model.getLogType() + "");
                     }
+                    // 针对MQ类型的,由于生产和消费的日志rpcId都一致,当设置消费者为入口时,需要把生产者的日志过滤掉
+                    if (model.getRpcType() == 3 && model.getRpcId().equals(filterRpcId) && model.getLogType() == 2) {
+                        return false;
+                    }
+
                     // 如果是以所选服务的RpcId为开始的就保留，否则就丢掉
                     return model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1;
                 })
                 .collect(Collectors.toList());
+
         //当选择的入口rpcId不为0时,且当前节点为最后一个节点,此时链路图不会展示,需要兼容这种情况
         if (modelList.isEmpty() && tmpModel != null) {
             modelList.add(tmpModel);
         }
-
         return modelList.stream()
                 .map(TTrackClickhouseModel::getRpcBased)
                 .collect(Collectors.toList());
