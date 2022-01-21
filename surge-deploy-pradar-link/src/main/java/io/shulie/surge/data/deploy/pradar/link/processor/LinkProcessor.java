@@ -285,7 +285,7 @@ public class LinkProcessor extends AbstractProcessor {
 
         //如果业务活动的应用名称含有TAKIN关键字,说明是TAKIN相关的业务活动,此时不用在链路图中过滤TAKIN相关的边
         List<String> filterTakinAppList = null;
-        if (isFilterTakinFlag.get()) {
+        if (isFilterTakinFlag != null && isFilterTakinFlag.get()) {
             String[] filterTakinApps = filterTakinConfig.get().split(",");
             if (filterTakinApps.length != 0) {
                 filterTakinAppList = Arrays.asList(filterTakinApps);
