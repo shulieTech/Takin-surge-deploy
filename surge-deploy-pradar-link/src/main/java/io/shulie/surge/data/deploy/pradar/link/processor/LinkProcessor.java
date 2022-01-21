@@ -26,6 +26,7 @@ import io.shulie.surge.data.deploy.pradar.link.enums.TraceLogQueryScopeEnum;
 import io.shulie.surge.data.deploy.pradar.link.model.LinkEdgeModel;
 import io.shulie.surge.data.deploy.pradar.link.model.LinkNodeModel;
 import io.shulie.surge.data.deploy.pradar.link.model.TTrackClickhouseModel;
+import io.shulie.surge.data.deploy.pradar.link.util.StringUtil;
 import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
 import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParser;
@@ -241,9 +242,11 @@ public class LinkProcessor extends AbstractProcessor {
         Set<LinkEdgeModel> edges = new HashSet<>();
         Set<LinkNodeModel> nodes = new HashSet<>();
         List<RpcBased> rpcBaseds = getTraceLog(linkConfig, queryScope);
-        Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkRelationPair = linkAnalysis(linkId, rpcBaseds);
-        nodes.addAll(linkRelationPair.getLeft());
-        edges.addAll(linkRelationPair.getRight());
+        if (CollectionUtils.isNotEmpty(rpcBaseds)) {
+            Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkRelationPair = linkAnalysis(linkId, linkConfig, rpcBaseds);
+            nodes.addAll(linkRelationPair.getLeft());
+            edges.addAll(linkRelationPair.getRight());
+        }
         return Pair.of(nodes, edges);
     }
 
@@ -258,9 +261,12 @@ public class LinkProcessor extends AbstractProcessor {
         Set<LinkEdgeModel> edges = new HashSet<>();
         Set<LinkNodeModel> nodes = new HashSet<>();
         List<RpcBased> rpcBaseds = getTraceLog(param);
-        Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkRelationPair = linkAnalysis(param.get("linkId"), rpcBaseds);
-        nodes.addAll(linkRelationPair.getLeft());
-        edges.addAll(linkRelationPair.getRight());
+        Map<String, Object> linkConfig = new HashMap<>(param);
+        if (CollectionUtils.isNotEmpty(rpcBaseds)) {
+            Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkRelationPair = linkAnalysis(param.get("linkId"), linkConfig, rpcBaseds);
+            nodes.addAll(linkRelationPair.getLeft());
+            edges.addAll(linkRelationPair.getRight());
+        }
         return Pair.of(nodes, edges);
     }
 
@@ -315,9 +321,6 @@ public class LinkProcessor extends AbstractProcessor {
         }
         Calendar endCalendar = Calendar.getInstance();
         endCalendar.add(Calendar.MINUTE, -1);
-/*
-        simpleSql += " and logType!='5'";
-*/
         simpleSql += " and startDate>='" + DateFormatUtils.format(beginCalendar.getTime(), "yyyy-MM-dd HH:mm:ss")
                 + "' and startDate <='" + DateFormatUtils.format(endCalendar, "yyyy-MM-dd HH:mm:ss")
                 + "' order by startDate desc limit 2";
@@ -344,11 +347,8 @@ public class LinkProcessor extends AbstractProcessor {
             if (!this.isUseCk()) {
                 sql.append("(");
             }
-            sql.append(
-                    "select " + LINK_TOPOLOGY_SQL + " from t_trace_all where traceId ='" + traceId + "'");
-            //and logType!='5'");
-            sql.append(" and startDate>='" + DateFormatUtils.format(beginCalendar.getTime(), "yyyy-MM-dd HH:mm:ss")
-                    + "'");
+            sql.append("select " + LINK_TOPOLOGY_SQL + " from t_trace_all where traceId ='" + traceId + "'");
+            sql.append(" and startDate>='" + DateFormatUtils.format(beginCalendar.getTime(), "yyyy-MM-dd HH:mm:ss") + "'");
             sql.append(" order by rpcId asc limit " + ("".equals(traceQuerylimit) ? "500" : traceQuerylimit));
             if (!this.isUseCk()) {
                 sql.append(")");
@@ -362,7 +362,7 @@ public class LinkProcessor extends AbstractProcessor {
         }
         //add trace log limit
         sql.delete(sql.length() - 11, sql.length());
-        logger.info("queryLinkTopology:{}", sql);
+        logger.info("queryLinkTopology:{},{}", sql, traceFilter);
 
         List<TTrackClickhouseModel> modelList = Lists.newArrayList();
         if (this.isUseCk()) {
@@ -373,8 +373,7 @@ public class LinkProcessor extends AbstractProcessor {
 
         TTrackClickhouseModel tmpModel = null;
         //首先把跟入口匹配上的数据暂存一份,用于后面为空时的处理
-        for (TTrackClickhouseModel model :
-                modelList) {
+        for (TTrackClickhouseModel model : modelList) {
             String ary[] = traceFilter.get(model.getTraceId()).split("#");
             String filterRpcId = ary[0];
             String filterLogType = ary[1];
@@ -387,54 +386,40 @@ public class LinkProcessor extends AbstractProcessor {
 
         Boolean finalIsTakinConcerndFlag = isTakinConcerndFlag;
         List<String> finalFilterTakinAppList = filterTakinAppList;
-        modelList = modelList.stream().
-                filter(model -> {
-                    if (model.getLogType() == 5) {
-                        return false;
-                    }
-                    //如果过滤开关打开,并且是非TAKIN相关业务活动,过滤调用链中TAKIN相关应用的边
-                    if (isFilterTakinFlag.get() && !finalIsTakinConcerndFlag && (finalFilterTakinAppList.contains(model.getAppName().toLowerCase()) || finalFilterTakinAppList.contains(model.getUpAppName().toLowerCase()))) {
-                        return false;
-                    }
+        modelList = modelList.stream().filter(model -> {
+            String ary[] = traceFilter.get(model.getTraceId()).split("#");
+            String filterRpcId = ary[0];
+            String filterLogType = ary[1];
 
-                    String ary[] = traceFilter.get(model.getTraceId()).split("#");
-                    String filterRpcId = ary[0];
-                    String filterLogType = ary[1];
-                    if (model.getRpcId().equals(filterRpcId)) {
-                        // 相同RpcID情况处理，如果是选择的当前服务且当前服务是入口，就保留，否则就丢掉
-                        String isTemp = threadLocal.get();
-                        if (isTemp != null && "tempLinkTopology".equals(isTemp)) {
-                            return appName.equals(model.getAppName()) && model.getParsedServiceName()
-                                    .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
-                                    model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
-                        } else {
-                            return appName.equals(model.getAppName()) && model.getParsedServiceName()
-                                    .contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(
-                                    model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode());
-                        }
-                    }
-                    // 针对MQ类型的,由于生产和消费的日志rpcId都一致,当设置消费者为入口时,需要把生产者的日志过滤掉
-                    if (model.getRpcType() == 3 && model.getRpcId().equals(filterRpcId) && model.getLogType() == 2) {
-                        return false;
-                    }
-                    // 如果是以所选服务的RpcId为开始的就保留，否则就丢掉
-                    return model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1;
-                }).collect(Collectors.toList());
+            //如果过滤开关打开,并且是非TAKIN相关业务活动,过滤调用链中TAKIN相关应用的边
+            if (isFilterTakinFlag.get() && !finalIsTakinConcerndFlag && (finalFilterTakinAppList.contains(model.getAppName().toLowerCase()) || finalFilterTakinAppList.contains(model.getUpAppName().toLowerCase()))) {
+                return false;
+            }
+
+            // 针对MQ类型的,由于生产和消费的日志rpcId都一致,当设置消费者为入口时,需要把生产者的日志过滤掉
+            if (model.getLogType() == 5 || (model.getRpcType() == 3 && model.getRpcId().equals(filterRpcId) && model.getLogType() == 2)) {
+                return false;
+            }
+
+            // 相同RpcID情况处理，如果是选择的当前服务且当前服务是入口，就保留，否则就丢掉
+            // 如果是以所选服务的RpcId为开始的就保留，否则就丢掉
+            return (model.getRpcId().equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName().contains(service) && method.equals(model.getMethodName()) && filterLogType.equals(model.getLogType() + "") && userAppKey.equals(model.getUserAppKey()) && envCode.equals(model.getEnvCode())) || (model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1);
+        }).collect(Collectors.toList());
 
         //当选择的入口rpcId不为0时,且当前节点为最后一个节点,此时链路图不会展示,需要兼容这种情况
         if (modelList.isEmpty() && tmpModel != null) {
             modelList.add(tmpModel);
         }
-        return modelList.stream()
-                .map(TTrackClickhouseModel::getRpcBased)
-                .collect(Collectors.toList());
+
+        //根据rpcId正序排序 -->0,0.1,0.1.1
+        return modelList.stream().sorted(Comparator.comparing(TTrackClickhouseModel::getRpcId)).map(TTrackClickhouseModel::getRpcBased).collect(Collectors.toList());
     }
 
     public static ThreadLocal<String> threadLocal = new ThreadLocal<String>();
 
     public List<RpcBased> getTraceLog(Map<String, String> param) {
-        String serviceName = param.get("serviceName");
-        String methodName = param.get("methodName");
+        String serviceName = param.get("service");
+        String methodName = param.get("method");
         String appName = param.get("appName");
         String traceId = param.get("traceId");
         String startTime = param.get("startTime");
@@ -447,12 +432,11 @@ public class LinkProcessor extends AbstractProcessor {
         }
         Map<String, String> traceFilter = new HashMap<>();
         traceFilter.put(traceId, rpcId + "#" + logType);
-        logger.info("LinkProcessor query traceIds:{}", traceFilter);
 
         StringBuilder sql = new StringBuilder();
-        sql.append(
-                "select " + LINK_TOPOLOGY_SQL + " from t_trace_all where startDate between '" + startTime + "' and '" + endTime + "' and traceId = '" + traceId + "' and logType != 5");
+        sql.append("select " + LINK_TOPOLOGY_SQL + " from t_trace_all where startDate between '" + startTime + "' and '" + endTime + "' and traceId = '" + traceId + "' and logType != 5");
         sql.append(" order by rpcId asc limit " + ("".equals(traceQuerylimit) ? "500" : traceQuerylimit));
+        logger.info("LinkProcessor query traceIds:{},sql:{}", traceFilter, sql);
 
         List<TTrackClickhouseModel> modelList = Lists.newArrayList();
         if (this.isUseCk()) {
@@ -461,47 +445,22 @@ public class LinkProcessor extends AbstractProcessor {
             modelList = mysqlSupport.query(sql.toString(), new BeanPropertyRowMapper(TTrackClickhouseModel.class));
         }
 
-        TTrackClickhouseModel tmpModel = null;
-        //首先把跟入口匹配上的数据暂存一份,用于后面为空时的处理
-        for (TTrackClickhouseModel model :
-                modelList) {
+        modelList = modelList.stream().filter(model -> {
             String ary[] = traceFilter.get(model.getTraceId()).split("#");
             String filterRpcId = ary[0];
             String filterLogType = ary[1];
-            if (model.getRpcId().equals(filterRpcId) && appName.equals(model.getAppName()) && serviceName.equals(model.getParsedServiceName()) && methodName.equals(model.getMethodName()) && filterLogType.equals(model.getLogType() + "")) {
-                // 相同RpcID情况处理，如果是选择的当前服务且当前服务是入口，就保留，否则就丢掉
-                tmpModel = model;
-                break;
+
+            // 针对MQ类型的,由于生产和消费的日志rpcId都一致,当设置消费者为入口时,需要把生产者的日志过滤掉
+            if (model.getLogType() == 5 || (model.getRpcType() == 3 && model.getRpcId().equals(filterRpcId) && model.getLogType() == 2)) {
+                return false;
             }
-        }
 
-        modelList = modelList.stream().
-                filter(model -> {
-                    String ary[] = traceFilter.get(model.getTraceId()).split("#");
-                    String filterRpcId = ary[0];
-                    String filterLogType = ary[1];
-                    if (model.getRpcId().equals(filterRpcId)) {
-                        // 相同RpcID情况处理，如果是选择的当前服务且当前服务是入口，就保留，否则就丢掉
-                        return appName.equals(model.getAppName()) && model.getParsedServiceName()
-                                .contains(serviceName) && methodName.equals(model.getMethodName()) && filterLogType.equals(model.getLogType() + "");
-                    }
-                    // 针对MQ类型的,由于生产和消费的日志rpcId都一致,当设置消费者为入口时,需要把生产者的日志过滤掉
-                    if (model.getRpcType() == 3 && model.getRpcId().equals(filterRpcId) && model.getLogType() == 2) {
-                        return false;
-                    }
+            // 如果为入口且是以所选服务的RpcId为开始的就保留，否则就丢掉
+            return (model.getRpcId().equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName().contains(serviceName) && methodName.equals(model.getMethodName()) && filterLogType.equals(model.getLogType() + "")) || (model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1);
+        }).collect(Collectors.toList());
 
-                    // 如果是以所选服务的RpcId为开始的就保留，否则就丢掉
-                    return model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1;
-                })
-                .collect(Collectors.toList());
-
-        //当选择的入口rpcId不为0时,且当前节点为最后一个节点,此时链路图不会展示,需要兼容这种情况
-        if (modelList.isEmpty() && tmpModel != null) {
-            modelList.add(tmpModel);
-        }
-        return modelList.stream()
-                .map(TTrackClickhouseModel::getRpcBased)
-                .collect(Collectors.toList());
+        //根据rpcId正序排序 -->0,0.1,0.1.1
+        return modelList.stream().sorted(Comparator.comparing(TTrackClickhouseModel::getRpcId)).map(TTrackClickhouseModel::getRpcBased).collect(Collectors.toList());
     }
 
     /**
@@ -509,11 +468,12 @@ public class LinkProcessor extends AbstractProcessor {
      *
      * @param rpcBaseds
      */
-    public Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkAnalysis(String linkId, List<RpcBased> rpcBaseds) {
+    public Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkAnalysis(String linkId, Map<String, Object> linkConfig, List<RpcBased> rpcBaseds) {
         Set<LinkEdgeModel> edges = new HashSet<>();
         Set<LinkNodeModel> nodes = new HashSet<>();
 
         Boolean isCalculateNonTraceLogUpAppNode = true;
+        //如果当前业务活动只有一条边并且不为业务真实入口,不计算其上游节点
         if (rpcBaseds.size() == 1 && !"0".equals(rpcBaseds.get(0).getRpcId())) {
             StringBuffer tags = new StringBuffer();
             tags.append(rpcBaseds.get(0).getServiceName())
@@ -529,17 +489,11 @@ public class LinkProcessor extends AbstractProcessor {
                 isCalculateNonTraceLogUpAppNode = false;
             }
         }
+
+        int i = 0;
         for (RpcBased rpcBased : rpcBaseds) {
-            if (rpcBased == null) {
-                continue;
-            }
             //在链路拓扑图这里客户端的rpc日志我们不解
-            if (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType()) {
-//                logger.warn("client rpc log ignored by system.");
-                continue;
-            }
-            if (StringUtils.isNotBlank(rpcBased.getMiddlewareName()) &&
-                    rpcBased.getMiddlewareName().contains("sentinel_terminal_message")) {
+            if (rpcBased == null || (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType()) || (StringUtils.isNotBlank(rpcBased.getMiddlewareName()) && rpcBased.getMiddlewareName().contains("sentinel_terminal_message"))) {
                 continue;
             }
 
@@ -553,6 +507,13 @@ public class LinkProcessor extends AbstractProcessor {
             String fromAppId = rpcBasedParser.fromAppId(linkId, rpcBased);
             String toAppId = rpcBasedParser.toAppId(linkId, rpcBased);
             Map<String, Object> fromAppTags = rpcBasedParser.fromAppTags(linkId, rpcBased);
+            //如果业务活动非真实业务入口,而是中间节点,也生成virtual节点,这样就不会导致链路图上除了虚拟节点以外还多出一个上游的问题
+            if (i == 0 && (rpcBased.getRpcType() == Integer.parseInt(StringUtil.formatString(linkConfig.get("rpcType"))) &&
+                    rpcBased.getAppName().equals(linkConfig.get("appName")) && rpcBased.getServiceName().equals(linkConfig.get("service")) && rpcBased.getMethodName().equals(linkConfig.get("method")))) {
+                fromAppTags.put("appName", fromAppTags.get("appName") + "-Virtual");
+                fromAppTags.put("middlewareName", "virtual");
+            }
+
             Map<String, Object> toAppTags = rpcBasedParser.toAppTags(linkId, rpcBased);
             fromAppTags.put("appId", fromAppId);
             toAppTags.put("appId", toAppId);
@@ -570,7 +531,7 @@ public class LinkProcessor extends AbstractProcessor {
             edgeTags.put("userAppKey", rpcBased.getUserAppKey());
             edgeTags.put("envCode", rpcBased.getEnvCode());
             edgeTags.put("userId", rpcBased.getUserId());
-            //如果只有一条日志,并且是rpcId不为0的入口日志,则不生成上游应用节点,用虚拟节点指向
+            //如果只有一条日志,并且是rpcId不为0的入口日志,则不生成上游应用节点,用虚拟节点指向,否则会出出现虚拟节点和对应上游节点同时存在的情况
             if (isCalculateNonTraceLogUpAppNode) {
                 LinkNodeModel fromNodeModel = LinkNodeModel.parseFromDataMap(fromAppTags);
                 if (StringUtils.isNotBlank((String) fromAppTags.get("middlewareName"))) {
@@ -590,6 +551,7 @@ public class LinkProcessor extends AbstractProcessor {
             }
             nodes.add(toNodeModel);
             edges.add(LinkEdgeModel.parseFromDataMap(edgeTags));
+            i++;
         }
         return Pair.of(nodes, edges);
     }

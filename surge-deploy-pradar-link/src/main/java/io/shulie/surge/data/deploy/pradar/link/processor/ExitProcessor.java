@@ -309,7 +309,6 @@ public class ExitProcessor extends AbstractProcessor {
             }
             logger.info("queryExit:{}", exitSql);
 
-            //利用HTTP出口(远程调用)反向生成HTTP出口
             exitList = exitList.stream().filter(exit -> {
                 //parsedMiddlewareName改名为middlewareName
                 exit.put("middlewareName", StringUtil.formatString(exit.get("parsedMiddlewareName")));
