@@ -392,7 +392,7 @@ public class LinkProcessor extends AbstractProcessor {
             String filterLogType = ary[1];
 
             //如果过滤开关打开,并且是非TAKIN相关业务活动,过滤调用链中TAKIN相关应用的边
-            if (isFilterTakinFlag.get() && !finalIsTakinConcerndFlag && (finalFilterTakinAppList.contains(model.getAppName().toLowerCase()) || finalFilterTakinAppList.contains(model.getUpAppName().toLowerCase()))) {
+            if (isFilterTakinFlag != null && isFilterTakinFlag.get() && !finalIsTakinConcerndFlag && (finalFilterTakinAppList.contains(model.getAppName().toLowerCase()) || finalFilterTakinAppList.contains(model.getUpAppName().toLowerCase()))) {
                 return false;
             }
 
