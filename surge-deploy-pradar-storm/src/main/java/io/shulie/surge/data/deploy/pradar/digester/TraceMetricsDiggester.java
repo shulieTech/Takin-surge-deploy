@@ -76,6 +76,11 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
     private Remote<String> traceMetricsConfig;
 
     @Inject
+    @DefaultValue("")
+    @Named("/pradar/config/rt/traceMetricsTenantConfig")
+    private Remote<String> traceMetricsTenantConfig;
+
+    @Inject
     private TraceMetricsAggarator traceMetricsAggarator;
 
     @Inject
@@ -133,7 +138,8 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         if (!eagleLoader.contains(edgeId)) {
             /** 指标计算不参考业务活动的边**/
             String appNameConfig = traceMetricsConfig.get();
-            if (checkAppName(appNameConfig, appName)) {
+            String tenantConfig = traceMetricsTenantConfig.get();
+            if (checkAppName(appNameConfig, appName) || checkTenant(tenantConfig, rpcBased.getUserAppKey())) {
                 rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
                 edgeId = rpcBasedParser.edgeId("", rpcBased);
                 eagleTags = rpcBasedParser.edgeTags("", rpcBased);
@@ -288,6 +294,18 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                     if (appName.equals(appNameArr[i])) {
                         return true;
                     }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean checkTenant(String config, String tenantAppKey) {
+        if (StringUtils.isNotBlank(config)) {
+            String[] tenantArr = config.split(",");
+            for (int i = 0; i < tenantArr.length; i++) {
+                if (tenantAppKey.equals(tenantArr[i])) {
+                    return true;
                 }
             }
         }
