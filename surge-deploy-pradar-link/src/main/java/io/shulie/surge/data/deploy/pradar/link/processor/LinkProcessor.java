@@ -472,6 +472,14 @@ public class LinkProcessor extends AbstractProcessor {
         Set<LinkEdgeModel> edges = new HashSet<>();
         Set<LinkNodeModel> nodes = new HashSet<>();
 
+        String rpcType = StringUtil.formatString(linkConfig.get("rpcType"));
+        String appName = StringUtil.formatString(linkConfig.get("appName"));
+        String service = StringUtil.formatString(linkConfig.get("service"));
+        String method = StringUtil.formatString(linkConfig.get("method"));
+        String userAppKey = StringUtil.formatString(linkConfig.get("userAppKey"));
+        String envCode = StringUtil.formatString(linkConfig.get("envCode"));
+        String userId = StringUtil.formatString(linkConfig.get("userId"));
+
         Boolean isCalculateNonTraceLogUpAppNode = true;
         //如果当前业务活动只有一条边并且不为业务真实入口,不计算其上游节点
         if (rpcBaseds.size() == 1 && !"0".equals(rpcBaseds.get(0).getRpcId())) {
@@ -508,9 +516,11 @@ public class LinkProcessor extends AbstractProcessor {
             String toAppId = rpcBasedParser.toAppId(linkId, rpcBased);
             Map<String, Object> fromAppTags = rpcBasedParser.fromAppTags(linkId, rpcBased);
             //如果业务活动非真实业务入口,而是中间节点,也生成virtual节点,这样就不会导致链路图上除了虚拟节点以外还多出一个上游的问题
-            if (i == 0 && (rpcBased.getRpcType() == Integer.parseInt(StringUtil.formatString(linkConfig.get("rpcType"))) &&
-                    rpcBased.getAppName().equals(linkConfig.get("appName")) && rpcBased.getServiceName().equals(linkConfig.get("service")) && rpcBased.getMethodName().equals(linkConfig.get("method")))) {
-                fromAppTags.put("appName", fromAppTags.get("appName") + "-Virtual");
+            if (i == 0 && (rpcBased.getRpcType() == Integer.parseInt(rpcType) && rpcBased.getAppName().equals(appName) && rpcBased.getServiceName().equals(service) && rpcBased.getMethodName().equals(method))) {
+                //如果已经处理成虚拟入口了,则不再次处理
+                if (!(StringUtil.formatString(fromAppTags.get("appName")).contains("-Virtual"))) {
+                    fromAppTags.put("appName", fromAppTags.get("appName") + "-Virtual");
+                }
                 fromAppTags.put("middlewareName", "virtual");
             }
 
@@ -522,15 +532,16 @@ public class LinkProcessor extends AbstractProcessor {
             edgeTags.put("toAppId", toAppId);
             edgeTags.put("linkId", linkId);
 
-            fromAppTags.put("userAppKey", rpcBased.getUserAppKey());
-            fromAppTags.put("envCode", rpcBased.getEnvCode());
-            fromAppTags.put("userId", rpcBased.getUserId());
-            toAppTags.put("userAppKey", rpcBased.getUserAppKey());
-            toAppTags.put("envCode", rpcBased.getEnvCode());
-            toAppTags.put("userId", rpcBased.getUserId());
-            edgeTags.put("userAppKey", rpcBased.getUserAppKey());
-            edgeTags.put("envCode", rpcBased.getEnvCode());
-            edgeTags.put("userId", rpcBased.getUserId());
+            //赋值业务活动对应的租户和环境,防止跨环境调用产生的链路图NPE问题
+            fromAppTags.put("userAppKey", userAppKey);
+            fromAppTags.put("envCode", envCode);
+            fromAppTags.put("userId", userId);
+            toAppTags.put("userAppKey", userAppKey);
+            toAppTags.put("envCode", envCode);
+            toAppTags.put("userId", userId);
+            edgeTags.put("userAppKey", userAppKey);
+            edgeTags.put("envCode", envCode);
+            edgeTags.put("userId", userId);
             //如果只有一条日志,并且是rpcId不为0的入口日志,则不生成上游应用节点,用虚拟节点指向,否则会出出现虚拟节点和对应上游节点同时存在的情况
             if (isCalculateNonTraceLogUpAppNode) {
                 LinkNodeModel fromNodeModel = LinkNodeModel.parseFromDataMap(fromAppTags);
