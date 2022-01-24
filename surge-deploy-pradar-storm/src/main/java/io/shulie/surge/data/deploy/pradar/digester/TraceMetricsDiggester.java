@@ -139,11 +139,11 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
             /** 指标计算不参考业务活动的边**/
             String appNameConfig = traceMetricsConfig.get();
             String tenantConfig = traceMetricsTenantConfig.get();
-            if (checkAppName(appNameConfig, appName) || checkTenant(tenantConfig, rpcBased.getUserAppKey())) {
-                rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
-                edgeId = rpcBasedParser.edgeId("", rpcBased);
-                eagleTags = rpcBasedParser.edgeTags("", rpcBased);
-            } else {
+            if (!(checkAppName(appNameConfig, appName) || checkTenant(tenantConfig, rpcBased.getUserAppKey()))) {
+                //rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
+                //edgeId = rpcBasedParser.edgeId("", rpcBased);
+                //eagleTags = rpcBasedParser.edgeTags("", rpcBased);
+                
                 //重复的边ID只打印一次
                 if (StringUtils.isBlank(cache.getIfPresent(edgeId))) {
                     cache.put(edgeId, edgeId);
