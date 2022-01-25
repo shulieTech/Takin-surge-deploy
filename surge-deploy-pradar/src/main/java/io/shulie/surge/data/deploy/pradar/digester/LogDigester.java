@@ -83,7 +83,7 @@ public class LogDigester implements DataDigester<RpcBased> {
     private static Cache<String, Long> taskIds = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(2, TimeUnit.MINUTES).removalListener(new RemovalListener<String, Long>() {
         @Override
         public void onRemoval(RemovalNotification<String, Long> removalNotification) {
-            logger.info("[{}] pressure test is finished.Total requestCount is [{}].", removalNotification.getKey(), removalNotification.getValue());
+                logger.info("[{}] pressure test is finished.Total requestCount is [{}],{}.", removalNotification.getKey(), removalNotification.getValue(), removalNotification.getCause());
         }
     }).build();
 
@@ -126,7 +126,7 @@ public class LogDigester implements DataDigester<RpcBased> {
             if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
                 Long count = taskIds.getIfPresent(rpcBased.getTaskId());
                 //logger.info("now task[{}] requestCount is [{}]", rpcBased.getTaskId(), count);
-                taskIds.put(rpcBased.getTaskId(), count != null ? ++count : 0);
+                taskIds.put(rpcBased.getTaskId(), count != null ? ++count : 1);
             }
 
             rpcBased.setDataLogTime(context.getProcessTime());
