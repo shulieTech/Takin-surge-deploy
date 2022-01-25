@@ -125,9 +125,10 @@ public class LogDigester implements DataDigester<RpcBased> {
             //如果是压测引擎日志,统计每个压测报告实际上报条数
             if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
                 Long count = taskIds.getIfPresent(rpcBased.getTaskId());
+                logger.info("now task[{}] requestCount is [{}]", rpcBased.getTaskId(), count);
                 taskIds.put(rpcBased.getTaskId(), count != null ? count++ : 0);
             }
-            
+
             rpcBased.setDataLogTime(context.getProcessTime());
             //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
             if (StringUtils.isBlank(rpcBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
