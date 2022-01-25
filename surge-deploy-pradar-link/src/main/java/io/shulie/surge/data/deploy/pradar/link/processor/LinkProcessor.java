@@ -241,9 +241,10 @@ public class LinkProcessor extends AbstractProcessor {
                                                              TraceLogQueryScopeEnum queryScope) throws IOException {
         Set<LinkEdgeModel> edges = new HashSet<>();
         Set<LinkNodeModel> nodes = new HashSet<>();
-        List<RpcBased> rpcBaseds = getTraceLog(linkConfig, queryScope);
+        Pair<List<RpcBased>, Map<String, String>> pair = getTraceLog(linkConfig, queryScope);
+        List<RpcBased> rpcBaseds = pair.getLeft();
         if (CollectionUtils.isNotEmpty(rpcBaseds)) {
-            Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkRelationPair = linkAnalysis(linkId, linkConfig, rpcBaseds);
+            Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkRelationPair = linkAnalysis(linkId, linkConfig, rpcBaseds, pair.getRight());
             nodes.addAll(linkRelationPair.getLeft());
             edges.addAll(linkRelationPair.getRight());
         }
@@ -263,14 +264,17 @@ public class LinkProcessor extends AbstractProcessor {
         List<RpcBased> rpcBaseds = getTraceLog(param);
         Map<String, Object> linkConfig = new HashMap<>(param);
         if (CollectionUtils.isNotEmpty(rpcBaseds)) {
-            Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkRelationPair = linkAnalysis(param.get("linkId"), linkConfig, rpcBaseds);
+            Map<String, String> traceFilter = new HashMap<>();
+            traceFilter.put(param.get("traceId"), param.get("rpcId") + "#" + param.get("logType"));
+            Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkRelationPair = linkAnalysis(param.get("linkId"), linkConfig, rpcBaseds, traceFilter);
             nodes.addAll(linkRelationPair.getLeft());
             edges.addAll(linkRelationPair.getRight());
         }
         return Pair.of(nodes, edges);
     }
 
-    public List<RpcBased> getTraceLog(Map<String, Object> linkConfig, TraceLogQueryScopeEnum queryScope) {
+    public Pair<List<RpcBased>, Map<String, String>> getTraceLog(Map<String, Object> linkConfig, TraceLogQueryScopeEnum queryScope) {
+        Map<String, String> traceFilter = new HashMap<>();
         //是否TAKIN相关应用的业务活动
         Boolean isTakinConcerndFlag = false;
         String method = String.valueOf(linkConfig.get("method"));
@@ -278,7 +282,7 @@ public class LinkProcessor extends AbstractProcessor {
         String rpcType = String.valueOf(linkConfig.get("rpcType"));
         String service = String.valueOf(linkConfig.get("service"));
         if (StringUtils.isBlank(rpcType) || "null".equals(rpcType)) {
-            return Collections.EMPTY_LIST;
+            return Pair.of(Collections.EMPTY_LIST, traceFilter);
         }
         String userAppKey = String.valueOf(linkConfig.get("userAppKey"));
         String envCode = String.valueOf(linkConfig.get("envCode"));
@@ -333,7 +337,6 @@ public class LinkProcessor extends AbstractProcessor {
         }
 
         StringBuilder sql = new StringBuilder();
-        Map<String, String> traceFilter = new HashMap<>();
         for (Map<String, Object> traceIdMap : traceMaps) {
             if (traceIdMap.containsKey("logType") && "5".equals(traceIdMap.get("logType"))) {
                 continue;
@@ -358,7 +361,7 @@ public class LinkProcessor extends AbstractProcessor {
         }
 
         if (sql.length() <= 0) {
-            return new ArrayList<>();
+            return Pair.of(Collections.EMPTY_LIST, traceFilter);
         }
         //add trace log limit
         sql.delete(sql.length() - 11, sql.length());
@@ -410,9 +413,7 @@ public class LinkProcessor extends AbstractProcessor {
         if (modelList.isEmpty() && tmpModel != null) {
             modelList.add(tmpModel);
         }
-
-        //根据rpcId正序排序 -->0,0.1,0.1.1
-        return modelList.stream().sorted(Comparator.comparing(TTrackClickhouseModel::getRpcId)).map(TTrackClickhouseModel::getRpcBased).collect(Collectors.toList());
+        return Pair.of(modelList.stream().map(TTrackClickhouseModel::getRpcBased).collect(Collectors.toList()), traceFilter);
     }
 
     public static ThreadLocal<String> threadLocal = new ThreadLocal<String>();
@@ -459,16 +460,16 @@ public class LinkProcessor extends AbstractProcessor {
             return (model.getRpcId().equals(filterRpcId) && appName.equals(model.getAppName()) && model.getParsedServiceName().contains(serviceName) && methodName.equals(model.getMethodName()) && filterLogType.equals(model.getLogType() + "")) || (model.getRpcId().startsWith(filterRpcId) && model.getLogType() != 1);
         }).collect(Collectors.toList());
 
-        //根据rpcId正序排序 -->0,0.1,0.1.1
-        return modelList.stream().sorted(Comparator.comparing(TTrackClickhouseModel::getRpcId)).map(TTrackClickhouseModel::getRpcBased).collect(Collectors.toList());
+        return modelList.stream().map(TTrackClickhouseModel::getRpcBased).collect(Collectors.toList());
     }
 
     /**
      * 链路关系分析
      *
      * @param rpcBaseds
+     * @param traceFilter
      */
-    public Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkAnalysis(String linkId, Map<String, Object> linkConfig, List<RpcBased> rpcBaseds) {
+    public Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> linkAnalysis(String linkId, Map<String, Object> linkConfig, List<RpcBased> rpcBaseds, Map<String, String> traceFilter) {
         Set<LinkEdgeModel> edges = new HashSet<>();
         Set<LinkNodeModel> nodes = new HashSet<>();
 
@@ -498,15 +499,13 @@ public class LinkProcessor extends AbstractProcessor {
             }
         }
 
-        int i = 0;
         for (RpcBased rpcBased : rpcBaseds) {
             //在链路拓扑图这里客户端的rpc日志我们不解
             if (rpcBased == null || (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType()) || (StringUtils.isNotBlank(rpcBased.getMiddlewareName()) && rpcBased.getMiddlewareName().contains("sentinel_terminal_message"))) {
                 continue;
             }
 
-            RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(),
-                    rpcBased.getRpcType());
+            RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
             if (rpcBasedParser == null) {
                 continue;
             }
@@ -515,10 +514,14 @@ public class LinkProcessor extends AbstractProcessor {
             String fromAppId = rpcBasedParser.fromAppId(linkId, rpcBased);
             String toAppId = rpcBasedParser.toAppId(linkId, rpcBased);
             Map<String, Object> fromAppTags = rpcBasedParser.fromAppTags(linkId, rpcBased);
+
             //如果业务活动非真实业务入口,而是中间节点,也生成virtual节点,这样就不会导致链路图上除了虚拟节点以外还多出一个上游的问题
-            if (i == 0 && (rpcBased.getRpcType() == Integer.parseInt(rpcType) && rpcBased.getAppName().equals(appName) && rpcBased.getServiceName().equals(service) && rpcBased.getMethodName().equals(method))) {
+            if (rpcBased.getRpcType() == Integer.parseInt(rpcType) && rpcBased.getAppName().equals(appName) && rpcBased.getServiceName().equals(service) && rpcBased.getMethodName().equals(method)) {
+                String ary[] = traceFilter.get(rpcBased.getTraceId()).split("#");
+                String filterRpcId = ary[0];
+                String filterLogType = ary[1];
                 //如果已经处理成虚拟入口了,则不再次处理
-                if (!(StringUtil.formatString(fromAppTags.get("appName")).contains("-Virtual"))) {
+                if (!(StringUtil.formatString(fromAppTags.get("appName")).contains("-Virtual")) && Objects.toString(rpcBased.getLogType()).equals(filterLogType) && rpcBased.getRpcId().equals(filterRpcId)) {
                     fromAppTags.put("appName", fromAppTags.get("appName") + "-Virtual");
                 }
                 fromAppTags.put("middlewareName", "virtual");
@@ -562,7 +565,6 @@ public class LinkProcessor extends AbstractProcessor {
             }
             nodes.add(toNodeModel);
             edges.add(LinkEdgeModel.parseFromDataMap(edgeTags));
-            i++;
         }
         return Pair.of(nodes, edges);
     }
