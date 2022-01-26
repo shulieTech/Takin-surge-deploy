@@ -15,10 +15,7 @@
 
 package io.shulie.surge.data.deploy.pradar.digester;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
+import com.google.common.cache.*;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
@@ -83,10 +80,8 @@ public class LogDigester implements DataDigester<RpcBased> {
     private static Cache<String, Long> taskIds = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(2, TimeUnit.MINUTES).removalListener(new RemovalListener<String, Long>() {
         @Override
         public void onRemoval(RemovalNotification<String, Long> removalNotification) {
-            switch (removalNotification.getCause()) {
-                case EXPIRED:
-                    logger.info("[{}] pressure test is finished.Total requestCount is [{}].", removalNotification.getKey(), removalNotification.getValue());
-                    break;
+            if (removalNotification.getCause().equals(RemovalCause.EXPIRED)) {
+                logger.info("[{}] pressure test is finished.Total requestCount is [{}],{}.", removalNotification.getKey(), removalNotification.getValue(), removalNotification.getCause());
             }
         }
     }).build();
