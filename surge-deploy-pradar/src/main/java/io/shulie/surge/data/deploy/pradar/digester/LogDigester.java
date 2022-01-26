@@ -15,6 +15,7 @@
 
 package io.shulie.surge.data.deploy.pradar.digester;
 
+import com.google.common.cache.*;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
@@ -27,6 +28,7 @@ import io.shulie.surge.data.deploy.pradar.digester.command.BaseCommand;
 import io.shulie.surge.data.deploy.pradar.digester.command.ClickhouseFacade;
 import io.shulie.surge.data.deploy.pradar.digester.command.FlagCommand;
 import io.shulie.surge.data.deploy.pradar.digester.command.LinkCommand;
+import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
@@ -42,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -74,14 +77,14 @@ public class LogDigester implements DataDigester<RpcBased> {
     private Remote<Integer> clickhouseSampling;
 
     //同时最多1000个报告,2分钟后没有数据写入则过期
-//    private static Cache<String, Long> taskIds = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(2, TimeUnit.MINUTES).removalListener(new RemovalListener<String, Long>() {
-//        @Override
-//        public void onRemoval(RemovalNotification<String, Long> removalNotification) {
-//            if (removalNotification.getCause().equals(RemovalCause.EXPIRED)) {
-//                logger.info("[{}] pressure test is finished.Total requestCount is [{}],{}.", removalNotification.getKey(), removalNotification.getValue(), removalNotification.getCause());
-//            }
-//        }
-//    }).build();
+    private static Cache<String, Long> taskIds = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(2, TimeUnit.MINUTES).removalListener(new RemovalListener<String, Long>() {
+        @Override
+        public void onRemoval(RemovalNotification<String, Long> removalNotification) {
+            if (removalNotification.getCause().equals(RemovalCause.EXPIRED)) {
+                logger.info("[{}] pressure test is finished.Total requestCount is [{}],{}.", removalNotification.getKey(), removalNotification.getValue(), removalNotification.getCause());
+            }
+        }
+    }).build();
 
     private transient AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -119,11 +122,11 @@ public class LogDigester implements DataDigester<RpcBased> {
             }
 
             //如果是压测引擎日志,统计每个压测报告实际上报条数
-//            if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
-//                Long count = taskIds.getIfPresent(rpcBased.getTaskId());
-//                //logger.info("now task[{}] requestCount is [{}]", rpcBased.getTaskId(), count);
-//                taskIds.put(rpcBased.getTaskId(), count != null ? ++count : 1);
-//            }
+            if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
+                Long count = taskIds.getIfPresent(rpcBased.getTaskId());
+                //logger.info("now task[{}] requestCount is [{}]", rpcBased.getTaskId(), count);
+                taskIds.put(rpcBased.getTaskId(), count != null ? ++count : 1);
+            }
 
             rpcBased.setDataLogTime(context.getProcessTime());
             //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
