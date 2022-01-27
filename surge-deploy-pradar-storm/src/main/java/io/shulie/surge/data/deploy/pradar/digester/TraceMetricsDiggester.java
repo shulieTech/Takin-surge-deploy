@@ -76,6 +76,11 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
     private Remote<String> traceMetricsConfig;
 
     @Inject
+    @DefaultValue("")
+    @Named("/pradar/config/rt/traceMetricsTenantConfig")
+    private Remote<String> traceMetricsTenantConfig;
+
+    @Inject
     private TraceMetricsAggarator traceMetricsAggarator;
 
     @Inject
@@ -108,7 +113,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
 
         RpcBased rpcBased = context.getContent();
         //客户端rpc日志不计算指标,只计算服务端日志,和链路拓扑图保持一致
-        if (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType()) {
+        if (PradarLogType.LOG_TYPE_FLOW_ENGINE == rpcBased.getLogType() || (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType())) {
             return;
         }
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
@@ -133,11 +138,12 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         if (!eagleLoader.contains(edgeId)) {
             /** 指标计算不参考业务活动的边**/
             String appNameConfig = traceMetricsConfig.get();
-            if (checkAppName(appNameConfig, appName)) {
-                rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
-                edgeId = rpcBasedParser.edgeId("", rpcBased);
-                eagleTags = rpcBasedParser.edgeTags("", rpcBased);
-            } else {
+            String tenantConfig = traceMetricsTenantConfig.get();
+            if (!(checkAppName(appNameConfig, appName) || checkTenant(tenantConfig, rpcBased.getUserAppKey()))) {
+                //rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
+                //edgeId = rpcBasedParser.edgeId("", rpcBased);
+                //eagleTags = rpcBasedParser.edgeTags("", rpcBased);
+                
                 //重复的边ID只打印一次
                 if (StringUtils.isBlank(cache.getIfPresent(edgeId))) {
                     cache.put(edgeId, edgeId);
@@ -162,7 +168,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         int sampling = 1;
         //对于调试流量,agent不采样,采样率默认为1
         if (!rpcBased.getFlags().isDebugTest()) {
-            sampling = appConfigUtil.getAppSamplingByAppName(userAppKey, envCode, rpcBased.getAppName());
+            sampling = appConfigUtil.getAppSamplingByAppName(userAppKey, envCode, rpcBased.getAppName(), clusterTest);
         }
 
         // 断言列表,兼容老的nodeId查询
@@ -275,7 +281,12 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
             for (int i = 0; i < appNameArr.length; i++) {
                 //如果含有百分号,启用前缀匹配
                 if (appNameArr[i].contains("%")) {
-                    if (appName.startsWith(appNameArr[i].split("%")[0])) {
+                    //前缀匹配
+                    if (StringUtils.isNotBlank(appNameArr[i].split("%")[0]) && appName.startsWith(appNameArr[i].split("%")[0])) {
+                        return true;
+                    }
+                    //后缀匹配
+                    if (appNameArr[i].startsWith("%") && appName.endsWith(appNameArr[i].split("%")[1])) {
                         return true;
                     }
                 } else {
@@ -283,6 +294,18 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                     if (appName.equals(appNameArr[i])) {
                         return true;
                     }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean checkTenant(String config, String tenantAppKey) {
+        if (StringUtils.isNotBlank(config)) {
+            String[] tenantArr = config.split(",");
+            for (int i = 0; i < tenantArr.length; i++) {
+                if (tenantAppKey.equals(tenantArr[i])) {
+                    return true;
                 }
             }
         }

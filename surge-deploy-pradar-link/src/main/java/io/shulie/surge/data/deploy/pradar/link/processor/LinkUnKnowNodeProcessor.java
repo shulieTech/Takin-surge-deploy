@@ -86,8 +86,8 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
         logger.info("processUnKnowNodeCommon{},{}", linkId, linkConfig);
         try {
             linkProcessor.setDataSourceType(this.getDataSourceType());
-            List<RpcBased> rpcBasedList = linkProcessor.getTraceLog(linkConfig,
-                    TraceLogQueryScopeEnum.build(5));
+            Pair<List<RpcBased>, Map<String, String>> traceLog = linkProcessor.getTraceLog(linkConfig, TraceLogQueryScopeEnum.build(5));
+            List<RpcBased> rpcBasedList = traceLog.getLeft();
             if (CollectionUtils.isEmpty(rpcBasedList)) {
                 logger.warn("processUnKnowNodeCommon is empty{},{}", linkId, linkConfig);
                 return;
