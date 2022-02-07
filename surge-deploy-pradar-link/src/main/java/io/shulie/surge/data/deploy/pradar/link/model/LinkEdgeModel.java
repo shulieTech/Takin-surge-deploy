@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
+
 import static io.shulie.surge.data.deploy.pradar.link.processor.EntranceProcessor.SERVICE_LENGTH_FIELD;
 
 public class LinkEdgeModel extends LinkPublicModel {
@@ -37,21 +38,23 @@ public class LinkEdgeModel extends LinkPublicModel {
     String fromAppId;
     String toAppId;
     String edgeId;
+    String traceId;
+    String rpcId;
 
     public static String getCols() {
-        return "(link_id,service,method,extend,app_name,trace_app_name,server_app_name,rpc_type,log_type,middleware_name,entrance_id,from_app_id,to_app_id,edge_id,user_app_key,env_code,user_id,gmt_modify)";
+        return "(link_id,service,method,extend,app_name,trace_app_name,server_app_name,rpc_type,log_type,middleware_name,entrance_id,from_app_id,to_app_id,edge_id,user_app_key,env_code,user_id,trace_id,rpc_id,gmt_modify)";
     }
 
     public static String getParamCols() {
-        return "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())";
+        return "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())";
     }
 
     public static String getOnDuplicateCols() {
-        return " ON DUPLICATE KEY UPDATE service=VALUES(service),method=VALUES(method),extend=VALUES(extend),app_name=VALUES(app_name),trace_app_name=VALUES(trace_app_name),server_app_name=VALUES(server_app_name),rpc_type=VALUES(rpc_type),log_type=VALUES(log_type),middleware_name=VALUES(middleware_name),entrance_id=VALUES(entrance_id),from_app_id=VALUES(from_app_id),to_app_id=VALUES(to_app_id),user_app_key=VALUES(user_app_key),env_code=VALUES(env_code),user_id=VALUES(user_id),gmt_modify=VALUES(gmt_modify)";
+        return " ON DUPLICATE KEY UPDATE service=VALUES(service),method=VALUES(method),extend=VALUES(extend),app_name=VALUES(app_name),trace_app_name=VALUES(trace_app_name),server_app_name=VALUES(server_app_name),rpc_type=VALUES(rpc_type),log_type=VALUES(log_type),middleware_name=VALUES(middleware_name),entrance_id=VALUES(entrance_id),from_app_id=VALUES(from_app_id),to_app_id=VALUES(to_app_id),user_app_key=VALUES(user_app_key),env_code=VALUES(env_code),user_id=VALUES(user_id),trace_id=VALUES(trace_id),rpc_id=VALUES(rpc_id),gmt_modify=VALUES(gmt_modify)";
     }
 
     public Object[] getValues() {
-        return new Object[]{linkId, service, method, extend, appName, traceAppName, serverAppName, rpcType, logType, middlewareName, entranceId, fromAppId, toAppId, edgeId, getUserAppKey(), getEnvCode(), getUserId()};
+        return new Object[]{linkId, service, method, extend, appName, traceAppName, serverAppName, rpcType, logType, middlewareName, entranceId, fromAppId, toAppId, edgeId, getUserAppKey(), getEnvCode(), getUserId(), traceId, rpcId};
     }
 
     public String getLinkId() {
@@ -164,6 +167,22 @@ public class LinkEdgeModel extends LinkPublicModel {
 
     public void setEdgeId(String edgeId) {
         this.edgeId = edgeId;
+    }
+
+    public String getTraceId() {
+        return traceId;
+    }
+
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
+    }
+
+    public String getRpcId() {
+        return rpcId;
+    }
+
+    public void setRpcId(String rpcId) {
+        this.rpcId = rpcId;
     }
 
     @Override

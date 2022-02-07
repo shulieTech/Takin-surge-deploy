@@ -564,7 +564,11 @@ public class LinkProcessor extends AbstractProcessor {
                 toNodeModel.setExtend(JSON.toJSONString(toNodeExtendInfo));
             }
             nodes.add(toNodeModel);
-            edges.add(LinkEdgeModel.parseFromDataMap(edgeTags));
+
+            LinkEdgeModel linkEdgeModel = LinkEdgeModel.parseFromDataMap(edgeTags);
+            linkEdgeModel.setTraceId(rpcBased.getTraceId());
+            linkEdgeModel.setRpcId(rpcBased.getRpcId());
+            edges.add(linkEdgeModel);
         }
         return Pair.of(nodes, edges);
     }
@@ -586,10 +590,4 @@ public class LinkProcessor extends AbstractProcessor {
         return linkCache;
     }
 
-
-    public static void main(String[] args) throws Exception {
-        Long userId = 100000237900002L;
-        Long dbIndex = Long.valueOf(userId.longValue() % 64 % 8);
-        System.out.println(dbIndex);
-    }
 }
