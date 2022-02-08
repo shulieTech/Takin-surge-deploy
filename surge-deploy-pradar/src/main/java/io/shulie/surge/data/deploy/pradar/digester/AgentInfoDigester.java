@@ -1,19 +1,28 @@
 package io.shulie.surge.data.deploy.pradar.digester;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.pamirs.pradar.log.parser.agent.AgentBased;
 import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import io.shulie.surge.data.deploy.pradar.model.AgentInfoModel;
+import io.shulie.surge.data.runtime.common.remote.DefaultValue;
+import io.shulie.surge.data.runtime.common.remote.Remote;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 /**
@@ -30,15 +39,64 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
 
     private String pattern = "^((\\d|[1-9]\\d|1\\d\\d|2[0-4]\\d|25[0-5])\\.){3}(\\d|[1-9]\\d|1\\d\\d|2[0-4]\\d|25[0-5])$";
 
+    private transient AtomicBoolean isRunning = new AtomicBoolean(false);
+
+    private static ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+
+    private boolean isWriteFlag = true;
+
+    @Inject
+    @DefaultValue("1000000")
+    @Named("/pradar/config/rt/maxRowSize")
+    private Remote<Long> maxRowSize;
+
+    @Inject
+    @DefaultValue("24")
+    @Named("/pradar/config/rt/reserveHours")
+    private Remote<Integer> reserveHours;
+
+    private void init() {
+        executor.scheduleAtFixedRate((Runnable) () -> {
+
+            if (!isWriteFlag) {
+                //开始强制执行清理
+                try {
+                    //获取数据库时间,防止和现实时间不一致
+                    Long time = mysqlSupport.queryForObject("select max(agent_timestamp) as time from t_amdb_agent_info", Long.class);
+                    //如果表里没数据,不执行删除
+                    if (time == null) {
+                        return;
+                    }
+                    long cleanTime = time - reserveHours.get() * 60 * 60 * 1000;
+                    String sql = "delete from t_amdb_agent_info where agent_timestamp < " + cleanTime;
+                    mysqlSupport.execute(sql);
+                    logger.info("已清理{}小时前agentlog,清理sql:{}", reserveHours, sql);
+                } catch (Exception e) {
+                    logger.error("清理{}天前agentlog数据失败{},异常堆栈:{}", reserveHours, e, e.getStackTrace());
+                }
+            }
+            Map<String, Object> countMap = mysqlSupport.queryForMap("select count(1) as count from t_amdb_agent_info;");
+            if (MapUtils.isNotEmpty(countMap) && ((long) countMap.get("count") > maxRowSize.get())) {
+                isWriteFlag = false;
+            }
+        }, 0, 5, TimeUnit.MINUTES);
+    }
+
     @Override
     public void digest(DigestContext<AgentBased> context) {
+        if (!isWriteFlag) {
+            return;
+        }
+        if (isRunning.compareAndSet(false, true)) {
+            init();
+        }
+
         AgentBased agentBased = context.getContent();
         try {
             if (agentBased == null) {
                 return;
             }
 
-            //校验ip是否合法,如果不合法,需要手动构造一条数据写入mysql
             if (!Pattern.matches(pattern, agentBased.getIp())) {
                 logger.warn("detect illegal agent log:{},skip it.", agentBased);
                 return;
