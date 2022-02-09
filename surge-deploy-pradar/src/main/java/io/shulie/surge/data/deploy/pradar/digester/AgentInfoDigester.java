@@ -43,7 +43,7 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
 
     private static ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
-    private boolean isWriteFlag = true;
+    private volatile boolean isWriteFlag = true;
 
     @Inject
     @DefaultValue("1000000")
@@ -55,9 +55,13 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
     @Named("/pradar/config/rt/reserveHours")
     private Remote<Integer> reserveHours;
 
+    /**
+     * 初始化任务只会执行一次
+     */
     private void init() {
+        //启动一个定时任务,每隔5分钟运行一次
         executor.scheduleAtFixedRate((Runnable) () -> {
-
+            //如果当前写入标志为false
             if (!isWriteFlag) {
                 //开始强制执行清理
                 try {
@@ -70,14 +74,18 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
                     long cleanTime = time - reserveHours.get() * 60 * 60 * 1000;
                     String sql = "delete from t_amdb_agent_info where agent_timestamp < " + cleanTime;
                     mysqlSupport.execute(sql);
-                    logger.info("已清理{}小时前agentlog,清理sql:{}", reserveHours, sql);
+                    logger.info("已清理{}小时前agentlog,清理sql:{}", reserveHours.get(), sql);
                 } catch (Exception e) {
-                    logger.error("清理{}天前agentlog数据失败{},异常堆栈:{}", reserveHours, e, e.getStackTrace());
+                    logger.error("清理{}天前agentlog数据失败{},异常堆栈:{}", reserveHours.get(), e, e.getStackTrace());
                 }
             }
+
             Map<String, Object> countMap = mysqlSupport.queryForMap("select count(1) as count from t_amdb_agent_info;");
             if (MapUtils.isNotEmpty(countMap) && ((long) countMap.get("count") > maxRowSize.get())) {
+                logger.info("current agent log row length reach {},stop write into database.", countMap.get("count"));
                 isWriteFlag = false;
+            } else {
+                isWriteFlag = true;
             }
         }, 0, 5, TimeUnit.MINUTES);
     }
