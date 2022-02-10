@@ -140,7 +140,8 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
             /** 指标计算不参考业务活动的边**/
             String appNameConfig = traceMetricsConfig.get();
             String tenantConfig = traceMetricsTenantConfig.get();
-            if (!(checkAppName(appNameConfig, appName) || checkTenant(tenantConfig, rpcBased.getUserAppKey(), rpcBased.getEnvCode()))) {
+            //不在业务活动拓扑图中的边,如果需要提供服务监控接口性能查询,走应用配置和租户配置查询(客户端日志不计算)
+            if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_RPC_CLIENT || !(checkAppName(appNameConfig, appName) || checkTenant(tenantConfig, rpcBased.getUserAppKey(), rpcBased.getEnvCode()))) {
                 //rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
                 //edgeId = rpcBasedParser.edgeId("", rpcBased);
                 //eagleTags = rpcBasedParser.edgeTags("", rpcBased);
