@@ -61,6 +61,14 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
     private void init() {
         //启动一个定时任务,每隔5分钟运行一次
         executor.scheduleAtFixedRate((Runnable) () -> {
+            Map<String, Object> countMap = mysqlSupport.queryForMap("select count(1) as count from t_amdb_agent_info;");
+            if (MapUtils.isNotEmpty(countMap) && ((long) countMap.get("count") > maxRowSize.get())) {
+                logger.info("current agent log row length reach {},stop write into database.", countMap.get("count"));
+                isWriteFlag = false;
+            } else {
+                isWriteFlag = true;
+            }
+            
             //如果当前写入标志为false
             if (!isWriteFlag) {
                 //开始强制执行清理
@@ -74,19 +82,12 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
                     long cleanTime = time - reserveHours.get() * 60 * 60 * 1000;
                     String sql = "delete from t_amdb_agent_info where agent_timestamp < " + cleanTime;
                     mysqlSupport.execute(sql);
-                    logger.info("已清理{}小时前agentlog,清理sql:{}", reserveHours.get(), sql);
+                    logger.info("cleared {} hour's agentLog,cleared sql:{}", reserveHours.get(), sql);
                 } catch (Exception e) {
-                    logger.error("清理{}天前agentlog数据失败{},异常堆栈:{}", reserveHours.get(), e, e.getStackTrace());
+                    logger.error("cleared {} hour's agentLog,failed{},exception stack:{}", reserveHours.get(), e, e.getStackTrace());
                 }
             }
 
-            Map<String, Object> countMap = mysqlSupport.queryForMap("select count(1) as count from t_amdb_agent_info;");
-            if (MapUtils.isNotEmpty(countMap) && ((long) countMap.get("count") > maxRowSize.get())) {
-                logger.info("current agent log row length reach {},stop write into database.", countMap.get("count"));
-                isWriteFlag = false;
-            } else {
-                isWriteFlag = true;
-            }
         }, 0, 5, TimeUnit.MINUTES);
     }
 
