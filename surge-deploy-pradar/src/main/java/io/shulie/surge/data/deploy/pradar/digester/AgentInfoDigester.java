@@ -73,13 +73,8 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
             if (!isWriteFlag) {
                 //开始强制执行清理
                 try {
-                    //获取数据库时间,防止和现实时间不一致
-                    Long time = mysqlSupport.queryForObject("select max(agent_timestamp) as time from t_amdb_agent_info", Long.class);
-                    //如果表里没数据,不执行删除
-                    if (time == null) {
-                        return;
-                    }
-                    long cleanTime = time - reserveHours.get() * 60 * 60 * 1000;
+                    //删除当前时间往前1小时的数据
+                    long cleanTime = System.currentTimeMillis() - reserveHours.get() * 60 * 60 * 1000;
                     String sql = "delete from t_amdb_agent_info where agent_timestamp < " + cleanTime;
                     mysqlSupport.execute(sql);
                     logger.info("cleared {} hour's agentLog,cleared sql:{}", reserveHours.get(), sql);
