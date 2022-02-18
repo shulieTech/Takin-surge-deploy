@@ -369,6 +369,8 @@ public class ApiProcessor {
             if (CollectionUtils.isNotEmpty(dataMapList)) {
                 cache.put(taskId, dataMapList);
                 return dataMapList;
+            } else {
+                cache.put(taskId, Lists.newArrayList());
             }
         }
         return Lists.newArrayList();
