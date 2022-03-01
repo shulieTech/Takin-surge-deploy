@@ -13,7 +13,9 @@ public enum ResponseCodeEnum {
     CODE_9998("9998", "系统繁忙"),
     CODE_9997("9997", "请求参数为空"),
     CODE_9996("9996", "请求参数非法"),
-    CODE_9995("9995", "事件时间延迟超过1小时");
+    CODE_9995("9995", "事件时间延迟超过1小时"),
+    CODE_9994("9994", "tag列表缺少eventTime"),
+    CODE_9993("9993", "eventTime非法");
 
     private String code;
     private String msg;

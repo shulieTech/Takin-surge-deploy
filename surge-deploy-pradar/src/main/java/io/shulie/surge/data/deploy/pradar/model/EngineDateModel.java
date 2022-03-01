@@ -11,7 +11,6 @@ import java.util.Map;
  */
 public class EngineDateModel {
     private Long time;
-    private Long eventTime;
     private String database = "engine";
     private String measurement;
     private List<Map<String, String>> tag;
@@ -24,14 +23,6 @@ public class EngineDateModel {
 
     public void setTime(Long time) {
         this.time = time;
-    }
-
-    public Long getEventTime() {
-        return eventTime;
-    }
-
-    public void setEventTime(Long eventTime) {
-        this.eventTime = eventTime;
     }
 
     public String getDatabase() {

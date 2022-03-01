@@ -54,19 +54,37 @@ public class EngineDataWriteServlet extends HttpServlet {
             String reqData = IOUtils.toString(request.getInputStream());
             if (StringUtils.isNotBlank(reqData)) {
                 EngineDateModel engineDateModel = JSONObject.parseObject(reqData, EngineDateModel.class);
-                Long eventTime = engineDateModel.getEventTime();
+                //Long eventTime = engineDateModel.getEventTime();
                 List<Map<String, String>> tags = engineDateModel.getTag();
                 List<Map<String, Object>> fields = engineDateModel.getField();
 
-                if (engineDateModel.getEventTime() != null && StringUtils.isNotBlank(engineDateModel.getMeasurement()) && CollectionUtils.isNotEmpty(tags) && CollectionUtils.isNotEmpty(fields) && tags.size() == fields.size()) {
-                    //如果事件时间超过1小时,记录日志并且返回对应响应码
-                    if ((now - eventTime) > 3600 * 1000) {
-                        logger.error("Receive log delay over {} mils,removeDelay,eventTime:{},processTime:{}/n,log content:{}", eventTime, now, "[tags:" + JSONArray.toJSONString(tags) + "]" + "[fields:" + JSONArray.toJSONString(fields) + "]");
-                        responseDataModel.setResponseCode(ResponseCodeEnum.CODE_9995.getCode());
-                        responseDataModel.setResponseMsg(ResponseCodeEnum.CODE_9995.getMsg());
-                    }
+                if (StringUtils.isNotBlank(engineDateModel.getMeasurement()) && CollectionUtils.isNotEmpty(tags) && CollectionUtils.isNotEmpty(fields) && tags.size() == fields.size()) {
+                    //遍历写入每一条数据
                     for (int i = 0; i <= tags.size() - 1; i++) {
-                        influxDbSupport.write(engineDateModel.getDatabase(), engineDateModel.getMeasurement(), tags.get(i), fields.get(i), engineDateModel.getEventTime());
+                        Map<String, String> tagMap = tags.get(i);
+                        if (!tagMap.containsKey("eventTime")) {
+                            logger.error("req data lack eventTime,skip it.content is {}", "[tags:" + JSONArray.toJSONString(tags) + "]" + "[fields:" + JSONArray.toJSONString(fields) + "]");
+                            responseDataModel.setResponseCode(ResponseCodeEnum.CODE_9994.getCode());
+                            responseDataModel.setResponseMsg(ResponseCodeEnum.CODE_9994.getMsg());
+                            continue;
+                        }
+                        Long eventTime = Long.parseLong(tagMap.get("eventTime"));
+                        //如果eventTime时间格式非法
+                        if (eventTime < 0) {
+                            logger.error("eventTime is illegal,skip it.content is {}", "[tags:" + JSONArray.toJSONString(tags) + "]" + "[fields:" + JSONArray.toJSONString(fields) + "]");
+                            responseDataModel.setResponseCode(ResponseCodeEnum.CODE_9993.getCode());
+                            responseDataModel.setResponseMsg(ResponseCodeEnum.CODE_9993.getMsg());
+                            continue;
+                        }
+
+                        //如果事件时间超过1小时,记录日志并且返回对应响应码
+                        if ((now - eventTime) > 3600 * 1000) {
+                            logger.error("Receive log delay over {} mils,removeDelay,eventTime:{},processTime:{}/n,log content:{}", eventTime, now, "[tags:" + JSONArray.toJSONString(tags) + "]" + "[fields:" + JSONArray.toJSONString(fields) + "]");
+                            responseDataModel.setResponseCode(ResponseCodeEnum.CODE_9995.getCode());
+                            responseDataModel.setResponseMsg(ResponseCodeEnum.CODE_9995.getMsg());
+                        }
+
+                        influxDbSupport.write(engineDateModel.getDatabase(), engineDateModel.getMeasurement(), tags.get(i), fields.get(i), eventTime);
                     }
                 } else {
                     responseDataModel.setResponseCode(ResponseCodeEnum.CODE_9996.getCode());
