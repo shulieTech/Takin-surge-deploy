@@ -29,6 +29,7 @@ import io.shulie.surge.data.deploy.pradar.digester.E2EDefaultDigester;
 import io.shulie.surge.data.deploy.pradar.digester.MetricsReduceDigester;
 import io.shulie.surge.data.deploy.pradar.digester.TraceMetricsDiggester;
 import io.shulie.surge.data.deploy.pradar.servlet.EngineDataWriteServlet;
+import io.shulie.surge.data.deploy.pradar.servlet.HealthCheckServlet;
 import io.shulie.surge.data.deploy.pradar.servlet.LogWriteServlet;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
@@ -213,6 +214,7 @@ public class PradarStormSupplierConfiguration {
 
             jettySupplier.setQueue(queueMap);
             jettySupplier.addServlet("/takin-surge/log/engine/metrics/upload", dataRuntime.getInstance(EngineDataWriteServlet.class));
+            jettySupplier.addServlet("/takin-surge/health", dataRuntime.getInstance(HealthCheckServlet.class));
             jettySupplier.addServlet("/takin-surge/log/link/upload", dataRuntime.getInstance(LogWriteServlet.class));
             return jettySupplier;
         } catch (Throwable e) {
