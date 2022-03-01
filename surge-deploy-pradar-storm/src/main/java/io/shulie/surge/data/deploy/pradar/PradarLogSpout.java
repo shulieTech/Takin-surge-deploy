@@ -93,7 +93,7 @@ public class PradarLogSpout extends BaseRichSpout {
         } catch (Throwable e) {
             throw new RuntimeException("fail to start PradarLogSpout", e);
         }
-        logger.info("PradarLogSpout starte successfull...");
+        logger.info("PradarLogSpout start successfull...");
     }
 
     @Override

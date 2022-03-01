@@ -47,8 +47,6 @@ import java.util.Map;
 public class JettySupplier extends DefaultMultiProcessorSupplier {
     private static Logger logger = LoggerFactory.getLogger(JettySupplier.class);
     private Server server;
-    private ServletContextHandler contextHandler = new ServletContextHandler();
-
     private List<Pair<String, Servlet>> servletMap = Lists.newArrayList();
 
     private static final String MIN = "MIN";
@@ -91,26 +89,26 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
     @Override
     public void start() throws Exception {
         // 获取启动的端口
+        int port = 39900;
         Map<String, Integer> parsePortRange = parsePort();
         for (int index = parsePortRange.get(MIN); index <= parsePortRange.get(MAX); index++) {
             try {
-                int port = index;
+                port = index;
                 server = getServer(port);
-                logger.info("注册端口port{}", port);
+                logger.info("current started port is {}", port);
             } catch (Throwable e) {
-                logger.error("start last port exception:{},{},next port start ", e, e.getStackTrace(), index);
+                logger.error("start current port {} catch exception:{},{},next port start {} ", index, e, e.getStackTrace(), index + 1);
                 continue;
             }
             // 启动成功以后就停止掉
             break;
         }
 
-
         // 初始化聚合接口
         // apiProcessor.init();
         super.start();
 
-        logger.info("JETTY服务启动成功");
+        logger.info("JETTY supplier started success.port is {}", port);
     }
 
     /**
@@ -140,11 +138,13 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
         ServerConnector serverConnector = new ServerConnector(server);
         serverConnector.setPort(port);
         server.setConnectors(new Connector[]{serverConnector});
-        server.setHandler(contextHandler);
+
+        ServletContextHandler contextHandler = new ServletContextHandler();
         contextHandler.setContextPath("/");
         for (Pair<String, Servlet> pair : servletMap) {
             contextHandler.addServlet(new ServletHolder(pair.getValue()), pair.getKey());
         }
+        server.setHandler(contextHandler);
         server.start();
         return server;
     }
