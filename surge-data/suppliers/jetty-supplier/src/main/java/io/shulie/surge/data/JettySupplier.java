@@ -36,7 +36,6 @@ import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @Author: xingchen
@@ -97,8 +96,9 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
             try {
                 int port = index;
                 server = getServer(port);
+                logger.info("注册端口port{}", port);
             } catch (Throwable e) {
-                logger.error("next port start " + index);
+                logger.error("start last port exception:{},{},next port start ", e, e.getStackTrace(), index);
                 continue;
             }
             // 启动成功以后就停止掉
@@ -107,20 +107,35 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
 
 
         // 初始化聚合接口
-        apiProcessor.init();
+        // apiProcessor.init();
         super.start();
 
         logger.info("JETTY服务启动成功");
     }
 
     /**
+     * 停止获取数据
+     *
+     * @throws Exception
+     */
+    @Override
+    public void stop() throws Exception {
+        logger.info("jetty服务已停止,端口:{}", server.getURI().getPort());
+        super.stop();
+        server.stop();
+    }
+
+    /**
      * 获取服务
+     *
      * @param port
      * @return
      * @throws Exception
      */
     private Server getServer(int port) throws Exception {
+        //默认最大线程为200
         Server server = new Server();
+        //Server server = new Server(new QueuedThreadPool(500));
         server.setStopAtShutdown(true);
         ServerConnector serverConnector = new ServerConnector(server);
         serverConnector.setPort(port);

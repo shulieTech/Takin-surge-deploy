@@ -18,6 +18,8 @@ package io.shulie.surge.data.deploy.pradar;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.pamirs.pradar.log.parser.DataType;
+import io.shulie.surge.data.JettySupplier;
+import io.shulie.surge.data.JettySupplierSpec;
 import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.config.PradarModule;
 import io.shulie.surge.data.deploy.pradar.config.PradarProcessor;
@@ -26,6 +28,8 @@ import io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration;
 import io.shulie.surge.data.deploy.pradar.digester.E2EDefaultDigester;
 import io.shulie.surge.data.deploy.pradar.digester.MetricsReduceDigester;
 import io.shulie.surge.data.deploy.pradar.digester.TraceMetricsDiggester;
+import io.shulie.surge.data.deploy.pradar.servlet.EngineDataWriteServlet;
+import io.shulie.surge.data.deploy.pradar.servlet.LogWriteServlet;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.runtime.digest.DataDigester;
@@ -157,6 +161,63 @@ public class PradarStormSupplierConfiguration {
         } catch (Throwable e) {
             logger.error("netty fail " + ExceptionUtils.getStackTrace(e));
             throw new RuntimeException("netty fail");
+        }
+    }
+
+    /**
+     * 创建jetty订阅器
+     *
+     * @param dataRuntime
+     * @throws Exception
+     */
+    public JettySupplier buildJettySupplier(DataRuntime dataRuntime, Boolean isDistributed) {
+        try {
+            PradarSupplierConfiguration conf = new PradarSupplierConfiguration("", dataSourceType);
+            JettySupplierSpec jettySupplierSpec = new JettySupplierSpec();
+            JettySupplier jettySupplier = dataRuntime.createGenericInstance(jettySupplierSpec);
+
+            /**
+             * storm消费trace日志
+             */
+            ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
+            traceLogProcessorConfigSpec.setName("trace-log");
+            traceLogProcessorConfigSpec.setDigesters(
+                    ArrayUtils.addAll(conf.buildTraceLogProcess(dataRuntime),
+                            isDistributed ? buildTraceLogComplexProcess(dataRuntime) : buildE2EProcessByStandadlone(dataRuntime)));
+            traceLogProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
+
+            /**
+             * storm消费monitor日志
+             */
+            ProcessorConfigSpec<PradarProcessor> baseProcessorConfigSpec = new PradarProcessorConfigSpec();
+            baseProcessorConfigSpec.setName("base");
+            baseProcessorConfigSpec.setDigesters(conf.buildMonitorProcess(dataRuntime));
+            baseProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
+
+            /**
+             * agent日志
+             */
+            ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
+            agentProcessorConfigSpec.setName("agent-log");
+            agentProcessorConfigSpec.setDigesters(conf.buildAgentProcess(dataRuntime));
+            agentProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor agentProcessor = dataRuntime.createGenericInstance(agentProcessorConfigSpec);
+
+
+            Map<String, DataQueue> queueMap = Maps.newHashMap();
+            queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
+            queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
+            queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
+
+            jettySupplier.setQueue(queueMap);
+            jettySupplier.addServlet("/log/engine/metrics/upload", dataRuntime.getInstance(EngineDataWriteServlet.class));
+            jettySupplier.addServlet("/log/link/upload", dataRuntime.getInstance(LogWriteServlet.class));
+            return jettySupplier;
+        } catch (Throwable e) {
+            logger.error("jetty fail " + ExceptionUtils.getStackTrace(e));
+            throw new RuntimeException("jetty fail");
         }
     }
 

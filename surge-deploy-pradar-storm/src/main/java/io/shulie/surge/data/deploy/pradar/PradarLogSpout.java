@@ -17,6 +17,7 @@ package io.shulie.surge.data.deploy.pradar;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import io.shulie.surge.data.JettySupplier;
 import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.deploy.pradar.agg.E2ETraceMetricsAggarator;
 import io.shulie.surge.data.deploy.pradar.agg.TraceMetricsAggarator;
@@ -85,6 +86,10 @@ public class PradarLogSpout extends BaseRichSpout {
             eagleLoader.init();
             ruleLoader.init();
             nettyRemotingSupplier.start();
+
+            //启动jetty
+            JettySupplier jettySupplier = pradarStormSupplierConfiguration.buildJettySupplier(dataRuntime, true);
+            jettySupplier.start();
         } catch (Throwable e) {
             throw new RuntimeException("fail to start PradarLogSpout", e);
         }
