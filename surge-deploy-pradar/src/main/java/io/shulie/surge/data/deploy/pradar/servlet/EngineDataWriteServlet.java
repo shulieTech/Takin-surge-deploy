@@ -65,7 +65,7 @@ public class EngineDataWriteServlet extends HttpServlet {
                         responseDataModel.setResponseCode(ResponseCodeEnum.CODE_9995.getCode());
                         responseDataModel.setResponseMsg(ResponseCodeEnum.CODE_9995.getMsg());
                     }
-                    for (int i = 0; i < tags.size() - 1; i++) {
+                    for (int i = 0; i <= tags.size() - 1; i++) {
                         influxDbSupport.write(engineDateModel.getDatabase(), engineDateModel.getMeasurement(), tags.get(i), fields.get(i), engineDateModel.getEventTime());
                     }
                 } else {
