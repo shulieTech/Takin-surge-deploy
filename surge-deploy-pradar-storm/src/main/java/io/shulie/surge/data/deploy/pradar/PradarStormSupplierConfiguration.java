@@ -212,8 +212,8 @@ public class PradarStormSupplierConfiguration {
             queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
 
             jettySupplier.setQueue(queueMap);
-            jettySupplier.addServlet("/log/engine/metrics/upload", dataRuntime.getInstance(EngineDataWriteServlet.class));
-            jettySupplier.addServlet("/log/link/upload", dataRuntime.getInstance(LogWriteServlet.class));
+            jettySupplier.addServlet("/takin-surge/log/engine/metrics/upload", dataRuntime.getInstance(EngineDataWriteServlet.class));
+            jettySupplier.addServlet("/takin-surge/log/link/upload", dataRuntime.getInstance(LogWriteServlet.class));
             return jettySupplier;
         } catch (Throwable e) {
             logger.error("jetty fail " + ExceptionUtils.getStackTrace(e));
