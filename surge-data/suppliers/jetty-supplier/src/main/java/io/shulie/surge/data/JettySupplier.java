@@ -61,6 +61,8 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
     @Inject
     private ApiProcessor apiProcessor;
 
+    private int port = 39900;
+
 
     /**
      * 获取开放的端口信息
@@ -89,7 +91,6 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
     @Override
     public void start() throws Exception {
         // 获取启动的端口
-        int port = 39900;
         Map<String, Integer> parsePortRange = parsePort();
         for (int index = parsePortRange.get(MIN); index <= parsePortRange.get(MAX); index++) {
             try {
@@ -161,5 +162,13 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
     @Override
     public void addObserver(LifecycleObserver<Supplier> observer) {
         super.addObserver(observer);
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
     }
 }
