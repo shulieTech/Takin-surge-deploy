@@ -86,6 +86,7 @@ public class JettySupplierObserver implements LifecycleObserver {
             if (!((JSONObject) JSONPath.read(responseMsg, "$.node.value.nodes")).containsKey(key.toString())) {
                 throw new RuntimeException("fail to register service to gateway,gateway cannot response correctly.");
             }
+            logger.info("register service to gateway success,service is {}", serviceNode);
         } catch (Exception e) {
             throw new RuntimeException("fail to register service to gateway,service is " + serviceNode, e);
         }
