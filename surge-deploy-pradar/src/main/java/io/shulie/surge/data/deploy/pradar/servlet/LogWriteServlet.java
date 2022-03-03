@@ -18,8 +18,11 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 /**
  * @author Sunsy
@@ -54,11 +57,16 @@ public class LogWriteServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         logger.info("receive log =======================");
-        long now = System.currentTimeMillis();
-        ResponseDataModel responseDataModel = new ResponseDataModel(now, String.valueOf(CommandCode.SUCCESS), ResponseCodeEnum.CODE_0000.getMsg());
-
+        String content = null;
+        ResponseDataModel responseDataModel = new ResponseDataModel(String.valueOf(CommandCode.SUCCESS), ResponseCodeEnum.CODE_0000.getMsg());
         try {
-            String content = IOUtils.toString(request.getInputStream());
+            String encode = request.getHeader("Accept-Encoding");
+            //如果含有gzip压缩头,使用gzip解压
+            if (StringUtils.isNotBlank(encode) && encode.contains("gzip")) {
+                content = decompress(request.getInputStream());
+            } else {
+                content = IOUtils.toString(request.getInputStream(), "utf-8");
+            }
             if (StringUtils.isNotBlank(content)) {
                 String hostIp = request.getHeader("hostIp");
                 String dataVersion = request.getHeader("version");
@@ -108,8 +116,8 @@ public class LogWriteServlet extends HttpServlet {
 
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json;charset=utf-8");
+        responseDataModel.setTime(System.currentTimeMillis());
         response.getWriter().println(JSONObject.toJSONString(responseDataModel));
-
     }
 
 
@@ -121,5 +129,22 @@ public class LogWriteServlet extends HttpServlet {
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         super.doDelete(req, resp);
+    }
+
+
+    // 解压缩
+    private String decompress(InputStream in) throws IOException {
+        if (in == null) {
+            return "";
+        }
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        GZIPInputStream gunzip = new GZIPInputStream(in);
+        byte[] buffer = new byte[256];
+        int n;
+        while ((n = gunzip.read(buffer)) >= 0) {
+            out.write(buffer, 0, n);
+        }
+        // toString()使用平台默认编码，也可以显式的指定如toString("GBK")
+        return out.toString("utf-8");
     }
 }

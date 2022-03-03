@@ -11,6 +11,11 @@ public class ResponseDataModel {
     private String responseCode;
     private String responseMsg;
 
+    public ResponseDataModel(String responseCode, String responseMsg) {
+        this.responseCode = responseCode;
+        this.responseMsg = responseMsg;
+    }
+
     public ResponseDataModel(long time, String responseCode, String responseMsg) {
         this.time = time;
         this.responseCode = responseCode;
