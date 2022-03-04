@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.shulie.surge.data.common.utils.TimeUtils;
 import io.shulie.surge.data.deploy.pradar.common.ResponseCodeEnum;
 import io.shulie.surge.data.deploy.pradar.model.EngineDateModel;
 import io.shulie.surge.data.deploy.pradar.model.ResponseDataModel;
@@ -62,6 +63,7 @@ public class EngineDataWriteServlet extends HttpServlet {
                     //遍历写入每一条数据
                     for (int i = 0; i <= tags.size() - 1; i++) {
                         Map<String, String> tagMap = tags.get(i);
+
                         if (!tagMap.containsKey("eventTime")) {
                             logger.error("req data lack eventTime,skip it.content is {}", "[tags:" + JSONArray.toJSONString(tags) + "]" + "[fields:" + JSONArray.toJSONString(fields) + "]");
                             responseDataModel.setResponseCode(ResponseCodeEnum.CODE_9994.getCode());
@@ -83,8 +85,11 @@ public class EngineDataWriteServlet extends HttpServlet {
                             responseDataModel.setResponseCode(ResponseCodeEnum.CODE_9995.getCode());
                             responseDataModel.setResponseMsg(ResponseCodeEnum.CODE_9995.getMsg());
                         }
-
-                        influxDbSupport.write(engineDateModel.getDatabase(), engineDateModel.getMeasurement(), tags.get(i), fields.get(i), eventTime);
+                        //打标签
+                        tagMap.put("timeWindow5", String.valueOf(TimeUtils.getTimeWindow(eventTime, 1).getTime().getTime()));
+                        tagMap.put("timeWindow10", String.valueOf(TimeUtils.getTimeWindow(eventTime, 2).getTime().getTime()));
+                        tagMap.put("timeWindowf30", String.valueOf(TimeUtils.getTimeWindow(eventTime, 3).getTime().getTime()));
+                        influxDbSupport.write(engineDateModel.getDatabase(), engineDateModel.getMeasurement(), tagMap, fields.get(i), eventTime);
                     }
                 } else {
                     responseDataModel.setResponseCode(ResponseCodeEnum.CODE_9996.getCode());

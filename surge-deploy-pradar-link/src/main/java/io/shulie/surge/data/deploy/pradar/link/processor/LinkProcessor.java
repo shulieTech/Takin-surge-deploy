@@ -517,7 +517,7 @@ public class LinkProcessor extends AbstractProcessor {
 
             //如果业务活动非真实业务入口,而是中间节点,也生成virtual节点,这样就不会导致链路图上除了虚拟节点以外还多出一个上游的问题
             // 2022-03-04 排除自己调用自己又不是入口调用日志时候,此时会导致生成的点只有一个,且为入口虚拟节点
-            if (rpcBased.getRpcType() == Integer.parseInt(rpcType) && rpcBased.getAppName().equals(appName) && rpcBased.getServiceName().equals(service) && rpcBased.getMethodName().equals(method) && rpcBased.getAppName() != rpcBased.getUpAppName()) {
+            if (rpcBased.getRpcType() == Integer.parseInt(rpcType) && rpcBased.getAppName().equals(appName) && rpcBased.getServiceName().equals(service) && rpcBased.getMethodName().equals(method) && rpcBased.getAppName().equals(rpcBased.getUpAppName())) {
                 String ary[] = traceFilter.get(rpcBased.getTraceId()).split("#");
                 String filterRpcId = ary[0];
                 String filterLogType = ary[1];
@@ -589,8 +589,37 @@ public class LinkProcessor extends AbstractProcessor {
 
 
     public static void main(String[] args) throws Exception {
-        Long userId = 100000237900002L;
-        Long dbIndex = Long.valueOf(userId.longValue() % 64 % 8);
-        System.out.println(dbIndex);
+        // create clickhouse JDBCTemplate
+//        ClickHouseProperties clickHouseProperties = new ClickHouseProperties();
+//        String clickhouseUserName = "default";
+//        if (StringUtils.isNotBlank(clickhouseUserName)) {
+//            clickHouseProperties.setUser(clickhouseUserName);
+//        }
+//
+//        String clickhousePassword = "rU4zGjA/";
+//        if (StringUtils.isNotBlank(clickhousePassword)) {
+//            clickHouseProperties.setPassword(clickhousePassword);
+//        }
+//        String clickhouseUrl = "jdbc:clickhouse://pradar.host.clickhouse01:8123,pradar.host.clickhouse02:8123/default";
+//        DataSource clickHouseDataSource = new BalancedClickhouseDataSource(clickhouseUrl, clickHouseProperties);
+//        JdbcTemplate jdbcTemplate = new JdbcTemplate(clickHouseDataSource);
+//
+//        List<Map<String, Object>> resultList = jdbcTemplate.queryForList("select  appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,parsedServiceName,methodName,port,remoteIp,userAppKey,envCode,userId  from t_trace_all where traceId ='010011ac16463824055372022d58f4' and startDate>='2022-03-04 16:25:19' order by rpcId asc limit 500 union all select  appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,parsedServiceName,methodName,port,remoteIp,userAppKey,envCode,userId  from t_trace_all where traceId ='010011ac16463824055262021d58f4' and startDate>='2022-03-04 16:25:19' order by rpcId asc limit 500");
+//        List<TTrackClickhouseModel> modelList = resultList.stream().map(result -> JSONObject.parseObject(JSON.toJSON(result).toString(), TTrackClickhouseModel.class)).collect(Collectors.toList());
+//        Map<String, Object> linkConfig = new HashMap<>();
+//        linkConfig.put("rpcType", "1");
+//        linkConfig.put("appName", "Demo-dubbo-provider");
+//        linkConfig.put("service", "com.example.dubboproviderdemo.service.UserService");
+//        linkConfig.put("method", "hello()");
+//        linkConfig.put("userAppKey", "c55cf771-12b5-49e4-a566-c84723a5f6f3");
+//        linkConfig.put("envCode", "test");
+//        linkConfig.put("userId", "-1");
+//        Map<String, String> traceFilter = new HashMap<>();
+//        traceFilter.put("010011ac16463824055262021d58f4", "9#3");
+//        traceFilter.put("010011ac16463824055372022d58f4", "9#3");
+//        List<RpcBased> rpcBaseds = modelList.stream().map(TTrackClickhouseModel::getRpcBased).collect(Collectors.toList());
+//        Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> test = linkAnalysis("cd9628528a5c07d1b825102b8ea6be53", linkConfig, rpcBaseds, traceFilter);
+//
+
     }
 }
