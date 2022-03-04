@@ -88,7 +88,7 @@ public class EngineDataWriteServlet extends HttpServlet {
                         //打标签
                         tagMap.put("timeWindow5", String.valueOf(TimeUtils.getTimeWindow(eventTime, 1).getTime().getTime()));
                         tagMap.put("timeWindow10", String.valueOf(TimeUtils.getTimeWindow(eventTime, 2).getTime().getTime()));
-                        tagMap.put("timeWindowf30", String.valueOf(TimeUtils.getTimeWindow(eventTime, 3).getTime().getTime()));
+                        tagMap.put("timeWindow30", String.valueOf(TimeUtils.getTimeWindow(eventTime, 3).getTime().getTime()));
                         influxDbSupport.write(engineDateModel.getDatabase(), engineDateModel.getMeasurement(), tagMap, fields.get(i), eventTime);
                     }
                 } else {
