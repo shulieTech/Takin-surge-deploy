@@ -516,7 +516,8 @@ public class LinkProcessor extends AbstractProcessor {
             Map<String, Object> fromAppTags = rpcBasedParser.fromAppTags(linkId, rpcBased);
 
             //如果业务活动非真实业务入口,而是中间节点,也生成virtual节点,这样就不会导致链路图上除了虚拟节点以外还多出一个上游的问题
-            if (rpcBased.getRpcType() == Integer.parseInt(rpcType) && rpcBased.getAppName().equals(appName) && rpcBased.getServiceName().equals(service) && rpcBased.getMethodName().equals(method)) {
+            // 2022-03-04 排除自己调用自己又不是入口调用日志时候,此时会导致生成的点只有一个,且为入口虚拟节点
+            if (rpcBased.getRpcType() == Integer.parseInt(rpcType) && rpcBased.getAppName().equals(appName) && rpcBased.getServiceName().equals(service) && rpcBased.getMethodName().equals(method) && !rpcBased.getAppName().equals(rpcBased.getUpAppName())) {
                 String ary[] = traceFilter.get(rpcBased.getTraceId()).split("#");
                 String filterRpcId = ary[0];
                 String filterLogType = ary[1];
