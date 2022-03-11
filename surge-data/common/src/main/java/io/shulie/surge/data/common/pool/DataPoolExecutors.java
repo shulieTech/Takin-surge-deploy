@@ -35,11 +35,6 @@ public class DataPoolExecutors {
             return new ThreadPoolExecutor(coreSize, maxPoolSize, keepAliveTime,
                     timeUnit, blockingQueue, threadFactory, rejectedExecutionHandler);
         }
-        if (rejectedExecutionHandler != null)
-        {
-            return new ThreadPoolExecutor(coreSize, maxPoolSize, keepAliveTime,
-                    timeUnit, blockingQueue, threadFactory, rejectedExecutionHandler);
-        }
 
         return new ThreadPoolExecutor(coreSize, maxPoolSize, keepAliveTime,
                 timeUnit, blockingQueue, threadFactory);
