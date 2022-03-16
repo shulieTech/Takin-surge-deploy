@@ -79,6 +79,7 @@ public class LogWriteServlet extends HttpServlet {
                     switch (dataType) {
                         case "1":
                             dateTypeByte = 1;
+                            logger.info("current log type is trace log.");
                             break;
                         case "2":
                             dateTypeByte = 2;
