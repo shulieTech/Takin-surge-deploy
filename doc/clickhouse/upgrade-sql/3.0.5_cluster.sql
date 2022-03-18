@@ -1,4 +1,4 @@
-/*
+    /*
  * Copyright 2021 Shulie Technology, Co.Ltd
  * Email: shulie@shulie.io
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,9 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 # formatter sql(init)
-CREATE TABLE default.t_trace_all
+CREATE TABLE t_trace on cluster ck_cluster
 (
     `appName`              String,
     `entranceId`           Nullable(String),
@@ -51,7 +50,7 @@ CREATE TABLE default.t_trace_all
     `hostIp`               Nullable(String),
     `agentId`              Nullable(String),
     `startDate`            DateTime,
-    `createDate`           DateTime DEFAULT toDateTime(now()),
+    `createDate`           DateTime        DEFAULT toDateTime(now()),
     `timeMin`              Nullable(Int64) DEFAULT 0,
     `entranceServiceType`  Nullable(String),
     `parsedServiceName`    String,
@@ -60,22 +59,30 @@ CREATE TABLE default.t_trace_all
     `parsedMiddlewareName` Nullable(String),
     `parsedExtend`         Nullable(String),
     `dateToMin`            Int64,
-    INDEX                  ix_traceid traceId TYPE minmax GRANULARITY 5,
+    INDEX ix_traceid traceId TYPE minmax GRANULARITY 5,
     taskId                 Nullable(String),
     flag                   Nullable(String),
     flagMessage            Nullable(String),
     receiveTime            Nullable(Int64),
     processTime            Nullable(Int64),
-    saveCkTime             DateTime DEFAULT now(),
+    saveCkTime             DateTime        DEFAULT now(),
     `userAppKey`           String,
     `envCode`              String,
     `userId`               String
-)ENGINE = MergeTree PARTITION BY toYYYYMMDD(startDate) ORDER BY (appName,startDate,parsedServiceName,parsedMethod,rpcType) TTL startDate + toIntervalDay(3) SETTINGS index_granularity = 8192;
+) ENGINE = MergeTree PARTITION BY toYYYYMMDD(startDate) ORDER BY (appName, startDate, parsedServiceName, parsedMethod,rpcType) TTL startDate + toIntervalDay(3) SETTINGS index_granularity = 8192;
+
+CREATE TABLE t_trace_all on cluster ck_cluster as t_trace ENGINE = Distributed(ck_cluster, default, t_trace, sipHash64(traceId));
 
 # execute sql(init)
-CREATE TABLE default.t_trace_all ( `appName` String, `entranceId` Nullable(String), `entranceNodeId` Nullable(String), `traceId` String, `level` Nullable(Int8), `parentIndex` Nullable(Int8), `index` Nullable(Int8), `rpcId` String, `rpcType` Int8, `logType` Nullable(Int8), `traceAppName` Nullable(String), `upAppName` Nullable(String), `startTime` Int64, `cost` Int32, `middlewareName` Nullable(String), `serviceName` Nullable(String), `methodName` Nullable(String), `remoteIp` Nullable(String), `port` Nullable(Int32), `resultCode` Nullable(String), `requestSize` Nullable(String), `responseSize` Nullable(String), `request` Nullable(String), `response` Nullable(String), `clusterTest` Nullable(String), `callbackMsg` Nullable(String), `samplingInterval` Nullable(String), `localId` Nullable(String), `attributes` Nullable(String), `localAttributes` Nullable(String), `async` Nullable(String), `version` Nullable(String), `hostIp` Nullable(String), `agentId` Nullable(String), `startDate` DateTime, `createDate` DateTime DEFAULT toDateTime(now()), `timeMin` Nullable(Int64) DEFAULT 0, `entranceServiceType` Nullable(String), `parsedServiceName` String, `parsedMethod` String, `parsedAppName` Nullable(String), `parsedMiddlewareName` Nullable(String), `parsedExtend` Nullable(String), `dateToMin` Int64,INDEX ix_traceid traceId TYPE minmax GRANULARITY 5, taskId Nullable(String), flag Nullable(String), flagMessage Nullable(String), receiveTime Nullable(Int64), processTime Nullable(Int64), saveCkTime DateTime DEFAULT now(), `userAppKey` String, `envCode` String, `userId` String )ENGINE = MergeTree PARTITION BY toYYYYMMDD(startDate) ORDER BY (appName,startDate,parsedServiceName,parsedMethod,rpcType) TTL startDate + toIntervalDay(3) SETTINGS index_granularity = 8192;
+CREATE TABLE t_trace on cluster ck_cluster( `appName` String, `entranceId` Nullable(String), `entranceNodeId` Nullable(String), `traceId` String, `level` Nullable(Int8), `parentIndex` Nullable(Int8), `index` Nullable(Int8), `rpcId` String, `rpcType` Int8, `logType` Nullable(Int8), `traceAppName` Nullable(String), `upAppName` Nullable(String), `startTime` Int64, `cost` Int32, `middlewareName` Nullable(String), `serviceName` Nullable(String), `methodName` Nullable(String), `remoteIp` Nullable(String), `port` Nullable(Int32), `resultCode` Nullable(String), `requestSize` Nullable(String), `responseSize` Nullable(String), `request` Nullable(String), `response` Nullable(String), `clusterTest` Nullable(String), `callbackMsg` Nullable(String), `samplingInterval` Nullable(String), `localId` Nullable(String), `attributes` Nullable(String), `localAttributes` Nullable(String), `async` Nullable(String), `version` Nullable(String), `hostIp` Nullable(String), `agentId` Nullable(String), `startDate` DateTime, `createDate` DateTime DEFAULT toDateTime(now()), `timeMin` Nullable(Int64) DEFAULT 0, `entranceServiceType` Nullable(String), `parsedServiceName` String, `parsedMethod` String, `parsedAppName` Nullable(String), `parsedMiddlewareName` Nullable(String), `parsedExtend` Nullable(String), `dateToMin` Int64,INDEX ix_traceid traceId TYPE minmax GRANULARITY 5, taskId Nullable(String), flag Nullable(String), flagMessage Nullable(String), receiveTime Nullable(Int64), processTime Nullable(Int64), saveCkTime DateTime DEFAULT now(), `userAppKey` String, `envCode` String, `userId` String ) ENGINE = MergeTree PARTITION BY toYYYYMMDD(startDate) ORDER BY (appName, startDate, parsedServiceName, parsedMethod,rpcType) TTL startDate + toIntervalDay(3) SETTINGS index_granularity = 8192;
+CREATE TABLE t_trace_all on cluster ck_cluster as t_trace ENGINE = Distributed(ck_cluster, default, t_trace, sipHash64(traceId));
 
-# update sql
+# update
+ALTER TABLE t_trace ON cluster ck_cluster ADD COLUMN userAppKey String;
+ALTER TABLE t_trace ON cluster ck_cluster ADD COLUMN userId String;
+ALTER TABLE t_trace ON cluster ck_cluster ADD COLUMN envCode String;
+
 ALTER TABLE t_trace_all ADD COLUMN userAppKey String;
 ALTER TABLE t_trace_all ADD COLUMN userId String;
 ALTER TABLE t_trace_all ADD COLUMN envCode String;
+
