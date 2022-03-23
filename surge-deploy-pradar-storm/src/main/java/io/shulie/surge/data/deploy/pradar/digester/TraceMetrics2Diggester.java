@@ -30,6 +30,7 @@ import io.shulie.surge.data.common.aggregation.AggregateSlot;
 import io.shulie.surge.data.common.aggregation.metrics.CallStat;
 import io.shulie.surge.data.common.aggregation.metrics.Metric;
 import io.shulie.surge.data.deploy.pradar.agg.E2ETraceMetricsAggarator;
+import io.shulie.surge.data.deploy.pradar.agg.TraceMetrics2Aggarator;
 import io.shulie.surge.data.deploy.pradar.agg.TraceMetricsAggarator;
 import io.shulie.surge.data.deploy.pradar.common.*;
 import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
@@ -53,18 +54,14 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-/**
- * trace日志-metrics计算
- *
- * @Author: xingchen
- * @ClassName: TraceMetricsDiggester
- * @Package: io.shulie.surge.data.deploy.pradar.digester
- * @Date: 2020/12/313:24
- * @Description:
- */
 @Singleton
-public class TraceMetricsDiggester implements DataDigester<RpcBased> {
-    private static Logger logger = LoggerFactory.getLogger(TraceMetricsDiggester.class);
+public class TraceMetrics2Diggester implements DataDigester<RpcBased> {
+    private static Logger logger = LoggerFactory.getLogger(TraceMetrics2Diggester.class);
+    @Inject
+    private TraceMetrics2Aggarator traceMetrics2Aggarator;
+
+    @Inject
+    private E2ETraceMetricsAggarator e2eTraceMetricsAggarator;
 
     @Inject
     @DefaultValue("false")
@@ -72,7 +69,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
     protected Remote<Boolean> traceMetricsDisable;
 
     @Inject
-    @DefaultValue("sto-%,sas-prod,es-api-base-prod,automation-biz-prod,galaxy")
+    @DefaultValue("sto-%,sas-prod,es-api-base-prod,automation-biz-prod,galaxy,redis225555555")
     @Named("/pradar/config/rt/traceMetricsConfig")
     protected Remote<String> traceMetricsConfig;
 
@@ -80,12 +77,6 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
     @DefaultValue("")
     @Named("/pradar/config/rt/traceMetricsTenantConfig")
     protected Remote<String> traceMetricsTenantConfig;
-
-    @Inject
-    private TraceMetricsAggarator traceMetricsAggarator;
-
-    @Inject
-    private E2ETraceMetricsAggarator e2eTraceMetricsAggarator;
 
     @Inject
     protected AppConfigUtil appConfigUtil;
@@ -101,11 +92,10 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
     protected Cache<String, String> cache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(1, TimeUnit.HOURS).build();
 
 
-    /**
-     * 处理trace日志计算metrics
-     *
-     * @param context
-     */
+    private boolean conditionWithHostIp(){
+        return true;
+    }
+
     @Override
     public void digest(DigestContext<RpcBased> context) {
         if (traceMetricsDisable.get()) {
@@ -190,7 +180,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         }
         //日志时间
         Long traceTime = rpcBased.getLogTime();
-        AggregateSlot<Metric, CallStat> slot = traceMetricsAggarator.getSlotByTimestamp(traceTime);
+        AggregateSlot<Metric, CallStat> slot = traceMetrics2Aggarator.getSlotByTimestamp(traceTime);
         AggregateSlot<Metric, CallStat> e2eSlot = e2eTraceMetricsAggarator.getSlotByTimestamp(traceTime);
 
         /**
@@ -266,7 +256,9 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         if (sqlStatement.length() > 1024) {
             sqlStatement = sqlStatement.substring(0, 1024);
         }
-
+        //zcc:当前应用的ip
+        String hostIp = rpcBased.getHostIp();
+        //zcc:从RpcBased中取指标数据,以traceId为纬度
         TraceMetrics traceMetrics = TraceMetrics.convert(rpcBased, sampling, exceptionTypeList);
         // 冗余字段信息
         String traceId = traceMetrics.getTraceId();
@@ -274,9 +266,10 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         CallStat callStat = new CallStat(traceId, sqlStatement,
                 traceMetrics.getTotalCount(), traceMetrics.getSuccessCount(), traceMetrics.getTotalRt(),
                 traceMetrics.getFailureCount(), traceMetrics.getHitCount(), traceMetrics.getQps().longValue(), 1, traceMetrics.getE2eSuccessCount(), traceMetrics.getE2eErrorCount(), traceMetrics.getMaxRt());
+        if (conditionWithHostIp()) tags.add(hostIp);
         slot.addToSlot(Metric.of(PradarRtConstant.METRICS_ID_TRACE, tags.toArray(new String[tags.size()]), "", new String[]{}), callStat);
     }
-
+    
     protected boolean checkAppName(String appNameConfig, String appName) {
         if (StringUtils.isNotBlank(appNameConfig)) {
             String[] appNameArr = appNameConfig.split(",");
@@ -330,8 +323,8 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
     @Override
     public void stop() {
         try {
-            if (traceMetricsAggarator != null) {
-                traceMetricsAggarator.stop();
+            if (traceMetrics2Aggarator != null) {
+                traceMetrics2Aggarator.stop();
             }
         } catch (Throwable e) {
             logger.error(ExceptionUtils.getStackTrace(e));
@@ -347,4 +340,5 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
     protected String getNodeId(String parsedAppName, String parsedServiceName, String parsedMethod, String rpcType) {
         return Md5Utils.md5(parsedAppName + "|" + parsedServiceName + "|" + parsedMethod + "|" + rpcType);
     }
+
 }

@@ -24,7 +24,7 @@ import io.shulie.surge.data.common.aggregation.metrics.CallStat;
 import io.shulie.surge.data.common.aggregation.metrics.Metric;
 import io.shulie.surge.data.common.utils.FormatUtils;
 import io.shulie.surge.data.common.utils.Pair;
-import io.shulie.surge.data.deploy.pradar.PradarTraceReduceBolt;
+import io.shulie.surge.data.deploy.pradar.PradarTrace2ReduceBolt;
 import io.shulie.surge.data.deploy.pradar.common.PradarRtConstant;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.storm.spout.SpoutOutputCollector;
@@ -39,27 +39,16 @@ import java.util.Map;
 
 import static io.shulie.surge.data.common.utils.CommonUtils.divide;
 
-/**
- * @Author: xingchen
- * @ClassName: TraceMetricsAggarator
- * @Package: io.shulie.surge.data.runtime.agg
- * @Date: 2020/11/3010:18
- * @Description:
- */
+
 @Singleton
-public class TraceMetricsAggarator implements Aggregator {
-    private static Logger logger = LoggerFactory.getLogger(TraceMetricsAggarator.class);
+public class TraceMetrics2Aggarator implements Aggregator {
+    private static Logger logger = LoggerFactory.getLogger(TraceMetrics2Aggarator.class);
+
     protected final Aggregation<Metric, CallStat> aggregation = new Aggregation<>(
             PradarRtConstant.AGG_TRACE_SECONDS_INTERVAL,
             PradarRtConstant.AGG_TRACE_SECONDS_LOWER_LIMIT);
 
-    /**
-     * init
-     *
-     * @param scheduler
-     * @param collector
-     * @param topologyContext
-     */
+
     public void init(Scheduler scheduler,
                      final SpoutOutputCollector collector,
                      final TopologyContext topologyContext) {
@@ -71,7 +60,7 @@ public class TraceMetricsAggarator implements Aggregator {
                     Map<Metric, CallStat> map = slot.toMap();
                     // 每个 reducer 负责处理一组 Pair<Metric, CallStat> 的汇总任务 Job
                     // 直接 emit 出去由 Storm 进行分配，会导致消息丢失率很高，所以打包发送。
-                    List<Integer> reducerIds = topologyContext.getComponentTasks(PradarTraceReduceBolt.class.getSimpleName());
+                    List<Integer> reducerIds = topologyContext.getComponentTasks(PradarTrace2ReduceBolt.class.getSimpleName());
                     final int reducerCount = reducerIds.size();
                     List<Pair<Metric, CallStat>>[] jobs = new List[reducerCount];
                     int jobSize = (int) divide(size, reducerCount - 1); // 估值
@@ -93,7 +82,7 @@ public class TraceMetricsAggarator implements Aggregator {
                         if (!job.isEmpty()) {
                             //storm 2.1.0's collector is Thread-no-safe that cause kyro deserialize fail.need to add mutex.more detail can view STORM-3582
                             synchronized (SpoutOutputCollector.class) {
-                                collector.emitDirect(reducerId, PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID, new Values(slotKey * 1000, job));
+                                collector.emitDirect(reducerId, PradarRtConstant.REDUCE_TRACE_METRICS_2_STREAM_ID, new Values(slotKey * 1000, job));
                             }
                         }
                     }
@@ -103,9 +92,6 @@ public class TraceMetricsAggarator implements Aggregator {
         });
     }
 
-    /**
-     * ----
-     */
     @Override
     public int size() {
         return 0;

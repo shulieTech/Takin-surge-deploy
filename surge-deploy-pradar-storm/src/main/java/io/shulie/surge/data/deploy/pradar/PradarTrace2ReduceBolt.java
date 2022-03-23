@@ -39,42 +39,29 @@ import org.apache.storm.tuple.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-/**
- *
- */
-public class PradarTraceReduceBolt extends BaseBasicBolt {
-    private static Logger logger = LoggerFactory.getLogger(PradarTraceReduceBolt.class);
+public class PradarTrace2ReduceBolt extends BaseBasicBolt {
+    private static Logger logger = LoggerFactory.getLogger(PradarTrace2ReduceBolt.class);
     protected transient Aggregation<Metric, CallStat> aggregation;
-    private transient Scheduler scheduler;
 
     @Inject
     private InfluxDBSupport influxDbSupport;
 
+    private transient Scheduler scheduler;
+
     @Override
-    public void prepare(Map stormConf, TopologyContext context) {
-        try {
-            PradarStormConfigHolder.init(stormConf);
-            Injector injector = new PradarSupplierConfiguration(context.getThisWorkerPort()).initDataRuntime().getInstance(Injector.class);
-            influxDbSupport = injector.getInstance(InfluxDBSupport.class);
+    public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
 
-            scheduler = new Scheduler(1);
-            aggregation = new Aggregation(PradarRtConstant.REDUCE_TRACE_SECONDS_INTERVAL,
-                    PradarRtConstant.REDUCE_TRACE_SECONDS_LOWER_LIMIT);
-
-            aggregation.start(scheduler, new TraceMetricsCommitAction(influxDbSupport));
-        } catch (Exception e) {
-            logger.error("PradarTraceReduceBolt fail " + ExceptionUtils.getStackTrace(e));
-            throw new RuntimeException(e);
-        }
-        logger.info("PradarTraceReduceBolt started...");
     }
 
     @Override
     public void execute(Tuple input, BasicOutputCollector basicOutputCollector) {
-        if (!input.getSourceStreamId().equals(PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID)) {
+        if (!input.getSourceStreamId().equals(PradarRtConstant.REDUCE_TRACE_METRICS_2_STREAM_ID)) {
             return;
         }
         Long slotKey = input.getLong(0);
@@ -90,16 +77,30 @@ public class PradarTraceReduceBolt extends BaseBasicBolt {
     }
 
     @Override
-    public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
+    public void prepare(Map stormConf, TopologyContext context) {
+        try {
+            PradarStormConfigHolder.init(stormConf);
+            Injector injector = new PradarSupplierConfiguration(context.getThisWorkerPort()).initDataRuntime().getInstance(Injector.class);
+            influxDbSupport = injector.getInstance(InfluxDBSupport.class);
 
+            scheduler = new Scheduler(1);
+            aggregation = new Aggregation(PradarRtConstant.REDUCE_TRACE_SECONDS_INTERVAL,
+                    PradarRtConstant.REDUCE_TRACE_SECONDS_LOWER_LIMIT);
+
+            aggregation.start(scheduler, new TraceMetrics2CommitAction(influxDbSupport));
+        } catch (Exception e) {
+            logger.error("PradarTraceReduceBolt fail " + ExceptionUtils.getStackTrace(e));
+            throw new RuntimeException(e);
+        }
+        logger.info("PradarTraceReduceBolt started...");
     }
 
-    static class TraceMetricsCommitAction implements Aggregation.CommitAction<Metric, CallStat> {
-        private static Logger logger = LoggerFactory.getLogger(TraceMetricsCommitAction.class);
+    static class TraceMetrics2CommitAction implements Aggregation.CommitAction<Metric, CallStat> {
+        private static Logger logger = LoggerFactory.getLogger(TraceMetrics2CommitAction.class);
 
         private InfluxDBSupport influxDbSupport;
 
-        public TraceMetricsCommitAction(InfluxDBSupport influxDbSupport) {
+        public TraceMetrics2CommitAction(InfluxDBSupport influxDbSupport) {
             this.influxDbSupport = influxDbSupport;
         }
 
@@ -109,7 +110,8 @@ public class PradarTraceReduceBolt extends BaseBasicBolt {
                 slot.toMap().entrySet().forEach(metricCallStatEntry -> {
                     Metric metric = metricCallStatEntry.getKey();
                     CallStat callStat = metricCallStatEntry.getValue();
-
+                    //zcc:当前应用Ip
+                    String hostIp = callStat.getHostIp();
                     String metricsId = metric.getMetricId();
                     String[] tags = metric.getPrefixes();
                     Map<String, String> influxdbTags = Maps.newHashMap();
@@ -163,7 +165,9 @@ public class PradarTraceReduceBolt extends BaseBasicBolt {
                         logger.warn("measurement is illegal:{}", metricsId);
                         metricsId = PradarRtConstant.METRICS_ID_TRACE;
                     }
-                    influxDbSupport.write("pradar", metricsId, influxdbTags, fields, slotKey * 1000);
+                    Map<String, Object> finalFields = new HashMap<>(fields);
+                    finalFields.put("hostIp", hostIp);
+                    influxDbSupport.write("pradar", "waterline_trace_metrics", influxdbTags, finalFields, slotKey * 1000);
                 });
             } catch (Throwable e) {
                 logger.error("write fail influxdb " + ExceptionUtils.getStackTrace(e));

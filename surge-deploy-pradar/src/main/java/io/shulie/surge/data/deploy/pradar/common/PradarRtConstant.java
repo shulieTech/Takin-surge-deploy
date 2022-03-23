@@ -26,6 +26,9 @@ public class PradarRtConstant {
     // trace记录metrics
     public static final String REDUCE_TRACE_METRICS_STREAM_ID = "pradar-trace-reduce-metrics";
 
+    // trace记录metrics
+    public static final String REDUCE_TRACE_METRICS_2_STREAM_ID = "pradar-trace-reduce-metrics-2";
+
     // trace记录app关系metrics
     public static final String REDUCE_APP_RELATION_TRACE_METRICS_STREAM_ID = "pradar-app-relation-trace-reduce-metrics";
 

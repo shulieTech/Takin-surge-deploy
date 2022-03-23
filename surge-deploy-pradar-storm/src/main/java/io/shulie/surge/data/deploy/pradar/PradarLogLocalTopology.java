@@ -62,6 +62,10 @@ public class PradarLogLocalTopology {
         // E2E巡检指标计算
         builder.setBolt(E2ETraceReduceBolt.class.getSimpleName(), new E2ETraceReduceBolt(), reduceCount.intValue())
                 .directGrouping(PradarLogSpout.class.getSimpleName(), PradarRtConstant.REDUCE_E2E_TRACE_METRICS_STREAM_ID);
+
+
+        builder.setBolt(PradarTrace2ReduceBolt.class.getSimpleName(),new PradarTrace2ReduceBolt())
+                .directGrouping(PradarLogSpout.class.getSimpleName(), PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID);
         return builder;
     }
 }

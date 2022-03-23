@@ -25,6 +25,7 @@ import io.shulie.surge.data.deploy.pradar.config.PradarProcessorConfigSpec;
 import io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration;
 import io.shulie.surge.data.deploy.pradar.digester.E2EDefaultDigester;
 import io.shulie.surge.data.deploy.pradar.digester.MetricsReduceDigester;
+import io.shulie.surge.data.deploy.pradar.digester.TraceMetrics2Diggester;
 import io.shulie.surge.data.deploy.pradar.digester.TraceMetricsDiggester;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
@@ -169,7 +170,8 @@ public class PradarStormSupplierConfiguration {
     public DataDigester[] buildTraceLogComplexProcess(DataRuntime dataRuntime) {
         TraceMetricsDiggester traceMetricsDiggester = dataRuntime.getInstance(TraceMetricsDiggester.class);
         traceMetricsDiggester.init();
-        return new DataDigester[]{traceMetricsDiggester};
+        TraceMetrics2Diggester traceMetrics2Diggester = dataRuntime.getInstance(TraceMetrics2Diggester.class);
+        return new DataDigester[]{traceMetricsDiggester,traceMetrics2Diggester};
     }
 
     /**
