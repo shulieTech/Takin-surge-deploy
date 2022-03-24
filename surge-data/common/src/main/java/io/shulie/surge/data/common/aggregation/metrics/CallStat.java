@@ -38,15 +38,6 @@ public class CallStat implements AggregatableRecord<CallStat>, TimestampSupport 
     private long[] values;
     private String traceId;
     private String sqlStatement;
-    private String hostIp;
-
-    public String getHostIp() {
-        return hostIp;
-    }
-
-    public void setHostIp(String hostIp) {
-        this.hostIp = hostIp;
-    }
 
     public CallStat() {
         this("", EMPTY_ARRAY);

@@ -69,11 +69,6 @@ public class TraceMetrics2Diggester implements DataDigester<RpcBased> {
     protected Remote<Boolean> traceMetricsDisable;
 
     @Inject
-    @DefaultValue("sto-%,sas-prod,es-api-base-prod,automation-biz-prod,galaxy,redis225555555")
-    @Named("/pradar/config/rt/traceMetricsConfig")
-    protected Remote<String> traceMetricsConfig;
-
-    @Inject
     @DefaultValue("")
     @Named("/pradar/config/rt/traceMetricsTenantConfig")
     protected Remote<String> traceMetricsTenantConfig;
@@ -82,14 +77,9 @@ public class TraceMetrics2Diggester implements DataDigester<RpcBased> {
     protected AppConfigUtil appConfigUtil;
 
     @Inject
-    protected EagleLoader eagleLoader;
-
-    @Inject
     private MysqlSupport mysqlSupport;
 
     protected E2ENodeCache e2eNodeCache = new E2ENodeCache();
-
-    protected Cache<String, String> cache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(1, TimeUnit.HOURS).build();
 
 
     private boolean conditionWithHostIp(){
@@ -123,27 +113,6 @@ public class TraceMetrics2Diggester implements DataDigester<RpcBased> {
         // 生成唯一边Id ,同步zk集合，判断此流量是否要统计
         String edgeId = rpcBasedParser.edgeId("", rpcBased);
         Map<String, Object> eagleTags = rpcBasedParser.edgeTags("", rpcBased);
-
-        /** 指标计算不参考业务活动的边**/
-        String appName = rpcBased.getAppName();
-        if (!eagleLoader.contains(edgeId)) {
-            /** 指标计算不参考业务活动的边**/
-            String appNameConfig = traceMetricsConfig.get();
-            String tenantConfig = traceMetricsTenantConfig.get();
-            //不在业务活动拓扑图中的边,如果需要提供服务监控接口性能查询,走应用配置和租户配置查询(客户端日志不计算)
-            if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_RPC_CLIENT || !(checkAppName(appNameConfig, appName) || checkTenant(tenantConfig, rpcBased.getUserAppKey(), rpcBased.getEnvCode()))) {
-
-                //重复的边ID只打印一次
-                if (StringUtils.isBlank(cache.getIfPresent(edgeId))) {
-                    cache.put(edgeId, edgeId);
-                    logger.warn("edgeId is not match:{},edgeTags is {}", edgeId, eagleTags);
-                }
-                return;
-            }
-            rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
-            edgeId = rpcBasedParser.edgeId("", rpcBased);
-            eagleTags = rpcBasedParser.edgeTags("", rpcBased);
-        }
 
         //获取是否压测流量
         String clusterTest = String.valueOf(rpcBased.isClusterTest());
@@ -181,7 +150,6 @@ public class TraceMetrics2Diggester implements DataDigester<RpcBased> {
         //日志时间
         Long traceTime = rpcBased.getLogTime();
         AggregateSlot<Metric, CallStat> slot = traceMetrics2Aggarator.getSlotByTimestamp(traceTime);
-        AggregateSlot<Metric, CallStat> e2eSlot = e2eTraceMetricsAggarator.getSlotByTimestamp(traceTime);
 
         /**
          * 汇总信息实现：单独存储一张表，不区分断言类型，断言不通过的要算做失败
@@ -217,19 +185,6 @@ public class TraceMetrics2Diggester implements DataDigester<RpcBased> {
                 }
 
             }
-        }
-        //写入断言指标
-        for (String exceptionType : exceptionTypeList) {
-            long successCount = 0;
-            long errorCount = 1;
-            String[] tags = new String[]{edgeId, parsedAppName, parsedServiceName, parsedMethod, rpcType,
-                    rpcBased.isClusterTest() ? "1" : "0",
-                    exceptionType, userAppKey, envCode};
-            CallStat callStat = new CallStat(rpcBased.getTraceId(),
-                    sampling * 1L, sampling * successCount, sampling * rpcBased.getCost(),
-                    sampling * errorCount, sampling);
-            e2eSlot.addToSlot(Metric.of(PradarRtConstant.E2E_ASSERT_METRICS_ID_TRACE, tags, "", new String[]{}),
-                    callStat);
         }
 
         //汇总分组的tag标签,包含生成边的一些关键指标
@@ -268,51 +223,6 @@ public class TraceMetrics2Diggester implements DataDigester<RpcBased> {
                 traceMetrics.getFailureCount(), traceMetrics.getHitCount(), traceMetrics.getQps().longValue(), 1, traceMetrics.getE2eSuccessCount(), traceMetrics.getE2eErrorCount(), traceMetrics.getMaxRt());
         if (conditionWithHostIp()) tags.add(hostIp);
         slot.addToSlot(Metric.of(PradarRtConstant.METRICS_ID_TRACE, tags.toArray(new String[tags.size()]), "", new String[]{}), callStat);
-    }
-    
-    protected boolean checkAppName(String appNameConfig, String appName) {
-        if (StringUtils.isNotBlank(appNameConfig)) {
-            String[] appNameArr = appNameConfig.split(",");
-            for (int i = 0; i < appNameArr.length; i++) {
-                //如果含有百分号,启用前缀匹配
-                if (appNameArr[i].contains("%")) {
-                    //前缀匹配
-                    if (StringUtils.isNotBlank(appNameArr[i].split("%")[0]) && appName.startsWith(appNameArr[i].split("%")[0])) {
-                        return true;
-                    }
-                    //后缀匹配
-                    if (appNameArr[i].startsWith("%") && appName.endsWith(appNameArr[i].split("%")[1])) {
-                        return true;
-                    }
-                } else {
-                    //否则采用等值匹配
-                    if (appName.equals(appNameArr[i])) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 生产环境才允许走租户配置
-     *
-     * @param config
-     * @param tenantAppKey
-     * @param envCode
-     * @return
-     */
-    protected boolean checkTenant(String config, String tenantAppKey, String envCode) {
-        if (StringUtils.isNotBlank(config)) {
-            String[] tenantArr = config.split(",");
-            for (int i = 0; i < tenantArr.length; i++) {
-                if (tenantAppKey.equals(tenantArr[i]) && TenantEnvConstants.ENV_PROD.equalsIgnoreCase(envCode)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     @Override

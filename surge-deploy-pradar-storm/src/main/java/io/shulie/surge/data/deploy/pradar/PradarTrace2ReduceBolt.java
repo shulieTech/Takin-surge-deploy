@@ -110,8 +110,6 @@ public class PradarTrace2ReduceBolt extends BaseBasicBolt {
                 slot.toMap().entrySet().forEach(metricCallStatEntry -> {
                     Metric metric = metricCallStatEntry.getKey();
                     CallStat callStat = metricCallStatEntry.getValue();
-                    //zcc:当前应用Ip
-                    String hostIp = callStat.getHostIp();
                     String metricsId = metric.getMetricId();
                     String[] tags = metric.getPrefixes();
                     Map<String, String> influxdbTags = Maps.newHashMap();
@@ -166,7 +164,7 @@ public class PradarTrace2ReduceBolt extends BaseBasicBolt {
                         metricsId = PradarRtConstant.METRICS_ID_TRACE;
                     }
                     Map<String, Object> finalFields = new HashMap<>(fields);
-                    finalFields.put("hostIp", hostIp);
+                    finalFields.put("hostIp", tags[16]);
                     influxDbSupport.write("pradar", "waterline_trace_metrics", influxdbTags, finalFields, slotKey * 1000);
                 });
             } catch (Throwable e) {

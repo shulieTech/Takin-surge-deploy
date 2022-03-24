@@ -19,6 +19,7 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.deploy.pradar.agg.E2ETraceMetricsAggarator;
+import io.shulie.surge.data.deploy.pradar.agg.TraceMetrics2Aggarator;
 import io.shulie.surge.data.deploy.pradar.agg.TraceMetricsAggarator;
 import io.shulie.surge.data.deploy.pradar.common.*;
 import io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration;
@@ -44,6 +45,8 @@ public class PradarLogSpout extends BaseRichSpout {
     private TraceMetricsAggarator traceMetricsAggarator;
     @Inject
     private E2ETraceMetricsAggarator e2eTraceMetricsAggarator;
+    @Inject
+    private TraceMetrics2Aggarator traceMetrics2Aggarator;
     @Inject
     private EagleLoader eagleLoader;
     @Inject
@@ -79,6 +82,7 @@ public class PradarLogSpout extends BaseRichSpout {
              */
             if (!pradarSupplierConfiguration.isGeneralVersion()) {
                 traceMetricsAggarator.init(new Scheduler(1), spoutOutputCollector, topologyContext);
+                traceMetrics2Aggarator.init(new Scheduler(1), spoutOutputCollector, topologyContext);
             }
             e2eTraceMetricsAggarator.init(new Scheduler(1), spoutOutputCollector, topologyContext);
             // 初始化边缓存
@@ -105,6 +109,7 @@ public class PradarLogSpout extends BaseRichSpout {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
         outputFieldsDeclarer.declareStream(PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID, new Fields("slotKey", "job"));
+        outputFieldsDeclarer.declareStream(PradarRtConstant.REDUCE_TRACE_METRICS_2_STREAM_ID, new Fields("slotKey", "job"));
         outputFieldsDeclarer.declareStream(PradarRtConstant.REDUCE_E2E_TRACE_METRICS_STREAM_ID, new Fields("slotKey", "job"));
     }
 }

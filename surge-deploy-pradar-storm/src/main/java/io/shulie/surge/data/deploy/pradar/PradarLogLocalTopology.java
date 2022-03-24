@@ -64,8 +64,8 @@ public class PradarLogLocalTopology {
                 .directGrouping(PradarLogSpout.class.getSimpleName(), PradarRtConstant.REDUCE_E2E_TRACE_METRICS_STREAM_ID);
 
 
-        builder.setBolt(PradarTrace2ReduceBolt.class.getSimpleName(),new PradarTrace2ReduceBolt())
-                .directGrouping(PradarLogSpout.class.getSimpleName(), PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID);
+        builder.setBolt(PradarTrace2ReduceBolt.class.getSimpleName(),new PradarTrace2ReduceBolt(), reduceCount.intValue())
+                .directGrouping(PradarLogSpout.class.getSimpleName(), PradarRtConstant.REDUCE_TRACE_METRICS_2_STREAM_ID);
         return builder;
     }
 }
