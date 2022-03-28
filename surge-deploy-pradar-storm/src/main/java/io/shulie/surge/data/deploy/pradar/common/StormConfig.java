@@ -51,8 +51,8 @@ public class StormConfig {
         conf.registerSerialization(Pair.class);
         //使用topology.worker.gc.childopts或者worker.childopts配置worker内存等参数,两者的效果是一致的
         conf.put("topology.worker.gc.childopts",
-                "-Xms2g -Xmx2g -XX:MaxDirectMemorySize=512m -XX:+HeapDumpOnOutOfMemoryError "
-                        + "-XX:HeapDumpPath=java.hprof -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m -XX:-OmitStackTraceInFastThrow ");
+                "-Xms2g -Xmx3g -XX:MaxDirectMemorySize=512m -XX:+HeapDumpOnOutOfMemoryError "
+                        + "-XX:HeapDumpPath=/tmp/java.hprof -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m -XX:-OmitStackTraceInFastThrow ");
         conf.put(Config.NIMBUS_THRIFT_PORT, 6627);
         conf.put(Config.STORM_THRIFT_TRANSPORT_PLUGIN, "org.apache.storm.security.auth.SimpleTransportPlugin");
         conf.put(Config.STORM_ZOOKEEPER_PORT, 2181);
