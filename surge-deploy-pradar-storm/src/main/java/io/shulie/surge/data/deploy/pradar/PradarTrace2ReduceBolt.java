@@ -165,6 +165,7 @@ public class PradarTrace2ReduceBolt extends BaseBasicBolt {
                     }
                     Map<String, Object> finalFields = new HashMap<>(fields);
                     finalFields.put("hostIp", tags[16]);
+                    influxdbTags.put("hostIp",tags[16]);
                     influxDbSupport.write("pradar", "waterline_trace_metrics", influxdbTags, finalFields, slotKey * 1000);
                 });
             } catch (Throwable e) {
