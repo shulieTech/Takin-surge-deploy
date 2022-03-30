@@ -99,6 +99,7 @@ public class LogDigester implements DataDigester<RpcBased> {
         String engineTable = "t_trace_pressure";
         if (CommonStat.isUseCk(this.dataSourceType)) {
             tableName = clickHouseShardSupport.isCluster() ? "t_trace" : "t_trace_all";
+            engineTable = clickHouseShardSupport.isCluster() ? "t_pressure" : "t_trace_pressure";
         }
         clickhouseFacade.addCommond(new BaseCommand());
         clickhouseFacade.addCommond(new LinkCommand());
