@@ -213,6 +213,7 @@ public class TraceMetrics2Diggester implements DataDigester<RpcBased> {
         }
         //zcc:当前应用的ip
         String hostIp = rpcBased.getHostIp();
+        String agentId = rpcBased.getAgentId();
         //zcc:从RpcBased中取指标数据,以traceId为纬度
         TraceMetrics traceMetrics = TraceMetrics.convert(rpcBased, sampling, exceptionTypeList);
         // 冗余字段信息
@@ -221,7 +222,7 @@ public class TraceMetrics2Diggester implements DataDigester<RpcBased> {
         CallStat callStat = new CallStat(traceId, sqlStatement,
                 traceMetrics.getTotalCount(), traceMetrics.getSuccessCount(), traceMetrics.getTotalRt(),
                 traceMetrics.getFailureCount(), traceMetrics.getHitCount(), traceMetrics.getQps().longValue(), 1, traceMetrics.getE2eSuccessCount(), traceMetrics.getE2eErrorCount(), traceMetrics.getMaxRt());
-        if (conditionWithHostIp()) tags.add(hostIp);
+        if (conditionWithHostIp()) {tags.add(hostIp);tags.add(agentId);}
         slot.addToSlot(Metric.of(PradarRtConstant.METRICS_ID_TRACE, tags.toArray(new String[tags.size()]), "", new String[]{}), callStat);
     }
 
