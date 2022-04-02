@@ -75,6 +75,14 @@ public class EntranceProcessor extends AbstractProcessor {
     @Named("/pradar/config/rt/entranceProcess/delayTime")
     private Remote<Long> intervalTime;
 
+    /**
+     * 远程调用,默认
+     */
+    @Inject
+    @DefaultValue("2")
+    @Named("/pradar/config/rt/entranceProcess/expireDays")
+    private Remote<String> expireDays;
+
     String linkEntranceInsertSql = "";
     String linkEntranceDeleteSql = "";
 
@@ -327,8 +335,8 @@ public class EntranceProcessor extends AbstractProcessor {
      *
      * @throws IOException
      */
-    public void shareExpire(int expirtTime) {
-        expireData(DateUtils.addDays(new Date(), -expirtTime));
+    public void shareExpire() {
+        expireData(DateUtils.addDays(new Date(), -Integer.parseInt(expireDays.get())));
     }
 
     /**
