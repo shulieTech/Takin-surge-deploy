@@ -15,7 +15,11 @@
 
 package io.shulie.surge.data.deploy.pradar.digester;
 
-import com.google.common.cache.*;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalCause;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
@@ -92,6 +96,7 @@ public class LogDigester implements DataDigester<RpcBased> {
 
     private String sql = "";
     private String engineSql = "";
+    private String clusterTestColumnAndValuesSql = "";
 
 
     public void init() {
@@ -106,6 +111,7 @@ public class LogDigester implements DataDigester<RpcBased> {
         clickhouseFacade.addCommond(new FlagCommand());
         sql = "insert into " + tableName + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
         engineSql = "insert into " + engineTable + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
+        clusterTestColumnAndValuesSql = " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
     }
 
     @Override
@@ -124,7 +130,7 @@ public class LogDigester implements DataDigester<RpcBased> {
             if (!PradarUtils.isTraceSampleAccepted(rpcBased, clickhouseSampling.get())) {
                 return;
             }
-
+            PradarUtils.analyzeTaskIdIfNecessary(rpcBased);
             //如果是压测引擎日志,统计每个压测报告实际上报条数
             if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
                 Long count = taskIds.getIfPresent(rpcBased.getTaskId());
@@ -150,6 +156,11 @@ public class LogDigester implements DataDigester<RpcBased> {
             if (CommonStat.isUseCk(dataSourceType)) {
 
                 clickHouseShardSupport.batchUpdate(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, objMap);
+                String taskId = rpcBased.getTaskId();
+                if (rpcBased.getLogType() != PradarLogType.LOG_TYPE_FLOW_ENGINE && StringUtils.isNotBlank(taskId)) {
+                    clickHouseShardSupport.batchUpdate(
+                        "insert into " + getClusterTable(taskId) + clusterTestColumnAndValuesSql, objMap);
+                }
             } else {
                 mysqlSupport.batchUpdate(sql, batchs);
             }
@@ -183,5 +194,13 @@ public class LogDigester implements DataDigester<RpcBased> {
 
     public Remote<Integer> getClickhouseSampling() {
         return clickhouseSampling;
+    }
+
+    private String getClusterTable(String taskId) {
+        String clusterTable = "t_trace_pressure_%s";
+        if (CommonStat.isUseCk(this.dataSourceType)) {
+            clusterTable = clickHouseShardSupport.isCluster() ? "t_pressure_%s" : "t_trace_pressure_%s";
+        }
+        return String.format(clusterTable, taskId);
     }
 }

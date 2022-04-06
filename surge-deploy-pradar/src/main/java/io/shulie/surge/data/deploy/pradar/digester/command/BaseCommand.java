@@ -20,6 +20,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
+import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
@@ -80,6 +81,8 @@ public class BaseCommand implements ClickhouseCommand {
         meta.add("envCode");
         meta.add("userId");
 
+        meta.add("timeWindow");
+
         return meta;
     }
 
@@ -128,6 +131,14 @@ public class BaseCommand implements ClickhouseCommand {
         map.put("userAppKey", rpcBased.getUserAppKey());
         map.put("envCode", rpcBased.getEnvCode());
         map.put("userId", StringUtils.isBlank(rpcBased.getUserId()) ? TenantConstants.DEFAULT_USERID : rpcBased.getUserId());
+
+        map.put("timeWindow", rpcBased.getLogType() != PradarLogType.LOG_TYPE_FLOW_ENGINE
+            && StringUtils.isNotBlank(rpcBased.getTaskId()) ? timeWindow(rpcBased.getStartTime()) : null);
         return map;
+    }
+
+    // 计算trace的压测时间窗口
+    private Date timeWindow(long startTime) {
+        return new Date((startTime / 5000) * 5000);
     }
 }
