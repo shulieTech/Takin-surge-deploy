@@ -17,6 +17,7 @@ package io.shulie.surge.data.deploy.pradar.link.model;
 
 import com.alibaba.fastjson.JSONObject;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 
@@ -113,6 +114,10 @@ public class TTrackClickhouseModel extends LinkPublicModel{
         rpcBased.setUserId(getUserId());
         rpcBased.setUserAppKey(getUserAppKey());
         rpcBased.setEnvCode(getEnvCode());
+        String middleWareName = StringUtils.defaultString(rpcBased.getMiddlewareName()).toLowerCase();
+        if (middleWareName.contains("feign") || middleWareName.contains("dubbo")) {
+            rpcBased.setTrackMethod(rpcBased.getServiceName() + "#" + rpcBased.getMethodName());
+        }
         return rpcBased;
     }
 
