@@ -59,6 +59,7 @@ public class LogWriteServlet extends HttpServlet {
         long start = System.currentTimeMillis();
         //logger.info("receive log =======================");
         String content = null;
+        long uploadTime = Long.parseLong(request.getHeader("time"));
         ResponseDataModel responseDataModel = new ResponseDataModel(String.valueOf(CommandCode.SUCCESS), ResponseCodeEnum.CODE_0000.getMsg());
         try {
             String encode = request.getHeader("Accept-Encoding");
@@ -99,6 +100,7 @@ public class LogWriteServlet extends HttpServlet {
                     header.put("hostIp", hostIp);
                     header.put("dataVersion", dataVersion);
                     header.put("dataType", dateTypeByte);
+                    header.put("uploadTime", uploadTime);
                     queue.publish(header, queue.splitLog(content, dateTypeByte));
                 }
             } else {
@@ -120,7 +122,7 @@ public class LogWriteServlet extends HttpServlet {
         response.setContentType("application/json;charset=utf-8");
         responseDataModel.setTime(System.currentTimeMillis());
         response.getWriter().println(JSONObject.toJSONString(responseDataModel));
-        logger.info("processed log,cost is {},event delay is {}", System.currentTimeMillis() - start, start - Long.parseLong(request.getHeader("time")));
+        logger.info("processed log,cost is {},event delay is {}", System.currentTimeMillis() - start, start - uploadTime);
     }
 
 

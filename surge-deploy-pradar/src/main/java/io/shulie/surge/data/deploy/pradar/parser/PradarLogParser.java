@@ -57,6 +57,7 @@ public class PradarLogParser implements DataParser<String, RpcBased> {
         context.setHeader(header);
         context.setProcessTime(now);
         context.setEventTime(rpcBased.getLogTime());
+        context.setUploadTime((Long) header.get("uploadTime"));
         return context;
     }
 

@@ -30,6 +30,10 @@ import java.util.Map;
 public final class DigestContext<T extends Serializable> implements Serializable {
 
     /**
+     * agent上报日志的时间
+     */
+    private long uploadTime;
+    /**
      * 当前处理的时间
      */
     private long processTime;
@@ -72,5 +76,13 @@ public final class DigestContext<T extends Serializable> implements Serializable
 
     public void setEventTime(long eventTime) {
         this.eventTime = eventTime;
+    }
+
+    public long getUploadTime() {
+        return uploadTime;
+    }
+
+    public void setUploadTime(long uploadTime) {
+        this.uploadTime = uploadTime;
     }
 }
