@@ -120,7 +120,7 @@ public class LogWriteServlet extends HttpServlet {
         response.setContentType("application/json;charset=utf-8");
         responseDataModel.setTime(System.currentTimeMillis());
         response.getWriter().println(JSONObject.toJSONString(responseDataModel));
-        logger.info("processed log,cost is {}", System.currentTimeMillis() - start);
+        logger.info("processed log,cost is {},event delay is {}", System.currentTimeMillis() - start, start - Long.parseLong(request.getHeader("time")));
     }
 
 
