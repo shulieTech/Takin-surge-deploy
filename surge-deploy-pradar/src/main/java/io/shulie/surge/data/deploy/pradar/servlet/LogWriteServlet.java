@@ -56,7 +56,8 @@ public class LogWriteServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        logger.info("receive log =======================");
+        long start = System.currentTimeMillis();
+        //logger.info("receive log =======================");
         String content = null;
         ResponseDataModel responseDataModel = new ResponseDataModel(String.valueOf(CommandCode.SUCCESS), ResponseCodeEnum.CODE_0000.getMsg());
         try {
@@ -119,6 +120,7 @@ public class LogWriteServlet extends HttpServlet {
         response.setContentType("application/json;charset=utf-8");
         responseDataModel.setTime(System.currentTimeMillis());
         response.getWriter().println(JSONObject.toJSONString(responseDataModel));
+        logger.info("processed log,cost is {}", System.currentTimeMillis() - start);
     }
 
 
