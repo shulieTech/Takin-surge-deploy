@@ -28,6 +28,10 @@ import java.util.Map;
  * @author pamirs
  */
 public final class DigestContext<T extends Serializable> implements Serializable {
+    /**
+     * 接收到agent请求的时间
+     */
+    private long receiveHttpTime;
 
     /**
      * agent上报日志的时间
@@ -84,5 +88,13 @@ public final class DigestContext<T extends Serializable> implements Serializable
 
     public void setUploadTime(long uploadTime) {
         this.uploadTime = uploadTime;
+    }
+
+    public long getReceiveHttpTime() {
+        return receiveHttpTime;
+    }
+
+    public void setReceiveHttpTime(long receiveHttpTime) {
+        this.receiveHttpTime = receiveHttpTime;
     }
 }

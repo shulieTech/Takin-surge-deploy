@@ -75,6 +75,7 @@ public class BaseCommand implements ClickhouseCommand {
         meta.add("receiveTime");
         meta.add("processTime");
         meta.add("uploadTime");
+        meta.add("receiveHttpTime");
         meta.add("taskId");
 
         meta.add("userAppKey");
@@ -125,6 +126,7 @@ public class BaseCommand implements ClickhouseCommand {
         map.put("receiveTime", rpcBased.getDataLogTime());
         map.put("processTime", System.currentTimeMillis());
         map.put("uploadTime", rpcBased.getUploadTime());
+        map.put("receiveHttpTime", rpcBased.getReceiveHttpTime());
         map.put("taskId", rpcBased.getTaskId());
 
         map.put("userAppKey", rpcBased.getUserAppKey());

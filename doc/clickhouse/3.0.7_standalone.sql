@@ -142,4 +142,6 @@ CREATE TABLE default.t_trace_pressure ( `appName` String, `entranceId` Nullable(
 
 # update sql
 ALTER TABLE t_trace_all ADD COLUMN uploadTime Nullable(Int64);
+ALTER TABLE t_trace_all ADD COLUMN receiveHttpTime Nullable(Int64);
 ALTER TABLE t_trace_pressure ADD COLUMN uploadTime Nullable(Int64);
+ALTER TABLE t_trace_pressure ADD COLUMN receiveHttpTime Nullable(Int64);

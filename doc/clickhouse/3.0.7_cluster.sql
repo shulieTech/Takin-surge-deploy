@@ -149,6 +149,10 @@ CREATE TABLE t_trace_pressure on cluster ck_cluster as t_pressure ENGINE = Distr
 # update
 ALTER TABLE t_trace ON cluster ck_cluster ADD COLUMN uploadTime Nullable(Int64);
 ALTER TABLE t_pressure ON cluster ck_cluster ADD COLUMN uploadTime Nullable(Int64);
+ALTER TABLE t_trace ON cluster ck_cluster ADD COLUMN receiveHttpTime Nullable(Int64);
+ALTER TABLE t_pressure ON cluster ck_cluster ADD COLUMN receiveHttpTime Nullable(Int64);
 
 ALTER TABLE t_trace_all ADD COLUMN uploadTime Nullable(Int64);
 ALTER TABLE t_trace_pressure ADD COLUMN uploadTime Nullable(Int64);
+ALTER TABLE t_trace_all ADD COLUMN receiveHttpTime Nullable(Int64);
+ALTER TABLE t_trace_pressure ADD COLUMN receiveHttpTime Nullable(Int64);

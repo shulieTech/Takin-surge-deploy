@@ -56,7 +56,7 @@ public class LogWriteServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        long start = System.currentTimeMillis();
+        long receiveHttpTime = System.currentTimeMillis();
         //logger.info("receive log =======================");
         String content = null;
         long uploadTime = Long.parseLong(request.getHeader("time"));
@@ -101,6 +101,7 @@ public class LogWriteServlet extends HttpServlet {
                     header.put("dataVersion", dataVersion);
                     header.put("dataType", dateTypeByte);
                     header.put("uploadTime", uploadTime);
+                    header.put("receiveHttpTime", receiveHttpTime);
                     queue.publish(header, queue.splitLog(content, dateTypeByte));
                 }
             } else {
@@ -122,7 +123,7 @@ public class LogWriteServlet extends HttpServlet {
         response.setContentType("application/json;charset=utf-8");
         responseDataModel.setTime(System.currentTimeMillis());
         response.getWriter().println(JSONObject.toJSONString(responseDataModel));
-        logger.info("processed log,cost is {},event delay is {}", System.currentTimeMillis() - start, start - uploadTime);
+        logger.info("processed log,self cost is {},entire cost is {}", System.currentTimeMillis() - receiveHttpTime, receiveHttpTime - uploadTime);
     }
 
 
