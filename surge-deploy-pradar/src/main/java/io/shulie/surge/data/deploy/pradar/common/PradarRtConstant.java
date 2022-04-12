@@ -41,6 +41,11 @@ public class PradarRtConstant {
     public static final String METRICS_ID_TRACE = "trace_metrics";
 
     /**
+     * trace记录metrics
+     */
+    public static final String WATERLINE_METRICS_ID_TRACE = "waterline_trace_metrics";
+
+    /**
      * trace记录App关系metrics
      */
     public static final String APP_RELATION_METRICS_ID_TRACE = "trace_app_metrics";

@@ -49,7 +49,7 @@ import static io.shulie.surge.data.common.utils.CommonUtils.divide;
 @Singleton
 public class TraceMetricsAggarator implements Aggregator {
     private static Logger logger = LoggerFactory.getLogger(TraceMetricsAggarator.class);
-    protected final Aggregation<Metric, CallStat> aggregation = new Aggregation<>(
+    private final Aggregation<Metric, CallStat> aggregation = new Aggregation<>(
             PradarRtConstant.AGG_TRACE_SECONDS_INTERVAL,
             PradarRtConstant.AGG_TRACE_SECONDS_LOWER_LIMIT);
 

@@ -47,7 +47,7 @@ import java.util.Map;
  */
 public class PradarTraceReduceBolt extends BaseBasicBolt {
     private static Logger logger = LoggerFactory.getLogger(PradarTraceReduceBolt.class);
-    protected transient Aggregation<Metric, CallStat> aggregation;
+    private transient Aggregation<Metric, CallStat> aggregation;
     private transient Scheduler scheduler;
 
     @Inject

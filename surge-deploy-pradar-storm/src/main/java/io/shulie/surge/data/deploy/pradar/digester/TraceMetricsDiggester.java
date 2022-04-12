@@ -79,7 +79,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
     @Inject
     @DefaultValue("")
     @Named("/pradar/config/rt/traceMetricsTenantConfig")
-    protected Remote<String> traceMetricsTenantConfig;
+    private Remote<String> traceMetricsTenantConfig;
 
     @Inject
     private TraceMetricsAggarator traceMetricsAggarator;
