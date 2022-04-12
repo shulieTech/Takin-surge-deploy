@@ -17,6 +17,7 @@ package io.shulie.surge.data.deploy.pradar.common;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
+import com.pamirs.pradar.log.parser.trace.AttributesBased;
 import com.pamirs.pradar.log.parser.trace.FlagBased;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.common.utils.CommonUtils;
@@ -369,5 +370,20 @@ public final class PradarUtils {
     private static boolean skipTraceSampling(RpcBased rpcBased) {
         FlagBased flagBased;
         return (flagBased = rpcBased.getFlags()) != null && flagBased.isDebugTest();
+    }
+
+    public static void analyzeTaskIdIfNecessary(RpcBased rpcBased) {
+        if (StringUtils.isBlank(rpcBased.getTaskId()) && rpcBased.isClusterTest()) {
+            String traceId = rpcBased.getTraceId();
+            if (traceId.length() >= 33 && traceId.endsWith("01")) { // 01：代表是压测引擎压测产生的压测流量
+                String encodeTaskId = traceId.substring(26, 31);    // 目前是5位表示taskId
+                String taskId = String.valueOf(Integer.valueOf(encodeTaskId, 36));
+                rpcBased.setTaskId(taskId);
+                AttributesBased based = rpcBased.getAttributesBased();
+                if (based != null) {
+                    based.setTaskId(taskId);
+                }
+            }
+        }
     }
 }

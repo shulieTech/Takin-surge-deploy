@@ -142,6 +142,11 @@
             <version>${surge.deploy.pradar.link.version}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>redis</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
     <build>
         <!--jar包的首名称-->

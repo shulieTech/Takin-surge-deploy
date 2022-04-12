@@ -372,6 +372,8 @@ public class ApiProcessor {
             } else {
                 cache.put(taskId, Lists.newArrayList());
             }
+        } else {
+            cache.put(taskId, Lists.newArrayList());
         }
         return Lists.newArrayList();
     }

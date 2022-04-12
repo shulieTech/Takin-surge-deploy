@@ -15,7 +15,11 @@
 
 package io.shulie.surge.data.deploy.pradar.digester;
 
-import com.google.common.cache.*;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalCause;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
@@ -91,17 +95,23 @@ public class LogDigester implements DataDigester<RpcBased> {
     private ClickhouseFacade clickhouseFacade = ClickhouseFacade.Factory.getInstace();
 
     private String sql = "";
+    private String engineSql = "";
+    private String clusterTestColumnAndValuesSql = "";
 
 
     public void init() {
         String tableName = "t_trace_all";
+        String engineTable = "t_trace_pressure";
         if (CommonStat.isUseCk(this.dataSourceType)) {
             tableName = clickHouseShardSupport.isCluster() ? "t_trace" : "t_trace_all";
+            engineTable = clickHouseShardSupport.isCluster() ? "t_pressure" : "t_trace_pressure";
         }
         clickhouseFacade.addCommond(new BaseCommand());
         clickhouseFacade.addCommond(new LinkCommand());
         clickhouseFacade.addCommond(new FlagCommand());
         sql = "insert into " + tableName + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
+        engineSql = "insert into " + engineTable + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
+        clusterTestColumnAndValuesSql = " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
     }
 
     @Override
@@ -120,7 +130,7 @@ public class LogDigester implements DataDigester<RpcBased> {
             if (!PradarUtils.isTraceSampleAccepted(rpcBased, clickhouseSampling.get())) {
                 return;
             }
-
+            PradarUtils.analyzeTaskIdIfNecessary(rpcBased);
             //如果是压测引擎日志,统计每个压测报告实际上报条数
             if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
                 Long count = taskIds.getIfPresent(rpcBased.getTaskId());
@@ -144,7 +154,13 @@ public class LogDigester implements DataDigester<RpcBased> {
 
             // TODO 此修改支持mysql和clickhouse写入,代码不是很友好，后续剥离出来
             if (CommonStat.isUseCk(dataSourceType)) {
-                clickHouseShardSupport.batchUpdate(sql, objMap);
+
+                clickHouseShardSupport.batchUpdate(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, objMap);
+                String taskId = rpcBased.getTaskId();
+                if (rpcBased.getLogType() != PradarLogType.LOG_TYPE_FLOW_ENGINE && StringUtils.isNotBlank(taskId)) {
+                    clickHouseShardSupport.batchUpdate(
+                        "insert into " + getClusterTable(taskId) + clusterTestColumnAndValuesSql, objMap);
+                }
             } else {
                 mysqlSupport.batchUpdate(sql, batchs);
             }
@@ -178,5 +194,13 @@ public class LogDigester implements DataDigester<RpcBased> {
 
     public Remote<Integer> getClickhouseSampling() {
         return clickhouseSampling;
+    }
+
+    private String getClusterTable(String taskId) {
+        String clusterTable = "t_trace_pressure_%s";
+        if (CommonStat.isUseCk(this.dataSourceType)) {
+            clusterTable = clickHouseShardSupport.isCluster() ? "t_pressure_%s" : "t_trace_pressure_%s";
+        }
+        return String.format(clusterTable, taskId);
     }
 }
