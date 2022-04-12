@@ -55,10 +55,8 @@ public class ReportActivityBolt extends BaseBasicBolt {
     private static final String ACTIVITY_STATISTICS_SQL =
         "select sum(cost) sumCost, max(cost) maxCost, min(cost) minCost, count(1) reqCnt, "
             + " divide(sumCost, reqCnt) avgCost, appName, '%s' reportId, parsedServiceName serviceName, parsedMethod "
-            + "methodName, "
-            + " rpcType from (select appName, parsedServiceName, parsedMethod, rpcType, min(cost) cost from "
-            + "t_trace_pressure_%s "
-            + " where logType= '1' group by traceId, appName, parsedServiceName, parsedMethod, rpcType, rpcId) "
+            + " methodName, rpcType from (select appName, parsedServiceName, parsedMethod, rpcType, min(cost) cost from "
+            + " t_trace_pressure_%s where logType= '1' group by traceId, appName, parsedServiceName, parsedMethod, rpcType, rpcId) "
             + " group by appName, parsedServiceName, parsedMethod, rpcType";
 
     private ClickHouseSupport clickHouseSupport;

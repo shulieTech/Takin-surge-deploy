@@ -20,6 +20,8 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServlet;
@@ -28,6 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.alibaba.fastjson.JSON;
 
+import io.shulie.surge.data.common.pool.NamedThreadFactory;
 import io.shulie.surge.data.common.utils.IpAddressUtils;
 import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
@@ -107,6 +110,8 @@ public class ReportTaskServer {
         private final SpoutOutputCollector collector;
         private final MysqlSupport mysqlSupport;
         private final RedisSupport redisSupport;
+        private static final ScheduledExecutorService service =
+            Executors.newScheduledThreadPool(2, new NamedThreadFactory("report-analyze"));
 
         public ReportTaskServlet(SpoutOutputCollector collector, DataRuntime dataRuntime) {
             this.collector = collector;
@@ -128,8 +133,13 @@ public class ReportTaskServer {
                 return;
             }
             LOGGER.info("启动压测报告[{}]分析任务", reportId);
-            collector.emit(ACTIVITY_STREAM_ID, new Values(reportId));
+            startDelayIfNecessary(() -> collector.emit(ACTIVITY_STREAM_ID, new Values(reportId)));
             resp.getOutputStream().write(JSON.toJSONBytes(Response.SUCCESS));
+        }
+
+        // 先固定延迟15s执行数分析，后续再优化这个时间，保证数据尽量完整之后再进行数据统计
+        private void startDelayIfNecessary(Runnable runnable) {
+            service.schedule(runnable, 15, TimeUnit.SECONDS);
         }
 
         private boolean reportProceed(String reportId) {
