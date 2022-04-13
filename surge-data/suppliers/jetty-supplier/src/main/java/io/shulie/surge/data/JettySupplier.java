@@ -29,6 +29,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.BlockingArrayQueue;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,13 +54,17 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
 
     private static final String MIN = "MIN";
     private static final String MAX = "MAX";
-    
+
     public static ArrayList<Integer> registedPort = Lists.newArrayList();
 
 
     @Inject
     @Named("jetty.server.ports")
     protected String pradarServerPorts;
+
+    @Inject
+    @Named("jetty.server.threads")
+    protected int threads;
 
 
     @Inject
@@ -137,8 +143,8 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
      */
     private Server getServer(int port) throws Exception {
         //默认最大线程为200
-        Server server = new Server();
-        //Server server = new Server(new QueuedThreadPool(500));
+        //Server server = new Server();
+        Server server = new Server(new QueuedThreadPool(threads, threads / 2, new BlockingArrayQueue()));
         server.setStopAtShutdown(true);
         ServerConnector serverConnector = new ServerConnector(server);
         serverConnector.setPort(port);

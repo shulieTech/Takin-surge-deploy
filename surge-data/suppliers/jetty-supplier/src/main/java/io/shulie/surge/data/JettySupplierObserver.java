@@ -116,8 +116,8 @@ public class JettySupplierObserver implements LifecycleObserver {
         Map<String, Object> nodes = new HashMap<>();
         Map<String, Object> weight = new HashMap<>();
         StringBuilder key = new StringBuilder(IpAddressUtils.getLocalAddress() + ":" + publishPort);
-        weight.put(key.toString(), 1);
-        nodes.put("nodes", null);
+        weight.put(key.toString(), null);
+        nodes.put("nodes", weight);
 
         String serviceNode = JSONObject.toJSONString(nodes);
         StringEntity stringEntity = new StringEntity(serviceNode, "utf-8");
