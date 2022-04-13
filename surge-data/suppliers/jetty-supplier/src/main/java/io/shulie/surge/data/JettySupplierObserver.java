@@ -120,7 +120,7 @@ public class JettySupplierObserver implements LifecycleObserver {
         weight.put(key.toString(), null);
         nodes.put("nodes", weight);
 
-        String serviceNode = JSONObject.toJSONString(nodes, SerializerFeature.WRITE_MAP_NULL_FEATURES);
+        String serviceNode = JSONObject.toJSONString(nodes, SerializerFeature.WriteMapNullValue);
         StringEntity stringEntity = new StringEntity(serviceNode, "utf-8");
         httppatch.setEntity(stringEntity);
         CloseableHttpResponse response = null;
