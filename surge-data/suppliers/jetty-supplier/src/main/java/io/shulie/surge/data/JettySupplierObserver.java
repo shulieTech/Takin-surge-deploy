@@ -2,6 +2,7 @@ package io.shulie.surge.data;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSONPath;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import io.shulie.surge.data.common.lifecycle.Lifecycle;
@@ -119,7 +120,7 @@ public class JettySupplierObserver implements LifecycleObserver {
         weight.put(key.toString(), null);
         nodes.put("nodes", weight);
 
-        String serviceNode = JSONObject.toJSONString(nodes);
+        String serviceNode = JSONObject.toJSONString(nodes, SerializerFeature.WRITE_MAP_NULL_FEATURES);
         StringEntity stringEntity = new StringEntity(serviceNode, "utf-8");
         httppatch.setEntity(stringEntity);
         CloseableHttpResponse response = null;
@@ -128,7 +129,7 @@ public class JettySupplierObserver implements LifecycleObserver {
             HttpEntity entity = response.getEntity();
             String responseMsg = EntityUtils.toString(entity, "utf-8");
             //如果返回的已注册节点不包含当前注册节点,抛出异常
-            if (!((JSONObject) JSONPath.read(responseMsg, "$.node.value.nodes")).containsKey(key.toString())) {
+            if (((JSONObject) JSONPath.read(responseMsg, "$.node.value.nodes")).containsKey(key.toString())) {
                 throw new RuntimeException("fail to offline service to gateway,gateway cannot response correctly.");
             }
             logger.info("offline service to gateway success,service is {}", serviceNode);
