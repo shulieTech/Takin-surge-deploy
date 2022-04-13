@@ -49,7 +49,7 @@ public class PradarLogParser implements DataParser<String, RpcBased> {
             logger.warn("未解析到日志信息->" + content);
             return null;
         }
-        logger.warn("receive traceId={}", rpcBased.getTraceId());
+        logger.warn("receive traceId={},log source:{}", rpcBased.getTraceId(), rpcBased.getLogType() != 5 ? "agent" : "takin-cloud");
         rpcBased.setLog(content);
 
         DigestContext<RpcBased> context = new DigestContext<>();
