@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +52,8 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
 
     private static final String MIN = "MIN";
     private static final String MAX = "MAX";
+    
+    public static ArrayList<Integer> registedPort = Lists.newArrayList();
 
 
     @Inject
@@ -97,6 +100,7 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
                 port = index;
                 server = getServer(port);
                 logger.info("current started port is {}", port);
+                registedPort.add(port);
             } catch (Throwable e) {
                 logger.error("start current port {} catch exception:{},{},next port start {} ", index, e, e.getStackTrace(), index + 1);
                 continue;

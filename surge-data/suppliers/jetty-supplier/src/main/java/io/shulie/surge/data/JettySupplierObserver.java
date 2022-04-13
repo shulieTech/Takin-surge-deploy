@@ -46,6 +46,10 @@ public class JettySupplierObserver implements LifecycleObserver {
     @Named("config.gateway.apisix.apikey")
     protected transient String apikey;
 
+    private static String staticHost;
+    private static int staticPort;
+    private static String staticUrl;
+    private static String staticApikey;
 
     @Override
     public void beforeStart(Lifecycle target) {
@@ -59,6 +63,10 @@ public class JettySupplierObserver implements LifecycleObserver {
             //调用网关服务注册
             registerToGateWay(IpAddressUtils.getLocalAddress(), jettySupplier.getPort());
         }
+        staticHost = host;
+        staticPort = port;
+        staticUrl = url;
+        staticApikey = apikey;
     }
 
     private Boolean registerToGateWay(String ip, int publishPort) {
@@ -89,6 +97,43 @@ public class JettySupplierObserver implements LifecycleObserver {
             logger.info("register service to gateway success,service is {}", serviceNode);
         } catch (Exception e) {
             throw new RuntimeException("fail to register service to gateway,service is " + serviceNode, e);
+        }
+        try {
+            response.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    public static Boolean offlineNotify(int publishPort) {
+        CloseableHttpClient httpclient = HttpClients.createDefault();
+        String uri = "http://" + staticHost + ":" + staticPort + staticUrl;
+        HttpPatch httppatch = new HttpPatch(uri);
+        httppatch.addHeader("Content-type", "application/json");
+        httppatch.addHeader("X-API-KEY", staticApikey);
+
+        Map<String, Object> nodes = new HashMap<>();
+        Map<String, Object> weight = new HashMap<>();
+        StringBuilder key = new StringBuilder(IpAddressUtils.getLocalAddress() + ":" + publishPort);
+        weight.put(key.toString(), 1);
+        nodes.put("nodes", null);
+
+        String serviceNode = JSONObject.toJSONString(nodes);
+        StringEntity stringEntity = new StringEntity(serviceNode, "utf-8");
+        httppatch.setEntity(stringEntity);
+        CloseableHttpResponse response = null;
+        try {
+            response = httpclient.execute(httppatch);
+            HttpEntity entity = response.getEntity();
+            String responseMsg = EntityUtils.toString(entity, "utf-8");
+            //如果返回的已注册节点不包含当前注册节点,抛出异常
+            if (!((JSONObject) JSONPath.read(responseMsg, "$.node.value.nodes")).containsKey(key.toString())) {
+                throw new RuntimeException("fail to offline service to gateway,gateway cannot response correctly.");
+            }
+            logger.info("offline service to gateway success,service is {}", serviceNode);
+        } catch (Exception e) {
+            throw new RuntimeException("fail to offline service to gateway,service is " + serviceNode, e);
         }
         try {
             response.close();

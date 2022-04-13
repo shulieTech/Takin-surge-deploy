@@ -18,6 +18,7 @@ package io.shulie.surge.data.deploy.pradar;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import io.shulie.surge.data.JettySupplier;
+import io.shulie.surge.data.JettySupplierObserver;
 import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.deploy.pradar.agg.E2ETraceMetricsAggarator;
 import io.shulie.surge.data.deploy.pradar.agg.TraceMetricsAggarator;
@@ -34,6 +35,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+
+import static io.shulie.surge.data.JettySupplier.registedPort;
 
 /**
  * @author vincent
@@ -111,5 +114,22 @@ public class PradarLogSpout extends BaseRichSpout {
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
         outputFieldsDeclarer.declareStream(PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID, new Fields("slotKey", "job"));
         outputFieldsDeclarer.declareStream(PradarRtConstant.REDUCE_E2E_TRACE_METRICS_STREAM_ID, new Fields("slotKey", "job"));
+    }
+
+    @Override
+    public void close() {
+        logger.info("registered port:{}", registedPort);
+        if (!registedPort.isEmpty()) {
+            for (int i = 0; i < registedPort.size(); i++) {
+                try {
+                    JettySupplierObserver.offlineNotify(registedPort.get(i));
+                    logger.info("jetty service offline success:{}", registedPort.get(i));
+                } catch (Exception e) {
+                    logger.error("jetty service offline notify gateway failed :{},stack:{}", e, e.getStackTrace());
+                    continue;
+                }
+            }
+        }
+        super.close();
     }
 }
