@@ -103,6 +103,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
         if (executeDisabled()) {
             return;
         }
+        // todo 只取有数据库的应用
         List<InnerEntity> entityCache = appCache.getEntityCache();
         if (CollectionUtils.isEmpty(entityCache)) {
             return;

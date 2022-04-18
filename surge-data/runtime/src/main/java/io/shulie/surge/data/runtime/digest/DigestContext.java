@@ -28,7 +28,6 @@ import java.util.Map;
  * @author pamirs
  */
 public final class DigestContext<T extends Serializable> implements Serializable {
-
     /**
      * 当前处理的时间
      */
@@ -73,4 +72,5 @@ public final class DigestContext<T extends Serializable> implements Serializable
     public void setEventTime(long eventTime) {
         this.eventTime = eventTime;
     }
+
 }
