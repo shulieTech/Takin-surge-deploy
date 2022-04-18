@@ -111,6 +111,7 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
         remotingServer.registerDefaultProcessor(new NettyCommandProcessor() {
             @Override
             public RemotingCommand processCommand(ChannelHandlerContext ctx, RemotingCommand req) {
+                long receiveHttpTime = System.currentTimeMillis();
                 RemotingCommand responseCommand = new RemotingCommand();
                 /**
                  * 设置response
@@ -138,6 +139,7 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
                     header.put("hostIp", hostIp);
                     header.put("dataVersion", dataVersion);
                     header.put("dataType", dataType);
+                    header.put("receiveHttpTime", receiveHttpTime);
                     queue.publish(header, queue.splitLog(content, dataType));
                 } catch (RingBufferIllegalStateException e) {
                     logger.error(e.getMessage());
