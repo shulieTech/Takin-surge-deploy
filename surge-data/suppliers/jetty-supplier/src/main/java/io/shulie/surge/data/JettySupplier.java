@@ -115,10 +115,7 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
             break;
         }
 
-        // 初始化聚合接口
-        // apiProcessor.init();
         super.start();
-
         logger.info("JETTY supplier started success.port is {}", port);
     }
 
