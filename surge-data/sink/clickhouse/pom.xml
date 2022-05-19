@@ -21,11 +21,10 @@
         <groupId>io.shulie.surge.data</groupId>
         <artifactId>sink</artifactId>
         <version>1.0</version>
-</parent>
+    </parent>
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.shulie.surge.data</groupId>
     <artifactId>clickhouse</artifactId>
 
     <dependencies>
@@ -33,16 +32,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.30</version>
-        </dependency>
-        <dependency>
-            <groupId>io.shulie.surge.data</groupId>
-            <artifactId>common</artifactId>
-            <version>1.1</version>
-        </dependency>
-        <dependency>
-            <groupId>io.shulie.surge.data</groupId>
-            <artifactId>runtime</artifactId>
-            <version>1.2</version>
         </dependency>
         <dependency>
             <groupId>ru.yandex.clickhouse</groupId>
@@ -57,7 +46,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

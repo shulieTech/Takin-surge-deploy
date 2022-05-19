@@ -33,7 +33,6 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <log.protocol.version>2.0.7.3</log.protocol.version>
         <log.remoting.version>2.0.5</log.remoting.version>
-        <log.rule.version>2.0.4</log.rule.version>
         <log.assembler.version>2.0.4</log.assembler.version>
         <surge.deploy.pradar.link.version>1.0.2.7</surge.deploy.pradar.link.version>
     </properties>
@@ -46,20 +45,71 @@
         <module>surge-data</module>
     </modules>
 
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>io.shulie.pradar</groupId>
                 <artifactId>log-protocol</artifactId>
                 <version>${log.protocol.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.shulie.pradar</groupId>
+                <artifactId>log-remoting</artifactId>
+                <version>${log.remoting.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.shulie.surge.data</groupId>
+                <artifactId>surge-deploy-pradar-common</artifactId>
+                <version>1.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.shulie.surge.data</groupId>
+                <artifactId>surge-deploy-pradar-parser</artifactId>
+                <version>1.0.2</version>
+            </dependency>
+            <dependency>
+                <groupId>io.shulie.surge.data</groupId>
+                <artifactId>surge-deploy-pradar-link</artifactId>
+                <version>${surge.deploy.pradar.link.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.shulie.surge.data</groupId>
+                <artifactId>common</artifactId>
+                <version>1.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.shulie.surge.data</groupId>
+                <artifactId>runtime</artifactId>
+                <version>1.2</version>
+            </dependency>
+            <dependency>
+                <groupId>io.shulie.surge.data</groupId>
+                <artifactId>clickhouse</artifactId>
+                <version>1.0</version>
+            </dependency>
+            <!-- log core-->
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>1.2.0</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>1.2.3</version>
+            </dependency>
+            <!--common -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.11</version>
+            </dependency>
+            <!--junit-->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.12</version>
+                <scope>test</scope>
             </dependency>
             <!-- mockito-->
             <dependency>
@@ -99,6 +149,16 @@
                 <artifactId>jooq-codegen</artifactId>
                 <version>3.11.2</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.24</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.6</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
