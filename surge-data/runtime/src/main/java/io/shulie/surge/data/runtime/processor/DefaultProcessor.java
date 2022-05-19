@@ -25,10 +25,7 @@ import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.runtime.digest.handler.DigestJob;
 import io.shulie.surge.data.runtime.digest.handler.DigesterWorkerHanlder;
-import io.shulie.surge.data.runtime.disruptor.InsufficientCapacityException;
-import io.shulie.surge.data.runtime.disruptor.RingBuffer;
-import io.shulie.surge.data.runtime.disruptor.RingBufferIllegalStateException;
-import io.shulie.surge.data.runtime.disruptor.SleepingWaitStrategy;
+import io.shulie.surge.data.runtime.disruptor.*;
 import io.shulie.surge.data.runtime.disruptor.dsl.Disruptor;
 import io.shulie.surge.data.runtime.disruptor.dsl.ProducerType;
 import io.shulie.surge.data.runtime.parser.DataParser;
@@ -69,7 +66,18 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
         this.digesterTimeCost = new long[processorConfig.getDigesters().length];
         // disruptor实现
         ExecutorService es = DataPoolExecutors.newDefaultNoQueueExecutors(processorConfig.getExecuteSize(), processorConfig.getExecuteSize() * 2, 3, TimeUnit.SECONDS, new ThreadFactoryBuilder().setNameFormat(processorConfig.getName() + "-Processor_thread_-%d").build(), null);
-        disruptor = new Disruptor<>(DigestJob.EVENT_FACTORY, processorConfig.getRingBufferSize(), es, ProducerType.MULTI, new SleepingWaitStrategy());
+        switch (processorConfig.getRingbufferWaitStrategy()) {
+            case "SleepingWaitStrategy":
+                disruptor = new Disruptor<>(DigestJob.EVENT_FACTORY, processorConfig.getRingBufferSize(), es, ProducerType.MULTI, new SleepingWaitStrategy());
+                break;
+            case "BlockingWaitStrategy":
+                disruptor = new Disruptor<>(DigestJob.EVENT_FACTORY, processorConfig.getRingBufferSize(), es, ProducerType.MULTI, new BlockingWaitStrategy());
+                break;
+            default:
+                disruptor = new Disruptor<>(DigestJob.EVENT_FACTORY, processorConfig.getRingBufferSize(), es, ProducerType.MULTI, new SleepingWaitStrategy());
+                break;
+        }
+
         int digesterCount = processorConfig.getDigesters().length;
 
         for (int i = 0; i < digesterCount; i++) {

@@ -65,6 +65,7 @@ public class PradarStormSupplierConfiguration {
     private boolean registerZk;
     private boolean generalVersion;
     private int coreSize;
+    private String ringbufferWaitStrategy;
 
     public PradarStormSupplierConfiguration(Map<String, String> netMap, Map<String, String> hostNameMap,
                                             boolean registerZk, int coreSize, String dataSourceType,
@@ -100,6 +101,28 @@ public class PradarStormSupplierConfiguration {
         this.dataSourceType = Objects.toString(dataSourceType);
     }
 
+    public PradarStormSupplierConfiguration(
+            Object netMapStr,
+            Object hostNameMapStr,
+            Object registerZk,
+            Object coreSize,
+            Object dataSourceType,
+            Object serverPortsMapStr, Object ringbufferWaitStrategy) {
+        if (null != netMapStr && StringUtils.isNotBlank(String.valueOf(netMapStr))) {
+            this.netMap = JSON.parseObject(String.valueOf(netMapStr), Map.class);
+        }
+        if (null != hostNameMapStr && StringUtils.isNotBlank(String.valueOf(hostNameMapStr))) {
+            this.hostNameMap = JSON.parseObject(String.valueOf(hostNameMapStr), Map.class);
+        }
+        if (null != serverPortsMapStr && StringUtils.isNotBlank(String.valueOf(serverPortsMapStr))) {
+            this.serverPortsMap = JSON.parseObject(String.valueOf(serverPortsMapStr), Map.class);
+        }
+        this.registerZk = CommonStat.TRUE.equals(String.valueOf(registerZk)) ? true : false;
+        this.coreSize = Integer.valueOf(Objects.toString(coreSize));
+        this.dataSourceType = Objects.toString(dataSourceType);
+        this.ringbufferWaitStrategy = Objects.toString(ringbufferWaitStrategy);
+    }
+
     /**
      * 创建订阅器
      *
@@ -119,6 +142,7 @@ public class PradarStormSupplierConfiguration {
              * storm消费trace日志
              */
             ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
+            traceLogProcessorConfigSpec.setRingbufferWaitStrategy(ringbufferWaitStrategy);
             traceLogProcessorConfigSpec.setName("trace-log");
             traceLogProcessorConfigSpec.setDigesters(
                     ArrayUtils.addAll(conf.buildTraceLogProcess(dataRuntime),
@@ -130,6 +154,7 @@ public class PradarStormSupplierConfiguration {
              * storm消费monitor日志
              */
             ProcessorConfigSpec<PradarProcessor> baseProcessorConfigSpec = new PradarProcessorConfigSpec();
+            baseProcessorConfigSpec.setRingbufferWaitStrategy(ringbufferWaitStrategy);
             baseProcessorConfigSpec.setName("base");
             baseProcessorConfigSpec.setDigesters(conf.buildMonitorProcess(dataRuntime));
             baseProcessorConfigSpec.setExecuteSize(coreSize);
@@ -139,6 +164,7 @@ public class PradarStormSupplierConfiguration {
              * agent日志
              */
             ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
+            agentProcessorConfigSpec.setRingbufferWaitStrategy(ringbufferWaitStrategy);
             agentProcessorConfigSpec.setName("agent-log");
             agentProcessorConfigSpec.setDigesters(conf.buildAgentProcess(dataRuntime));
             agentProcessorConfigSpec.setExecuteSize(coreSize);

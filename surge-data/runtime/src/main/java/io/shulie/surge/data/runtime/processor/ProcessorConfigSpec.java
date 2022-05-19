@@ -29,6 +29,8 @@ public abstract class ProcessorConfigSpec<T extends DefaultProcessor> implements
     private float ringBufferRemainRate = 0.2f;
     //执行器名称
     private String name;
+    //等待策略名称
+    private String ringbufferWaitStrategy;
 
     /**
      * @return 被创建的对象的 interface
@@ -77,4 +79,14 @@ public abstract class ProcessorConfigSpec<T extends DefaultProcessor> implements
     public void setName(String name) {
         this.name = name;
     }
+
+
+    public String getRingbufferWaitStrategy() {
+        return ringbufferWaitStrategy;
+    }
+
+    public void setRingbufferWaitStrategy(String ringbufferWaitStrategy) {
+        this.ringbufferWaitStrategy = ringbufferWaitStrategy;
+    }
+
 }

@@ -29,6 +29,7 @@ import java.util.Map;
 public class ParamUtil {
     //ringbuffer的线程数,此参数默认获取当前机器的cpu核数*2
     public static final String CORE_SIZE = "-DCoreSize=";
+    public static final String RINGBUFFER_WRIT_STRATEGY = "-DRingbufferWaitStrategy=";
     public static final String REGISTERZK = "-DRegisterZK=";
     // workers数量
     public static final String WORKERS = "-DWorkers=";
@@ -69,6 +70,8 @@ public class ParamUtil {
                 String param = args[i];
                 if (param.startsWith(ParamUtil.CORE_SIZE)) {
                     conf.put(ParamUtil.CORE_SIZE, param.replace(ParamUtil.CORE_SIZE, ""));
+                } else if (param.startsWith(ParamUtil.RINGBUFFER_WRIT_STRATEGY)) {
+                    conf.put(ParamUtil.RINGBUFFER_WRIT_STRATEGY, param.replace(ParamUtil.RINGBUFFER_WRIT_STRATEGY, ""));
                 } else if (param.startsWith(ParamUtil.WORKERS)) {
                     conf.put(ParamUtil.WORKERS, param.replace(ParamUtil.WORKERS, ""));
                 } else if (param.startsWith(ParamUtil.HOSTNAME)) {

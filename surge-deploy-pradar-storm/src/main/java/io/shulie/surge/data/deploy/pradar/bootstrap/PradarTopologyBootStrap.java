@@ -49,7 +49,8 @@ public class PradarTopologyBootStrap {
                         inputMap.get(ParamUtil.REGISTERZK),
                         inputMap.getOrDefault(ParamUtil.CORE_SIZE, "0"),
                         inputMap.get(ParamUtil.DATA_SOURCE_TYPE),
-                        inputMap.get(ParamUtil.PORTS));
+                        inputMap.get(ParamUtil.PORTS),
+                        inputMap.getOrDefault(ParamUtil.RINGBUFFER_WRIT_STRATEGY, "SleepingWaitStrategy"));
         try {
             DataRuntime dataRuntime = pradarStormSupplierConfiguration.initDataRuntime();
             pradarStormSupplierConfiguration.buildSupplier(dataRuntime, false).start();
