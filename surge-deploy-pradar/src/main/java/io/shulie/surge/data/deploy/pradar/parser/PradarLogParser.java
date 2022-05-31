@@ -19,7 +19,6 @@ import com.pamirs.pradar.log.parser.ProtocolParserFactory;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.runtime.parser.DataParser;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +49,9 @@ public class PradarLogParser implements DataParser<String, RpcBased> {
             logger.warn("未解析到日志信息->" + content);
             return null;
         }
-
+        if (logger.isDebugEnabled()) {
+            logger.debug("receive traceId={},log source:{}", rpcBased.getTraceId(), rpcBased.getLogType() != 5 ? "agent" : "takin-cloud");
+        }
         rpcBased.setLog(content);
 
         DigestContext<RpcBased> context = new DigestContext<>();

@@ -43,6 +43,7 @@ import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
+import io.shulie.surge.deploy.pradar.constants.TenantEnvConstants;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -139,11 +140,9 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
             /** 指标计算不参考业务活动的边**/
             String appNameConfig = traceMetricsConfig.get();
             String tenantConfig = traceMetricsTenantConfig.get();
-            if (!(checkAppName(appNameConfig, appName) || checkTenant(tenantConfig, rpcBased.getUserAppKey()))) {
-                //rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
-                //edgeId = rpcBasedParser.edgeId("", rpcBased);
-                //eagleTags = rpcBasedParser.edgeTags("", rpcBased);
-                
+            //不在业务活动拓扑图中的边,如果需要提供服务监控接口性能查询,走应用配置和租户配置查询(客户端日志不计算)
+            if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_RPC_CLIENT || !(checkAppName(appNameConfig, appName) || checkTenant(tenantConfig, rpcBased.getUserAppKey(), rpcBased.getEnvCode()))) {
+
                 //重复的边ID只打印一次
                 if (StringUtils.isBlank(cache.getIfPresent(edgeId))) {
                     cache.put(edgeId, edgeId);
@@ -151,6 +150,9 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                 }
                 return;
             }
+            rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
+            edgeId = rpcBasedParser.edgeId("", rpcBased);
+            eagleTags = rpcBasedParser.edgeTags("", rpcBased);
         }
 
         //获取是否压测流量
@@ -300,11 +302,19 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         return false;
     }
 
-    private boolean checkTenant(String config, String tenantAppKey) {
+    /**
+     * 生产环境才允许走租户配置
+     *
+     * @param config
+     * @param tenantAppKey
+     * @param envCode
+     * @return
+     */
+    private boolean checkTenant(String config, String tenantAppKey, String envCode) {
         if (StringUtils.isNotBlank(config)) {
             String[] tenantArr = config.split(",");
             for (int i = 0; i < tenantArr.length; i++) {
-                if (tenantAppKey.equals(tenantArr[i])) {
+                if (tenantAppKey.equals(tenantArr[i]) && TenantEnvConstants.ENV_PROD.equalsIgnoreCase(envCode)) {
                     return true;
                 }
             }

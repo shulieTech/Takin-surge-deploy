@@ -91,17 +91,21 @@ public class LogDigester implements DataDigester<RpcBased> {
     private ClickhouseFacade clickhouseFacade = ClickhouseFacade.Factory.getInstace();
 
     private String sql = "";
+    private String engineSql = "";
 
 
     public void init() {
         String tableName = "t_trace_all";
+        String engineTable = "t_trace_pressure";
         if (CommonStat.isUseCk(this.dataSourceType)) {
             tableName = clickHouseShardSupport.isCluster() ? "t_trace" : "t_trace_all";
+            engineTable = clickHouseShardSupport.isCluster() ? "t_pressure" : "t_trace_pressure";
         }
         clickhouseFacade.addCommond(new BaseCommand());
         clickhouseFacade.addCommond(new LinkCommand());
         clickhouseFacade.addCommond(new FlagCommand());
         sql = "insert into " + tableName + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
+        engineSql = "insert into " + engineTable + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
     }
 
     @Override
@@ -129,6 +133,10 @@ public class LogDigester implements DataDigester<RpcBased> {
             }
 
             rpcBased.setDataLogTime(context.getProcessTime());
+            if (context.getHeader().containsKey("uploadTime")) {
+                rpcBased.setUploadTime((Long) context.getHeader().get("uploadTime"));
+            }
+            rpcBased.setReceiveHttpTime((Long) context.getHeader().get("receiveHttpTime"));
             //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
             if (StringUtils.isBlank(rpcBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
                 rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
@@ -144,7 +152,8 @@ public class LogDigester implements DataDigester<RpcBased> {
 
             // TODO 此修改支持mysql和clickhouse写入,代码不是很友好，后续剥离出来
             if (CommonStat.isUseCk(dataSourceType)) {
-                clickHouseShardSupport.batchUpdate(sql, objMap);
+
+                clickHouseShardSupport.batchUpdate(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, objMap);
             } else {
                 mysqlSupport.batchUpdate(sql, batchs);
             }
