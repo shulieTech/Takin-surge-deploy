@@ -28,33 +28,31 @@
     <version>1.0.2</version>
 
     <dependencies>
+
+        <!--version managed by parent pom -->
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-common</artifactId>
-            <version>1.1</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>common</artifactId>
-            <version>1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>runtime</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.shulie.pradar</groupId>
             <artifactId>log-protocol</artifactId>
-            <version>${log.protocol.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>guava</artifactId>
                     <groupId>com.google.guava</groupId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.shulie.surge.data</groupId>
-            <artifactId>runtime</artifactId>
-            <version>1.2</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>

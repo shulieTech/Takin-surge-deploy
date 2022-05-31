@@ -72,27 +72,23 @@
             <artifactId>storm-core</artifactId>
             <version>1.1.0.2.6.5.0-292</version>
             <scope>provided</scope>
-            <!--<exclusions>
-                <exclusion>
-                    <groupId>com.esotericsoftware</groupId>
-                    <artifactId>kryo</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-auth</artifactId>
-                </exclusion>
-            </exclusions>-->
         </dependency>
+
+        <!--version managed by parent pom -->
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-parser</artifactId>
-            <version>1.0.2</version>
             <exclusions>
                 <exclusion>
                     <artifactId>jline</artifactId>
                     <groupId>jline</groupId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
