@@ -377,9 +377,8 @@ public final class PradarUtils {
      */
     public static boolean isAgentInfoSampleAccepted(AgentBased agentBased, final int sampling) {
         if (sampling > 1 && sampling <= 10000) {
-            long timestamp = agentBased.getTimestamp() / 1000;
-            long second = timestamp % 1000;
-            return second % sampling == 0;
+            String hashStr = String.valueOf(agentBased.getLogTime()).concat(agentBased.getHostIp());
+            return hashStr.hashCode() % sampling == 0;
         }
         return true;
     }
