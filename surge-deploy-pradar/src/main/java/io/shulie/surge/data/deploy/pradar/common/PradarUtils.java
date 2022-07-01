@@ -17,6 +17,7 @@ package io.shulie.surge.data.deploy.pradar.common;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
+import com.pamirs.pradar.log.parser.agent.AgentBased;
 import com.pamirs.pradar.log.parser.trace.FlagBased;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.common.utils.CommonUtils;
@@ -369,5 +370,14 @@ public final class PradarUtils {
     private static boolean skipTraceSampling(RpcBased rpcBased) {
         FlagBased flagBased;
         return (flagBased = rpcBased.getFlags()) != null && flagBased.isDebugTest();
+    }
+
+    /**
+     * 按时间采样
+     */
+    public static boolean isAgentInfoSampleAccepted(AgentBased agentBased, final int sampling) {
+        long timestamp = agentBased.getTimestamp() / 1000;
+        long second = timestamp / 1000;
+        return second % sampling == 0;
     }
 }
