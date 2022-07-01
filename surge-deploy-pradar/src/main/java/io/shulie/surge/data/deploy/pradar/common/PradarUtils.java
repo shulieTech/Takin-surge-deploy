@@ -174,8 +174,8 @@ public final class PradarUtils {
 
     /**
      * 检查调用链是否需要被采样
-     *  1、采样值需要大于 1 才会做计算，小于等于 1 会作为全部采样处理
-     *  2、skipTraceSampling：是否全部采样逻辑判断
+     * 1、采样值需要大于 1 才会做计算，小于等于 1 会作为全部采样处理
+     * 2、skipTraceSampling：是否全部采样逻辑判断
      *
      * @param sampling 采样率
      * @param rpcBased trace日志，<i>NotNull</i>
@@ -376,8 +376,11 @@ public final class PradarUtils {
      * 按时间采样
      */
     public static boolean isAgentInfoSampleAccepted(AgentBased agentBased, final int sampling) {
-        long timestamp = agentBased.getTimestamp() / 1000;
-        long second = timestamp / 1000;
-        return second % sampling == 0;
+        if (sampling > 1 && sampling <= 10000) {
+            long timestamp = agentBased.getTimestamp() / 1000;
+            long second = timestamp % 1000;
+            return second % sampling == 0;
+        }
+        return true;
     }
 }
