@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.pamirs.pradar.log.parser.agent.AgentBased;
 import com.pamirs.pradar.log.parser.constant.TenantConstants;
+import io.shulie.surge.data.deploy.pradar.common.PradarUtils;
 import io.shulie.surge.data.deploy.pradar.model.AgentInfoModel;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
@@ -55,6 +56,21 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
     @Named("/pradar/config/rt/reserveHours")
     private Remote<Integer> reserveHours;
 
+    @Inject
+    @DefaultValue("false")
+    @Named("/pradar/config/rt/agentInfoDisable")
+    private Remote<Boolean> agentInfoDisable;
+
+    @Inject
+    @DefaultValue("4000")
+    @Named("/pradar/config/rt/agentInfoLength")
+    private Remote<Integer> agentInfoLength;
+
+    @Inject
+    @DefaultValue("1")
+    @Named("/pradar/config/rt/agentInfoSampling")
+    private Remote<Integer> agentInfoSampling;
+
     /**
      * 初始化任务只会执行一次
      */
@@ -68,7 +84,7 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
             } else {
                 isWriteFlag = true;
             }
-            
+
             //如果当前写入标志为false
             if (!isWriteFlag) {
                 //开始强制执行清理
@@ -88,6 +104,9 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
 
     @Override
     public void digest(DigestContext<AgentBased> context) {
+        if (agentInfoDisable.get()) {
+            return;
+        }
         if (!isWriteFlag) {
             return;
         }
@@ -100,7 +119,10 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
             if (agentBased == null) {
                 return;
             }
-
+            // 采样处理
+            if (!PradarUtils.isAgentInfoSampleAccepted(agentBased, agentInfoSampling.get())) {
+                return;
+            }
             if (!Pattern.matches(pattern, agentBased.getIp())) {
                 logger.warn("detect illegal agent log:{},skip it.", agentBased);
                 return;
@@ -117,10 +139,10 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
                 agentBased.setUserId(TenantConstants.DEFAULT_USERID);
             }
 
-            if (agentBased.getAgentInfo().length() > 40000) {
+            if (agentBased.getAgentInfo().length() > agentInfoLength.get()) {
                 String agentInfo = agentBased.getAgentInfo();
                 logger.warn("agent log is too long:{},cut it: {}.", agentInfo.length(), agentBased);
-                agentBased.setAgentInfo(agentInfo.substring(0, 40000));
+                agentBased.setAgentInfo(agentInfo.substring(0, agentInfoLength.get()));
                 //help gc
                 agentInfo = null;
             }
