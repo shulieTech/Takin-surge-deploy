@@ -52,7 +52,7 @@ public class PradarTopologyBootStrap {
                         inputMap.get(ParamUtil.PORTS));
         try {
             DataRuntime dataRuntime = pradarStormSupplierConfiguration.initDataRuntime();
-            pradarStormSupplierConfiguration.buildSupplier(dataRuntime, false).start();
+            pradarStormSupplierConfiguration.buildSupplier(dataRuntime, true).start();
         } catch (Throwable e) {
             throw new RuntimeException("fail to start PradarLog", e);
         }
