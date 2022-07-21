@@ -52,6 +52,8 @@ public class PradarLogSpout extends BaseRichSpout {
     private EagleLoader eagleLoader;
     @Inject
     private RuleLoader ruleLoader;
+    @Inject
+    private VersionRegister versionRegister;
 
     @Override
     public void open(Map map, TopologyContext topologyContext, SpoutOutputCollector spoutOutputCollector) {
@@ -88,6 +90,7 @@ public class PradarLogSpout extends BaseRichSpout {
             // 初始化边缓存
             eagleLoader.init();
             ruleLoader.init();
+            versionRegister.init();
             nettyRemotingSupplier.start();
 
             //启动jetty
