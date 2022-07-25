@@ -7,6 +7,8 @@ import com.google.inject.Singleton;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -20,6 +22,8 @@ import java.util.concurrent.TimeUnit;
  */
 @Singleton
 public class EagleLoader {
+    private static Logger logger = LoggerFactory.getLogger(EagleLoader.class);
+
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
@@ -34,7 +38,7 @@ public class EagleLoader {
 
     private static final String QUERY_LINK_EDGE = "select edge_id from t_amdb_pradar_link_edge where link_id='%s' and gmt_modify > '%s' limit %d,%d";
 
-    private static int pageSize = 500;
+    private static int pageSize = 1000;
 
     public void init() {
         Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> initConfig(), 0, 5, TimeUnit.MINUTES);
@@ -63,6 +67,9 @@ public class EagleLoader {
                                 this.cache.put(edgeId, "");
                             });
                             startIndex++;
+                            if (startIndex > 10) {
+                                logger.warn("当前页码超过10,边数据量已超1万,请检查!!!");
+                            }
                         } else {
                             // 遍历完成
                             break;
