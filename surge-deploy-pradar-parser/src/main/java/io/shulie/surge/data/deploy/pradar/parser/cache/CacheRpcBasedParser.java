@@ -17,6 +17,7 @@ package io.shulie.surge.data.deploy.pradar.parser.cache;
 
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.parser.db.DBClientRpcBasedParser;
+import io.shulie.surge.data.deploy.pradar.parser.utils.RedisCommandUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
@@ -46,7 +47,12 @@ public class CacheRpcBasedParser extends DBClientRpcBasedParser {
              * ─serviceName─┬─methodName──┬─middlewareName─┬─parsedMiddlewareName─┐
              * │ del         │ [[B@9f2e43b │ redis          │ REDIS                │
              */
-            return serviceName;
+            /**
+             * ─serviceName─┬─methodName──┬─middlewareName─┬─parsedMiddlewareName─┐
+             * │ [[B@9f2e43b │ del        │ redis          │ REDIS                │
+             */
+            // 这里处理的时候比较麻烦,因为serviceName和methodName都可能会搞成值的形式，这里直接匹配Redis Command
+            return RedisCommandUtils.parseMethod(serviceName, rpcBased.getMethodName());
         }
         return rpcBased.getMethodName();
     }
