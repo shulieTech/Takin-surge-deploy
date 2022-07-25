@@ -2,6 +2,8 @@ package io.shulie.surge.data.deploy.pradar.parser.utils;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import java.util.Set;
@@ -14,6 +16,8 @@ import java.util.Set;
  * @date 2022/7/25 2:26 PM
  */
 public class RedisCommandUtils {
+    private static Logger logger = LoggerFactory.getLogger(RedisCommandUtils.class);
+
     private static Set<String> REDIS_KEYS = Sets.newHashSet();
 
     // Redis COMMAND 后续版本可通过此命令获取最新添加,目前是7.0.4版本命令
@@ -275,6 +279,7 @@ public class RedisCommandUtils {
             return methodName;
         }
         // 其他情况暂时处理默认值
+        logger.warn("current Redis trace log setting is error {},{}", serviceName, methodName);
         return "command";
     }
 
