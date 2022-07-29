@@ -17,6 +17,7 @@ package io.shulie.surge.data.deploy.pradar.common;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
+import com.pamirs.pradar.log.parser.agent.AgentBased;
 import com.pamirs.pradar.log.parser.trace.FlagBased;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.common.utils.CommonUtils;
@@ -173,8 +174,8 @@ public final class PradarUtils {
 
     /**
      * 检查调用链是否需要被采样
-     *  1、采样值需要大于 1 才会做计算，小于等于 1 会作为全部采样处理
-     *  2、skipTraceSampling：是否全部采样逻辑判断
+     * 1、采样值需要大于 1 才会做计算，小于等于 1 会作为全部采样处理
+     * 2、skipTraceSampling：是否全部采样逻辑判断
      *
      * @param sampling 采样率
      * @param rpcBased trace日志，<i>NotNull</i>
@@ -369,5 +370,16 @@ public final class PradarUtils {
     private static boolean skipTraceSampling(RpcBased rpcBased) {
         FlagBased flagBased;
         return (flagBased = rpcBased.getFlags()) != null && flagBased.isDebugTest();
+    }
+
+    /**
+     * 按时间采样
+     */
+    public static boolean isAgentInfoSampleAccepted(AgentBased agentBased, final int sampling) {
+        if (sampling > 1 && sampling <= 10000) {
+            String hashStr = String.valueOf(agentBased.getLogTime()).concat(agentBased.getHostIp());
+            return hashStr.hashCode() % sampling == 0;
+        }
+        return true;
     }
 }

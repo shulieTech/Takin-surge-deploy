@@ -81,7 +81,7 @@ public class LogDigester implements DataDigester<RpcBased> {
         @Override
         public void onRemoval(RemovalNotification<String, Long> removalNotification) {
             if (removalNotification.getCause().equals(RemovalCause.EXPIRED)) {
-                //logger.info("[{}] pressure test is finished.Total requestCount is [{}],{}.", removalNotification.getKey(), removalNotification.getValue(), removalNotification.getCause());
+                logger.info("[{}] pressure test is finished.Total requestCount is [{}],{}.", removalNotification.getKey(), removalNotification.getValue(), removalNotification.getCause());
             }
         }
     }).build();
