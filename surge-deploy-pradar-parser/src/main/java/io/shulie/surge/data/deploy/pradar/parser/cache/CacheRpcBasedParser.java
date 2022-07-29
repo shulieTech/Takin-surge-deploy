@@ -37,22 +37,7 @@ public class CacheRpcBasedParser extends DBClientRpcBasedParser {
     public String methodParse(RpcBased rpcBased) {
         //如果中间件类型是redis,则从serviceName中解析方法名称,其他缓存如google-guava则还是取其methodname
         if ("redis".equals(rpcBased.getMiddlewareName())) {
-            String serviceName = rpcBased.getServiceName();
-            if (StringUtils.isNotBlank(serviceName) && serviceName.contains(":")) {
-                // 旧版本的日志的库名跟方法是放到一起的，按:分开解析出来
-                return serviceName.substring(serviceName.indexOf(":") + 1);
-            }
-            //这里不能直接取methodname,agent出现过把对象地址打印到methodName的情况,导致redis边爆增
-            /**
-             * ─serviceName─┬─methodName──┬─middlewareName─┬─parsedMiddlewareName─┐
-             * │ del         │ [[B@9f2e43b │ redis          │ REDIS                │
-             */
-            /**
-             * ─serviceName─┬─methodName──┬─middlewareName─┬─parsedMiddlewareName─┐
-             * │ [[B@9f2e43b │ del        │ redis          │ REDIS                │
-             */
-            // 这里处理的时候比较麻烦,因为serviceName和methodName都可能会搞成值的形式，这里直接匹配Redis Command
-            return RedisCommandUtils.parseMethod(serviceName, rpcBased.getMethodName());
+            return RedisCommandUtils.parseMethod(rpcBased.getServiceName(), rpcBased.getMethodName());
         }
         return rpcBased.getMethodName();
     }
