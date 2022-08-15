@@ -146,7 +146,9 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                 //重复的边ID只打印一次
                 if (StringUtils.isBlank(cache.getIfPresent(edgeId))) {
                     cache.put(edgeId, edgeId);
-                    logger.warn("edgeId is not match:{},edgeTags is {}", edgeId, eagleTags);
+                    if (logger.isDebugEnabled()) {
+                        logger.warn("edgeId is not match:{},edgeTags is {}", edgeId, eagleTags);
+                    }
                 }
                 return;
             }
