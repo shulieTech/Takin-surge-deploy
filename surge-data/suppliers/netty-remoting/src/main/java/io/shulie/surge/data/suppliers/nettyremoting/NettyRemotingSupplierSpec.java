@@ -22,6 +22,8 @@ import java.util.Map;
 
 public class NettyRemotingSupplierSpec implements GenericFactorySpec<NettyRemotingSupplier> {
     private Map<String, String> netMap;
+    private String host;
+    private String work;
     private Map<String, String> hostNameMap;
     private boolean registerZk;
 
@@ -30,6 +32,22 @@ public class NettyRemotingSupplierSpec implements GenericFactorySpec<NettyRemoti
 
     public Map<String, String> getNetMap() {
         return netMap;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public String getWork() {
+        return work;
+    }
+
+    public void setWork(String work) {
+        this.work = work;
     }
 
     public void setNetMap(Map<String, String> netMap) {

@@ -39,9 +39,6 @@ public class PradarTopologyBootStrap {
         ParamUtil.parseInputParam(inputMap, args);
         //移除无关参数
         inputMap.remove(ParamUtil.WORKERS);
-        //默认指定数据源是MYSQL
-        //inputMap.put(ParamUtil.DATA_SOURCE_TYPE, CommonStat.MYSQL);
-
         PradarStormSupplierConfiguration pradarStormSupplierConfiguration =
                 new PradarStormSupplierConfiguration(
                         inputMap.get(ParamUtil.NET),
@@ -49,15 +46,16 @@ public class PradarTopologyBootStrap {
                         inputMap.get(ParamUtil.REGISTERZK),
                         inputMap.getOrDefault(ParamUtil.CORE_SIZE, "0"),
                         inputMap.get(ParamUtil.DATA_SOURCE_TYPE),
-                        inputMap.get(ParamUtil.PORTS));
+                        inputMap.get(ParamUtil.PORTS),
+                        inputMap.get(ParamUtil.HOST),
+                        inputMap.get(ParamUtil.WORK));
         try {
             DataRuntime dataRuntime = pradarStormSupplierConfiguration.initDataRuntime();
             pradarStormSupplierConfiguration.buildSupplier(dataRuntime, false).start();
         } catch (Throwable e) {
             throw new RuntimeException("fail to start PradarLog", e);
         }
-        logger.info("PradarLog starte successfull...");
-
+        logger.info("PradarLog start successfull...");
         inputMap.remove(ParamUtil.REGISTERZK);
 
         //初始化配置
@@ -66,7 +64,7 @@ public class PradarTopologyBootStrap {
             //启动
             pradarLinkConfiguration.init();
         } catch (Throwable e) {
-            throw new RuntimeException("fail to start PradarLinkSpout", e);
+            throw new RuntimeException("fail to start PradarLink", e);
         }
         logger.info("PradarLink start successful...");
     }

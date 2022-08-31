@@ -31,7 +31,11 @@ public class NettyRemotingSupplierFactory implements GenericFactory<NettyRemotin
     public NettyRemotingSupplier create(NettyRemotingSupplierSpec syncSpec) {
         NettyRemotingSupplier supplier = new NettyRemotingSupplier();
         runtime.inject(supplier);
-        LifecycleObserver<Supplier> logSupplierConfigSynchronize = new NettyRemotingSupplierObserver(syncSpec.getNetMap(), syncSpec.getHostNameMap(), syncSpec.isRegisterZk());
+        LifecycleObserver<Supplier> logSupplierConfigSynchronize = new NettyRemotingSupplierObserver(
+                syncSpec.getNetMap(),
+                syncSpec.getHostNameMap(),
+                syncSpec.isRegisterZk(),
+                syncSpec.getHost());
         runtime.inject(logSupplierConfigSynchronize);
         supplier.addObserver(logSupplierConfigSynchronize);
         return supplier;

@@ -60,7 +60,8 @@ public class PradarSupplierConfiguration {
     private Map<String, String> serverPortsMap = Maps.newHashMap();
     private boolean registerZk;
     private boolean generalVersion;
-
+    private String host;
+    private String work;
     private int coreSize = 0;
 
     public PradarSupplierConfiguration() {
@@ -92,7 +93,9 @@ public class PradarSupplierConfiguration {
                                        Object coreSize,
                                        Object dataSourceType,
                                        Object serverPortsMapStr,
-                                       Object generalVersion) {
+                                       Object generalVersion,
+                                       Object host,
+                                       Object work) {
         this.workPort = workPort;
         if (null != netMapStr && StringUtils.isNotBlank(String.valueOf(netMapStr))) {
             this.netMap = JSON.parseObject(String.valueOf(netMapStr), Map.class);
@@ -107,6 +110,12 @@ public class PradarSupplierConfiguration {
         this.generalVersion = CommonStat.TRUE.equals(String.valueOf(generalVersion)) ? true : false;
         this.coreSize = Integer.valueOf(Objects.toString(coreSize));
         this.dataSourceType = Objects.toString(dataSourceType);
+        if (null != host) {
+            this.host = Objects.toString(host);
+        }
+        if (null != work) {
+            this.work = Objects.toString(work);
+        }
     }
 
     /**
@@ -283,6 +292,14 @@ public class PradarSupplierConfiguration {
 
     public boolean isGeneralVersion() {
         return generalVersion;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public String getWork() {
+        return work;
     }
 
     /**

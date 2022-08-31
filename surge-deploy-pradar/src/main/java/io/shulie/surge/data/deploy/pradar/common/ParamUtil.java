@@ -34,6 +34,10 @@ public class ParamUtil {
     public static final String WORKERS = "-DWorkers=";
     // 主机名和ip的映射-DHostName='{\"hostName1\":\"192,168,1,1\",\"hostName2\":\"192.168.1.3\"}'
     public static final String HOSTNAME = "-DHostName=";
+    // 直接发布地址,支持k8s -DHost=109.32.32.4
+    public static final String HOST = "-DHost=";
+    // 启动位置,k8s启动的时候,容器端口可以多个,不能使用端口占用报错来处理
+    public static final String WORK = "-DWork=";
     // 内外网映射-DNet='{\"192.189.1:192.2.3.22\",\"168,1,1.1\":\"10.1.1.1\"}'
     public static final String NET = "-DNet=";
     // 数据源类型切换 -DSourceType=MYSQL/CLICKHOUSE
@@ -83,6 +87,10 @@ public class ParamUtil {
                     conf.put(ParamUtil.TOPOLOGY_NAME, param.replace(ParamUtil.TOPOLOGY_NAME, ""));
                 } else if (param.startsWith(ParamUtil.GENERAL_VERSION)) {
                     //禁止该参数作用
+                } else if (param.startsWith(ParamUtil.HOST)) {
+                    conf.put(ParamUtil.HOST, param.replace(ParamUtil.HOST, ""));
+                } else if (param.startsWith(ParamUtil.WORK)) {
+                    conf.put(ParamUtil.WORK, param.replace(ParamUtil.WORK, ""));
                 } else if (param.startsWith("-D")) {
                     String[] split = param.split("=");
                     conf.put(split[0], split[1]);

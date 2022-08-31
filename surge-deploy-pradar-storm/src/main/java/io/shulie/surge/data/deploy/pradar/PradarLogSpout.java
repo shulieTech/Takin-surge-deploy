@@ -65,7 +65,9 @@ public class PradarLogSpout extends BaseRichSpout {
                         map.get(ParamUtil.CORE_SIZE),
                         map.get(ParamUtil.DATA_SOURCE_TYPE),
                         map.get(ParamUtil.PORTS),
-                        map.get(ParamUtil.GENERAL_VERSION));
+                        map.get(ParamUtil.GENERAL_VERSION),
+                        map.get(ParamUtil.HOST),
+                        map.get(ParamUtil.WORK));
         try {
             DataRuntime dataRuntime = pradarSupplierConfiguration.initDataRuntime();
             PradarStormSupplierConfiguration pradarStormSupplierConfiguration = new PradarStormSupplierConfiguration(
@@ -73,7 +75,10 @@ public class PradarLogSpout extends BaseRichSpout {
                     pradarSupplierConfiguration.isRegisterZk(), pradarSupplierConfiguration.getCoreSize(),
                     pradarSupplierConfiguration.getDataSourceType(),
                     pradarSupplierConfiguration.getServerPortsMap(),
-                    pradarSupplierConfiguration.isGeneralVersion());
+                    pradarSupplierConfiguration.isGeneralVersion(),
+                    pradarSupplierConfiguration.getHost(),
+                    pradarSupplierConfiguration.getWork()
+            );
 
             NettyRemotingSupplier nettyRemotingSupplier = pradarStormSupplierConfiguration.buildSupplier(dataRuntime, true);
             Injector injector = dataRuntime.getInstance(Injector.class);

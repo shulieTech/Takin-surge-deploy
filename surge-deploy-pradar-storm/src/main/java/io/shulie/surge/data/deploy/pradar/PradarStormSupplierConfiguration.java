@@ -65,6 +65,8 @@ public class PradarStormSupplierConfiguration {
     private Integer workPort;
     private Map<String, String> netMap;
     private Map<String, String> hostNameMap;
+    private String host = "";
+    private String work = "";
     private Map<String, String> serverPortsMap = Maps.newHashMap();
     private String dataSourceType;
     private boolean registerZk;
@@ -73,7 +75,8 @@ public class PradarStormSupplierConfiguration {
 
     public PradarStormSupplierConfiguration(Map<String, String> netMap, Map<String, String> hostNameMap,
                                             boolean registerZk, int coreSize, String dataSourceType,
-                                            Map<String, String> serverPortsMap, boolean generalVersion) {
+                                            Map<String, String> serverPortsMap,
+                                            boolean generalVersion, String host, String work) {
         this.netMap = netMap;
         this.hostNameMap = hostNameMap;
         this.registerZk = registerZk;
@@ -81,6 +84,8 @@ public class PradarStormSupplierConfiguration {
         this.dataSourceType = dataSourceType;
         this.serverPortsMap = serverPortsMap;
         this.generalVersion = generalVersion;
+        this.host = host;
+        this.work = work;
     }
 
 
@@ -90,7 +95,9 @@ public class PradarStormSupplierConfiguration {
             Object registerZk,
             Object coreSize,
             Object dataSourceType,
-            Object serverPortsMapStr) {
+            Object serverPortsMapStr,
+            Object host,
+            Object work) {
         if (null != netMapStr && StringUtils.isNotBlank(String.valueOf(netMapStr))) {
             this.netMap = JSON.parseObject(String.valueOf(netMapStr), Map.class);
         }
@@ -103,6 +110,12 @@ public class PradarStormSupplierConfiguration {
         this.registerZk = CommonStat.TRUE.equals(String.valueOf(registerZk)) ? true : false;
         this.coreSize = Integer.valueOf(Objects.toString(coreSize));
         this.dataSourceType = Objects.toString(dataSourceType);
+        if (null != host) {
+            this.host = Objects.toString(host);
+        }
+        if (null != work) {
+            this.work = Objects.toString(work);
+        }
     }
 
     /**
@@ -118,6 +131,8 @@ public class PradarStormSupplierConfiguration {
             nettyRemotingSupplierSpec.setNetMap(netMap);
             nettyRemotingSupplierSpec.setHostNameMap(hostNameMap);
             nettyRemotingSupplierSpec.setRegisterZk(registerZk);
+            nettyRemotingSupplierSpec.setHost(host);
+            nettyRemotingSupplierSpec.setWork(work);
             NettyRemotingSupplier nettyRemotingSupplier = dataRuntime.createGenericInstance(nettyRemotingSupplierSpec);
 
             /**
@@ -157,7 +172,7 @@ public class PradarStormSupplierConfiguration {
 
             nettyRemotingSupplier.setQueue(queueMap);
             nettyRemotingSupplier.setInputPortMap(serverPortsMap);
-
+            nettyRemotingSupplier.setWork(work);
             return nettyRemotingSupplier;
         } catch (Throwable e) {
             logger.error("netty fail " + ExceptionUtils.getStackTrace(e));
