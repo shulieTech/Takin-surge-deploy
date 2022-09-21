@@ -17,6 +17,8 @@ package io.shulie.surge.data.deploy.pradar.link.processor;
 
 import io.shulie.surge.deploy.pradar.common.CommonStat;
 
+import java.util.List;
+
 /**
  * @Author: xingchen
  * @ClassName: AbstractProcessor
@@ -59,5 +61,26 @@ public abstract class AbstractProcessor implements Processor {
      */
     public boolean isUseCk() {
         return CommonStat.isUseCk(this.dataSourceType);
+    }
+
+
+    @Override
+    public void share(int taskId) {
+
+    }
+
+    @Override
+    public void share() {
+
+    }
+
+    @Override
+    public void share(List<String> taskIds, String currentTaskId) {
+
+    }
+
+    @Override
+    public void init() {
+
     }
 }

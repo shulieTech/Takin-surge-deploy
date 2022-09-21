@@ -146,6 +146,28 @@ public class PradarLinkConfiguration {
                 }
             }, defaultDelayTime, periodTime, TimeUnit.SECONDS);
 
+            /**
+             * 链路出口(远程调用)梳理,按照linkId来梳理
+             */
+            ScheduledExecutorService exitByLinkIdScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("ExitByLinkIdProcessor-%d").build());
+            ExitByLinkIdProcessor exitByLinkIdProcessor = dataRuntime.getInstance(ExitByLinkIdProcessor.class);
+            exitByLinkIdProcessor.init(dataSourceType);
+            exitByLinkIdProcessor.setLinkCache(linkProcessor.getLinkCache());
+            exitByLinkIdScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        logger.info("ExitByLinkIdProcessor start run:{}", DateFormatUtils.format(
+                                System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
+                        exitByLinkIdProcessor.share(allTaskIds, currentTaskId);
+                        logger.info("ExitByLinkIdProcessor run finish:{}", DateFormatUtils.format(
+                                System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
+                    } catch (Throwable e) {
+                        logger.error("do link_exit_by_linkId task error!", e);
+                    }
+                }
+            }, defaultDelayTime, periodTime, TimeUnit.SECONDS);
+
             scheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {

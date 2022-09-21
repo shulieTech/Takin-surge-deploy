@@ -110,30 +110,6 @@ public class LinkUnKnowNodeCleanProcessor extends AbstractProcessor {
         }
     }
 
-    @Override
-    public void share(int taskId) {
-        if (taskId == -1) {
-            return;
-        }
-        Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();
-        List<Map.Entry<String, Map<String, Object>>> linkList = Lists.newArrayList(linkConfig.entrySet());
-        for (int i = 0; i < linkList.size(); i++) {
-            if (i % taskId == 0) {
-                Map.Entry<String, Map<String, Object>> link = linkList.get(i);
-                clearUnknownNode(link.getKey());
-            }
-        }
-    }
-
-    @Override
-    public void share() {
-        clearUnknownNode("");
-    }
-
-    @Override
-    public void init() {
-    }
-
     public void init(String dataSourceType) {
         this.setDataSourceType(dataSourceType);
     }

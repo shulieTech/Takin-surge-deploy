@@ -21,7 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 
-public class TTrackClickhouseModel extends LinkPublicModel{
+public class TTrackClickhouseModel extends LinkPublicModel {
     private String appName;
     private String traceId;
     private String entranceNodeId;
@@ -70,7 +70,6 @@ public class TTrackClickhouseModel extends LinkPublicModel{
     private String flagMessage;
     private String taskId;
 
-
     public TTrackClickhouseModel() {
     }
 
@@ -118,6 +117,9 @@ public class TTrackClickhouseModel extends LinkPublicModel{
         if (middleWareName.contains("feign") || middleWareName.contains("dubbo")) {
             rpcBased.setTrackMethod(rpcBased.getServiceName() + "#" + rpcBased.getMethodName());
         }
+        rpcBased.setParsedServiceName(parsedServiceName);
+        rpcBased.setParsedMethod(parsedMethod);
+        rpcBased.setParsedMiddlewareName(parsedMiddlewareName);
         return rpcBased;
     }
 

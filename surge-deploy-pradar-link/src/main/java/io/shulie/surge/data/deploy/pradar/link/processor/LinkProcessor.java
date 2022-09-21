@@ -64,7 +64,7 @@ public class LinkProcessor extends AbstractProcessor {
     private static final String NEW_LINE_MATCHER = "\r\n";
 
     private static final String LINK_TOPOLOGY_SQL
-            = " appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,parsedServiceName,methodName,port,remoteIp,userAppKey,envCode,userId ";
+            = " appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,parsedServiceName,parsedMiddlewareName,parsedExtend,parsedMethod,methodName,port,remoteIp,userAppKey,envCode,userId ";
 
     @Inject
     private ClickHouseSupport clickHouseSupport;
