@@ -107,28 +107,23 @@ public class ExitByLinkIdProcessor extends AbstractProcessor {
         if (!exitProcessDisable.get()) {
             return;
         }
-        /*if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get())) {
             return;
-        }*/
+        }
         Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();
         if (linkConfig == null || linkConfig.isEmpty()) {
             return;
         }
         Set<String> linkIdSet = linkConfig.keySet();
-        String linkId = "21f8392b2e105aa92a3a98ffe21bea64";
-        if (linkIdSet.contains(linkId)) {
-            Map<String, Object> link = linkConfig.get(linkId);
-            processExitByLinkId(linkId, link);
+        Map<String, List<String>> avgMap = taskManager.allotOfAverage(taskIds, new ArrayList<>(linkIdSet));
+        List<String> avgList = avgMap.get(currentTaskId);
+        if (CollectionUtils.isNotEmpty(avgList)) {
+            for (int i = 0; i < avgList.size(); i++) {
+                String linkId = avgList.get(i);
+                Map<String, Object> link = linkConfig.get(avgList.get(i));
+                processExitByLinkId(linkId, link);
+            }
         }
-        //Map<String, List<String>> avgMap = taskManager.allotOfAverage(taskIds, new ArrayList<>(linkIdSet));
-        //List<String> avgList = avgMap.get(currentTaskId);
-        //if (CollectionUtils.isNotEmpty(avgList)) {
-        //    for (int i = 0; i < avgList.size(); i++) {
-        //        String linkId = avgList.get(i);
-        //        Map<String, Object> link = linkConfig.get(avgList.get(i));
-        //        processExitByLinkId(linkId, link);
-        //    }
-        //}
     }
 
     private void processExitByLinkId(String linkId, Map<String, Object> linkConfig) {
