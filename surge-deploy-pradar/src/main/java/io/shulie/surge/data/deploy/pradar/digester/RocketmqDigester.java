@@ -65,6 +65,10 @@ public class RocketmqDigester implements DataDigester<RpcBased> {
     private String topic = "";
 
     @Inject
+    @Named("config.rocketmq.batchSize")
+    private Integer batchSize = 200;
+
+    @Inject
     @DefaultValue("false")
     @Named("/pradar/config/rt/rocketmqDisable")
     private Remote<Boolean> rocketmqDisable;
@@ -95,7 +99,7 @@ public class RocketmqDigester implements DataDigester<RpcBased> {
                 producer = null;
             }
 
-            rotationBatch = new RotationBatch(new CountRotationPolicy(200), new TimedRotationPolicy(2, TimeUnit.SECONDS));
+            rotationBatch = new RotationBatch(new CountRotationPolicy(batchSize), new TimedRotationPolicy(2, TimeUnit.SECONDS));
             rotationBatch.batchSaver(new RotationBatch.BatchSaver<Message>() {
                 @Override
                 public boolean saveBatch(LinkedBlockingQueue<Message> batchMessage) {
