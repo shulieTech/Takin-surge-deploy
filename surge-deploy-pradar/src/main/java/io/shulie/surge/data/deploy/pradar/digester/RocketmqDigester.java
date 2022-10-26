@@ -15,6 +15,7 @@
 
 package io.shulie.surge.data.deploy.pradar.digester;
 
+import com.alibaba.fastjson.JSON;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.collect.Lists;
@@ -163,7 +164,7 @@ public class RocketmqDigester implements DataDigester<RpcBased> {
                 }
                 getKryo().writeClassAndObject(output, rpcBased);
                 output.flush();
-                Message message = new Message(TOPIC, rpcBased.getUserAppKey(), byteArrayOutputStream.toByteArray());
+                Message message = new Message(TOPIC, rpcBased.getUserAppKey(), JSON.toJSONBytes(rpcBased));
                 //设置traceId+invoke_id作为rocketmq的消息唯一标识,用于排查问题
                 message.setKeys(
                         new StringBuilder(rpcBased.getUserAppKey()).append("_").append(rpcBased.getTraceId()).append("_")
@@ -197,6 +198,7 @@ public class RocketmqDigester implements DataDigester<RpcBased> {
             logger.error("producer stop fail");
         }
     }
+
     public Remote<Boolean> getRocketmqDisable() {
         return rocketmqDisable;
     }
