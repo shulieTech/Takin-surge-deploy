@@ -28,9 +28,25 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>common</artifactId>
+            <version>1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>runtime</artifactId>
+            <version>1.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.influxdb</groupId>
             <artifactId>influxdb-java</artifactId>
             <version>2.15</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.13</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>
