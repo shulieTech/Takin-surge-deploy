@@ -52,6 +52,7 @@ public class PradarSupplierConfiguration {
 
     private Integer workPort;
     private String dataSourceType;
+    private String openMqConsumer;
     private Map<String, String> netMap;
     private Map<String, String> hostNameMap;
     private Map<String, String> serverPortsMap = Maps.newHashMap();
@@ -68,11 +69,12 @@ public class PradarSupplierConfiguration {
         this.workPort = workPort;
     }
 
-    public PradarSupplierConfiguration(String netMapStr, String dataSourceType) {
+    public PradarSupplierConfiguration(String netMapStr, String dataSourceType, String openMqConsumer) {
         if (null != netMapStr && StringUtils.isNotBlank(netMapStr)) {
             this.netMap = JSON.parseObject(netMapStr, Map.class);
         }
         this.dataSourceType = dataSourceType;
+        this.openMqConsumer = openMqConsumer;
     }
 
 
@@ -92,7 +94,8 @@ public class PradarSupplierConfiguration {
                                        Object serverPortsMapStr,
                                        Object generalVersion,
                                        Object host,
-                                       Object work) {
+                                       Object work,
+                                       Object mqConsumer) {
         this.workPort = workPort;
         if (null != netMapStr && StringUtils.isNotBlank(String.valueOf(netMapStr))) {
             this.netMap = JSON.parseObject(String.valueOf(netMapStr), Map.class);
@@ -113,6 +116,7 @@ public class PradarSupplierConfiguration {
         if (null != work) {
             this.work = Objects.toString(work);
         }
+        this.openMqConsumer = Objects.isNull(mqConsumer) ? "true" : "false";
     }
 
     /**
@@ -152,9 +156,12 @@ public class PradarSupplierConfiguration {
      */
     public DataDigester[] buildTraceLogProcess(DataRuntime dataRuntime) {
         LogDigester logDigester = dataRuntime.getInstance(LogDigester.class);
-        RocketmqDigester rocketmqDigester = dataRuntime.getInstance(RocketmqDigester.class);
         logDigester.setDataSourceType(this.dataSourceType);
-        return new DataDigester[]{logDigester,rocketmqDigester};
+        if (openMqConsumer.equals("true")) {
+            RocketmqDigester rocketmqDigester = dataRuntime.getInstance(RocketmqDigester.class);
+            return new DataDigester[]{logDigester, rocketmqDigester};
+        }
+        return new DataDigester[]{logDigester};
     }
 
 
@@ -300,6 +307,14 @@ public class PradarSupplierConfiguration {
         return work;
     }
 
+    public String getOpenMqConsumer() {
+        return openMqConsumer;
+    }
+
+    public void setOpenMqConsumer(String openMqConsumer) {
+        this.openMqConsumer = openMqConsumer;
+    }
+
     /**
      * 简单使用 启动日志数据写入, 此处功能默认数据链路数据存储到mysql
      * java -cp xxx.jar io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration
@@ -315,7 +330,7 @@ public class PradarSupplierConfiguration {
 
         PradarSupplierConfiguration pradarSupplierConfiguration =
                 new PradarSupplierConfiguration(inputMap.get(ParamUtil.NET),
-                        inputMap.get(ParamUtil.DATA_SOURCE_TYPE));
+                        inputMap.get(ParamUtil.DATA_SOURCE_TYPE), inputMap.get(ParamUtil.MQConsumer));
         pradarSupplierConfiguration.init();
     }
 }

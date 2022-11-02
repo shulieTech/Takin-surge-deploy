@@ -26,8 +26,17 @@ public class NettyRemotingSupplierSpec implements GenericFactorySpec<NettyRemoti
     private String work;
     private Map<String, String> hostNameMap;
     private boolean registerZk;
+    private String openMqComsuer;
 
     public NettyRemotingSupplierSpec() {
+    }
+
+    public String getOpenMqComsuer() {
+        return openMqComsuer;
+    }
+
+    public void setOpenMqComsuer(String openMqComsuer) {
+        this.openMqComsuer = openMqComsuer;
     }
 
     public Map<String, String> getNetMap() {

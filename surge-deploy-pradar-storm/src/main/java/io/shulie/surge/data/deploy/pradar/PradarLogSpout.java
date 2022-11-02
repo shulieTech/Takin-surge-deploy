@@ -26,6 +26,7 @@ import io.shulie.surge.data.deploy.pradar.common.*;
 import io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration;
 import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplier;
+import net.openhft.affinity.AffinityLock;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -34,7 +35,10 @@ import org.apache.storm.tuple.Fields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.util.Map;
+import java.util.Objects;
 
 import static io.shulie.surge.data.JettySupplier.registedPort;
 
@@ -67,7 +71,14 @@ public class PradarLogSpout extends BaseRichSpout {
                         map.get(ParamUtil.PORTS),
                         map.get(ParamUtil.GENERAL_VERSION),
                         map.get(ParamUtil.HOST),
-                        map.get(ParamUtil.WORK));
+                        map.get(ParamUtil.WORK),
+                        map.get(ParamUtil.MQConsumer));
+        Object openAffinityLock = map.getOrDefault(ParamUtil.AffinityLock, "false");
+        AffinityLock affinityLock = null;
+        if (Objects.toString(openAffinityLock).equals("true")) {
+            affinityLock = AffinityUtil.acquireLock(topologyContext.getThisTaskId());
+            logger.info("当前Topology TaskId={},当前进程={},绑定的cpu Id={}", topologyContext.getThisTaskId(), getProcessID(), affinityLock.cpuId());
+        }
         try {
             DataRuntime dataRuntime = pradarSupplierConfiguration.initDataRuntime();
             PradarStormSupplierConfiguration pradarStormSupplierConfiguration = new PradarStormSupplierConfiguration(
@@ -77,7 +88,8 @@ public class PradarLogSpout extends BaseRichSpout {
                     pradarSupplierConfiguration.getServerPortsMap(),
                     pradarSupplierConfiguration.isGeneralVersion(),
                     pradarSupplierConfiguration.getHost(),
-                    pradarSupplierConfiguration.getWork()
+                    pradarSupplierConfiguration.getWork(),
+                    pradarSupplierConfiguration.getOpenMqConsumer()
             );
 
             NettyRemotingSupplier nettyRemotingSupplier = pradarStormSupplierConfiguration.buildSupplier(dataRuntime, true);
@@ -95,13 +107,28 @@ public class PradarLogSpout extends BaseRichSpout {
             ruleLoader.init();
             nettyRemotingSupplier.start();
 
-            //启动jetty
-            JettySupplier jettySupplier = pradarStormSupplierConfiguration.buildJettySupplier(dataRuntime, true);
-            jettySupplier.start();
+            // 确认是否开始Http服务
+            Object http = map.getOrDefault(ParamUtil.HTTP, "true");
+            if (Objects.toString(http).equals("true")) {
+                //启动jetty
+                JettySupplier jettySupplier = pradarStormSupplierConfiguration.buildJettySupplier(dataRuntime, true);
+                jettySupplier.start();
+            }
         } catch (Throwable e) {
             throw new RuntimeException("fail to start PradarLogSpout", e);
+        } finally {
+            if (affinityLock != null) {
+                affinityLock.release();
+            }
         }
         logger.info("PradarLogSpout start successfull...");
+    }
+
+    public static final int getProcessID() {
+        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+        System.out.println(runtimeMXBean.getName());
+        return Integer.valueOf(runtimeMXBean.getName().split("@")[0])
+                .intValue();
     }
 
     @Override
