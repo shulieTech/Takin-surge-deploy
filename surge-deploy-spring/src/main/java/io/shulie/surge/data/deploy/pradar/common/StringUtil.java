@@ -13,18 +13,17 @@
  * limitations under the License.
  */
 
-package io.shulie.surge.data.suppliers.nettyremoting;
+package io.shulie.surge.data.deploy.pradar.common;
 
-import io.shulie.surge.data.runtime.module.BaseDataModule;
-
-public class NettyRemotingModule extends BaseDataModule {
-
-    private static final long serialVersionUID = 3037667161555666018L;
-
-    @Override
-    protected void configure() {
-        bindGeneric(NettyRemotingSupplier.class, NettyRemotingSupplierFactory.class, NettyRemotingSupplierSpec.class);
+/**
+ * @Author: xingchen
+ * @ClassName: StringUtil
+ * @Package: io.shulie.surge.data.deploy.pradar.common
+ * @Date: 2020/12/319:58
+ * @Description:
+ */
+public class StringUtil {
+    public static String formatString(String value) {
+        return value == null || "null".equals(value) ? "" : value;
     }
-
-
 }

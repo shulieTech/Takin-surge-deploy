@@ -37,13 +37,13 @@ public final class DataBootstrap {
     private final Properties properties;
     private final Map<String, Object> moduleContext;
 
-    private final List<Module> modules;
+    private final Set<Module> modules;
     private final List<PostInjectionCallback> postInjectionCallbacks;
 
     private DataBootstrap(Properties properties) {
         this.properties = mergeProperties(properties);
         this.moduleContext = new HashMap<String, Object>();
-        this.modules = new ArrayList<Module>();
+        this.modules = new HashSet<Module>();
         this.postInjectionCallbacks = new ArrayList<PostInjectionCallback>();
     }
 

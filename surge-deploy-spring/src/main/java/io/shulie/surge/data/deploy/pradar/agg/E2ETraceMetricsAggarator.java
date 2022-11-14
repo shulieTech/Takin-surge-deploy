@@ -13,18 +13,16 @@
  * limitations under the License.
  */
 
-package io.shulie.surge.data.suppliers.nettyremoting;
+package io.shulie.surge.data.deploy.pradar.agg;
 
-import io.shulie.surge.data.runtime.module.BaseDataModule;
+import com.google.inject.Singleton;
+import io.shulie.surge.data.deploy.pradar.E2ETraceReduceBolt;
+import io.shulie.surge.data.deploy.pradar.common.PradarRtConstant;
 
-public class NettyRemotingModule extends BaseDataModule {
+@Singleton
+public class E2ETraceMetricsAggarator extends BaseTraceMetricsAggarator {
 
-    private static final long serialVersionUID = 3037667161555666018L;
-
-    @Override
-    protected void configure() {
-        bindGeneric(NettyRemotingSupplier.class, NettyRemotingSupplierFactory.class, NettyRemotingSupplierSpec.class);
+    public E2ETraceMetricsAggarator(){
+        super(E2ETraceReduceBolt.class.getSimpleName(), PradarRtConstant.REDUCE_E2E_TRACE_METRICS_STREAM_ID);
     }
-
-
 }
