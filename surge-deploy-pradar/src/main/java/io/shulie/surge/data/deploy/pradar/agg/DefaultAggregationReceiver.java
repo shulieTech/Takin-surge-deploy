@@ -50,4 +50,13 @@ public class DefaultAggregationReceiver implements AggregationReceiver {
             logger.info("no slot for " + slotKey + ": " + FormatUtils.toSecondTimeString(slotKey * 1000));
         }
     }
+
+    /**
+     * 停止运行。如果已经停止，则应该不会有任何效果。
+     * 建议实现使用同步方式执行。
+     */
+    @Override
+    public void stop() throws Exception {
+        aggregation.stop();
+    }
 }

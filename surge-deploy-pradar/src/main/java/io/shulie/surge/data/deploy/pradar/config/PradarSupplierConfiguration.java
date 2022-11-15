@@ -98,7 +98,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      *
      * @param args
      */
-    public void initArgs(Map<String, Object> args) {
+    public void initArgs(Map<String, ?> args) {
         //移除无关参数
         args.remove(ParamUtil.WORKERS);
         taskId = Objects.toString(args.get(ParamUtil.TASK_ID));
@@ -128,11 +128,11 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
         }
         String httpEnabledStr = Objects.toString(args.get(ParamUtil.HTTP));
 
-        this.workerPort = NumberUtils.toInt(Objects.toString(args.getOrDefault("workerPort", "0")));
+        this.workerPort = NumberUtils.toInt(Objects.toString(args.get("workerPort")));
         this.httpEnabled = CommonStat.TRUE.equals(String.valueOf(httpEnabledStr)) ? true : false;
         this.registerZk = CommonStat.TRUE.equals(Objects.toString(args.get(ParamUtil.REGISTERZK))) ? true : false;
         this.generalVersion = CommonStat.TRUE.equals(String.valueOf(generalVersion)) ? true : false;
-        this.affinityLockEnabled = CommonStat.TRUE.equals(args.getOrDefault(ParamUtil.AffinityLock, "false")) ? true : false;
+        this.affinityLockEnabled = CommonStat.TRUE.equals(Objects.toString(ParamUtil.AffinityLock)) ? true : false;
         this.generalVersion = CommonStat.TRUE.equals(String.valueOf(generalVersion)) ? true : false;
     }
 

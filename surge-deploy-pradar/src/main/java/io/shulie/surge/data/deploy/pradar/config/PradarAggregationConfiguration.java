@@ -45,8 +45,8 @@ import java.util.Set;
  * @author vincent
  * @date 2022/11/14 17:46
  **/
-public class PradarReduceConfiguration extends AbstractPradarConfiguration {
-    private static final Logger logger = LoggerFactory.getLogger(PradarReduceConfiguration.class);
+public class PradarAggregationConfiguration extends AbstractPradarConfiguration {
+    private static final Logger logger = LoggerFactory.getLogger(PradarAggregationConfiguration.class);
     private static final long serialVersionUID = -659934809378009864L;
 
     private static final String AMDB_APP = "t_amdb_app";
@@ -71,10 +71,10 @@ public class PradarReduceConfiguration extends AbstractPradarConfiguration {
      * @param args
      */
     @Override
-    public void initArgs(Map<String, Object> args) {
+    public void initArgs(Map<String, ?> args) {
         appInsertSql = "INSERT IGNORE INTO " + AMDB_APP + AmdbAppModel.getCols() + " VALUES " + AmdbAppModel.getParamCols();
         appRelationInsertSql = "INSERT IGNORE INTO " + AMDB_APP_RELATION + AmdbAppRelationModel.getCols() + " VALUES " + AmdbAppRelationModel.getParamCols();
-        receivers = Sets.newHashSet(StringUtils.split(Objects.toString(args.getOrDefault("receivers", "")), ","));
+        receivers = Sets.newHashSet(StringUtils.split(Objects.toString(args.get("receivers")), ","));
     }
 
     /**
@@ -240,5 +240,32 @@ public class PradarReduceConfiguration extends AbstractPradarConfiguration {
 
     public AggregationReceiver getAppRelationMetricsReceiver() {
         return appRelationMetricsReceiver;
+    }
+
+    /**
+     * 停止运行。如果已经停止，则应该不会有任何效果。
+     * 建议实现使用同步方式执行。
+     */
+    @Override
+    public void stop() throws Exception {
+        if (null != metricsReceiver) {
+            metricsReceiver.stop();
+        }
+        if (null != e2eReceiver) {
+            e2eReceiver.stop();
+        }
+
+        if (null != e2eReceiver) {
+            e2eReceiver.stop();
+        }
+
+        if (null != traceMetricsReceiver) {
+            traceMetricsReceiver.stop();
+        }
+
+        if (null != appRelationMetricsReceiver) {
+            appRelationMetricsReceiver.stop();
+        }
+
     }
 }

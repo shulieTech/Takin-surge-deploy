@@ -43,6 +43,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
 
     private static String defaultTaskId = "1";
 
+    private Scheduler scheduler;
 
     /**
      * 初始化
@@ -50,7 +51,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
      * @param args
      */
     @Override
-    public void initArgs(Map<String, Object> args) {
+    public void initArgs(Map<String, ?> args) {
         dataSourceType = Objects.toString(args.get(ParamUtil.DATA_SOURCE_TYPE));
     }
 
@@ -260,4 +261,12 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
     }
 
 
+    /**
+     * 停止运行。如果已经停止，则应该不会有任何效果。
+     * 建议实现使用同步方式执行。
+     */
+    @Override
+    public void stop() throws Exception {
+        scheduler.shutdown();
+    }
 }

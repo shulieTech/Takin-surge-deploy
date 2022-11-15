@@ -18,10 +18,9 @@ package io.shulie.surge.data.deploy.pradar;
 import com.google.common.collect.Maps;
 import io.shulie.surge.data.JettySupplierObserver;
 import io.shulie.surge.data.deploy.pradar.collector.OutputCollector;
-import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.common.PradarRtConstant;
-import io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration;
-import io.shulie.surge.data.runtime.common.DataBootstrap;
+import io.shulie.surge.data.deploy.pradar.config.PradarConfiguration;
+import io.shulie.surge.data.deploy.pradar.starter.PradarSupplierStarter;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -45,24 +44,28 @@ public class PradarLogSpout extends BaseRichSpout {
 
     @Override
     public void open(Map map, TopologyContext topologyContext, SpoutOutputCollector spoutOutputCollector) {
-        PradarSupplierConfiguration pradarSupplierConfiguration = new PradarSupplierConfiguration();
-        Map<String, Object> args = Maps.newHashMap(map);
-        args.put("workerPort", topologyContext.getThisWorkerPort());
-        pradarSupplierConfiguration.initArgs(args);
-        DataBootstrap bootstrap = DataBootstrap.create("deploy.properties", "pradar");
-        DataBootstrapEnhancer.enhancer(bootstrap);
-        pradarSupplierConfiguration.install(bootstrap);
-        pradarSupplierConfiguration.collector(new OutputCollector() {
-            @Override
-            public List<Integer> getReduceIds() {
-                return topologyContext.getThisWorkerTasks();
-            }
+        try {
 
-            @Override
-            public void emit(int partition, String streamId, Object... values) {
-                spoutOutputCollector.emitDirect(partition, streamId, new Values(values));
-            }
-        });
+            Map<String, Object> args = Maps.newHashMap(map);
+            args.put("workerPort", topologyContext.getThisWorkerPort());
+            PradarSupplierStarter pradarSupplierStarter = new PradarSupplierStarter();
+            pradarSupplierStarter.init(args);
+            PradarConfiguration pradarSupplierConfiguration = pradarSupplierStarter.getPradarConfiguration();
+            pradarSupplierConfiguration.collector(new OutputCollector() {
+                @Override
+                public List<Integer> getReduceIds() {
+                    return topologyContext.getThisWorkerTasks();
+                }
+
+                @Override
+                public void emit(int partition, String streamId, Object... values) {
+                    spoutOutputCollector.emitDirect(partition, streamId, new Values(values));
+                }
+            });
+            pradarSupplierStarter.start();
+        } catch (Exception e) {
+            logger.error("Start runtime error.", e);
+        }
         logger.info("PradarLogSpout start successfull...");
     }
 

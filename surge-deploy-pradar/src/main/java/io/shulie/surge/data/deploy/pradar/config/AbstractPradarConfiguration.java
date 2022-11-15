@@ -18,7 +18,7 @@ public abstract class AbstractPradarConfiguration implements PradarConfiguration
      * @param args
      */
     @Override
-    public void initArgs(Map<String, Object> args) {
+    public void initArgs(Map<String, ?> args) {
 
     }
 

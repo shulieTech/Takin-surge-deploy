@@ -16,16 +16,13 @@
 package io.shulie.surge.data.deploy.pradar;
 
 import com.google.common.collect.Maps;
-import com.google.inject.Inject;
 import io.shulie.surge.data.common.aggregation.metrics.CallStat;
 import io.shulie.surge.data.common.aggregation.metrics.Metric;
 import io.shulie.surge.data.common.utils.Pair;
-import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
+import io.shulie.surge.data.deploy.pradar.agg.AggregationReceiver;
 import io.shulie.surge.data.deploy.pradar.common.PradarRtConstant;
-import io.shulie.surge.data.deploy.pradar.config.PradarReduceConfiguration;
-import io.shulie.surge.data.runtime.common.DataBootstrap;
-import io.shulie.surge.data.runtime.common.DataRuntime;
-import io.shulie.surge.data.sink.influxdb.InfluxDBSupport;
+import io.shulie.surge.data.deploy.pradar.config.PradarAggregationConfiguration;
+import io.shulie.surge.data.deploy.pradar.starter.PradarAggregationStarter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.BasicOutputCollector;
@@ -43,24 +40,18 @@ import java.util.Map;
  */
 public class PradarAppRelationReduceBolt extends BaseBasicBolt {
     private static Logger logger = LoggerFactory.getLogger(PradarAppRelationReduceBolt.class);
-    private PradarReduceConfiguration pradarReduceConfiguration;
-
-    @Inject
-    private InfluxDBSupport influxDbSupport;
+    private PradarAggregationStarter pradarAggregationStarter;
+    private AggregationReceiver aggregationReceiver;
 
     @Override
     public void prepare(Map stormConf, TopologyContext context) {
         try {
             Map<String, Object> args = Maps.newHashMap(stormConf);
             args.put("receivers", "appRelation");
-            DataBootstrap bootstrap = DataBootstrap.create("deploy.properties", "pradar");
-            DataBootstrapEnhancer.enhancer(bootstrap);
-            pradarReduceConfiguration = new PradarReduceConfiguration();
-            pradarReduceConfiguration.initArgs(args);
-            pradarReduceConfiguration.install(bootstrap);
-            DataRuntime dataRuntime = bootstrap.startRuntime();
-            pradarReduceConfiguration.doAfterInit(dataRuntime);
-
+            pradarAggregationStarter = new PradarAggregationStarter();
+            pradarAggregationStarter.init(args);
+            pradarAggregationStarter.start();
+            aggregationReceiver = ((PradarAggregationConfiguration) pradarAggregationStarter.getPradarConfiguration()).getAppRelationMetricsReceiver();
         } catch (Exception e) {
             logger.error("PradarTraceReduceBolt fail " + ExceptionUtils.getStackTrace(e));
             throw new RuntimeException(e);
@@ -75,7 +66,7 @@ public class PradarAppRelationReduceBolt extends BaseBasicBolt {
         }
         Long slotKey = input.getLong(0);
         List<Pair<Metric, CallStat>> job = (List<Pair<Metric, CallStat>>) input.getValue(1);
-        pradarReduceConfiguration.getAppRelationMetricsReceiver().execute(slotKey, job);
+        aggregationReceiver.execute(slotKey, job);
     }
 
     @Override
