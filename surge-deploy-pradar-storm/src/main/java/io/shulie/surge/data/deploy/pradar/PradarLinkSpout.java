@@ -15,9 +15,11 @@
 
 package io.shulie.surge.data.deploy.pradar;
 
-import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
-import io.shulie.surge.data.deploy.pradar.common.PradarStormConfigHolder;
+import com.google.common.collect.Maps;
+import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.config.PradarLinkConfiguration;
+import io.shulie.surge.data.runtime.common.DataBootstrap;
+import io.shulie.surge.data.runtime.common.DataRuntime;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -25,9 +27,7 @@ import org.apache.storm.topology.base.BaseRichSpout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * @author vincent
@@ -37,14 +37,18 @@ public class PradarLinkSpout extends BaseRichSpout {
 
     @Override
     public void open(Map conf, TopologyContext topologyContext, SpoutOutputCollector collector) {
-        PradarStormConfigHolder.init(conf);
-        PradarLinkConfiguration pradarLinkConfiguration = new PradarLinkConfiguration(
-                conf.get(ParamUtil.DATA_SOURCE_TYPE));
+
         try {
-            List<Integer> taskIds = topologyContext.getComponentTasks(PradarLinkSpout.class.getSimpleName());
-            List<String> ids = taskIds.stream().map(id -> String.valueOf(id)).collect(Collectors.toList());
-            Integer currentTaskId = topologyContext.getThisTaskId();
-            pradarLinkConfiguration.initWithTaskSize(ids, String.valueOf(currentTaskId));
+
+            Map<String, Object> args = Maps.newHashMap(conf);
+            DataBootstrap bootstrap = DataBootstrap.create("deploy.properties", "pradar");
+            DataBootstrapEnhancer.enhancer(bootstrap);
+            PradarLinkConfiguration pradarLinkConfiguration = new PradarLinkConfiguration();
+            pradarLinkConfiguration.initArgs(args);
+            pradarLinkConfiguration.install(bootstrap);
+            DataRuntime dataRuntime = bootstrap.startRuntime();
+            pradarLinkConfiguration.doAfterInit(dataRuntime);
+
         } catch (Throwable e) {
             throw new RuntimeException("fail to start PradarLinkSpout", e);
         }

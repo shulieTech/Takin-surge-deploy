@@ -1,26 +1,8 @@
-/*
- * Copyright 2021 Shulie Technology, Co.Ltd
- * Email: shulie@shulie.io
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.shulie.surge.data.deploy.pradar.config;
 
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.shulie.surge.data.common.aggregation.Scheduler;
-import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
-import io.shulie.surge.data.deploy.pradar.common.PradarStormConfigHolder;
 import io.shulie.surge.data.deploy.pradar.link.AbstractLinkCache;
 import io.shulie.surge.data.deploy.pradar.link.processor.*;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
@@ -28,7 +10,6 @@ import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
-import io.shulie.surge.deploy.pradar.common.CommonStat;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.slf4j.Logger;
@@ -42,8 +23,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class PradarLinkConfiguration {
-    private static final Logger logger = LoggerFactory.getLogger(PradarLinkConfiguration.class);
+/**
+ * @author vincent
+ * @date 2022/11/14 17:46
+ **/
+public class PradarLinkConfiguration extends AbstractPradarConfiguration {
+
+
+    private static final Logger logger = LoggerFactory.getLogger(io.shulie.surge.data.deploy.pradar.config.PradarLinkConfiguration.class);
 
     /**
      * 启用数据写入到clickhouse,否则写入到mysql
@@ -56,23 +43,35 @@ public class PradarLinkConfiguration {
 
     private static String defaultTaskId = "1";
 
-    public PradarLinkConfiguration() {
-    }
 
-    public PradarLinkConfiguration(Object dataSourceType) {
-        this.dataSourceType = Objects.toString(dataSourceType);
+    /**
+     * 初始化
+     *
+     * @param args
+     */
+    @Override
+    public void initArgs(Map<String, Object> args) {
+        dataSourceType = Objects.toString(args.get(ParamUtil.DATA_SOURCE_TYPE));
     }
 
     /**
-     * 初始化initDataRuntime
+     * 装载module
      *
-     * @throws Exception
+     * @param bootstrap
      */
-    public DataRuntime initDataRuntime() {
-        DataBootstrap bootstrap = DataBootstrap.create("deploy.properties");
-        DataBootstrapEnhancer.enhancer(bootstrap);
+    @Override
+    public void install(DataBootstrap bootstrap) {
         bootstrap.install(new PradarModule(), new ClickHouseModule(), new MysqlModule());
-        return bootstrap.startRuntime();
+    }
+
+    /**
+     * 运行时启动后初始化
+     *
+     * @param dataRuntime
+     */
+    @Override
+    public void doAfterInit(DataRuntime dataRuntime) {
+        initWithTaskSize(dataRuntime, Arrays.asList(defaultTaskId), defaultTaskId);
     }
 
     /**
@@ -80,8 +79,7 @@ public class PradarLinkConfiguration {
      *
      * @throws Exception
      */
-    public void initWithTaskSize(List<String> allTaskIds, String currentTaskId) {
-        DataRuntime dataRuntime = initDataRuntime();
+    private void initWithTaskSize(DataRuntime dataRuntime, List<String> allTaskIds, String currentTaskId) {
         Scheduler scheduler = new Scheduler(2);
         try {
             ApiProcessor apiProcessor = dataRuntime.getInstance(ApiProcessor.class);
@@ -201,16 +199,6 @@ public class PradarLinkConfiguration {
 
     }
 
-
-    /**
-     * 初始化
-     *
-     * @throws Exception
-     */
-    public void init() throws Exception {
-        initWithTaskSize(Arrays.asList(defaultTaskId), defaultTaskId);
-    }
-
     /**
      * 处理未知,此功能项是诊断链路中是否有存在未接入应用节点，确保链路梳理的完整性
      *
@@ -272,21 +260,4 @@ public class PradarLinkConfiguration {
     }
 
 
-    /**
-     * 简单使用 启动链路梳理功能, 此处功能默认数据链路数据存储到mysql
-     * java -cp xxx.jar io.shulie.surge.data.deploy.pradar.config.PradarLinkConfiguration -D
-     *
-     * @param args
-     * @throws Exception
-     */
-    public static void main(String[] args) throws Exception {
-        Map<String, String> inputMap = Maps.newHashMap();
-        ParamUtil.parseInputParam(inputMap, args);
-        // 此处默认使用mysql
-        inputMap.put(ParamUtil.DATA_SOURCE_TYPE, CommonStat.MYSQL);
-        PradarLinkConfiguration pradarLinkConfiguration = new
-                PradarLinkConfiguration(inputMap.get(ParamUtil.DATA_SOURCE_TYPE));
-        PradarStormConfigHolder.init(inputMap);
-        pradarLinkConfiguration.init();
-    }
 }

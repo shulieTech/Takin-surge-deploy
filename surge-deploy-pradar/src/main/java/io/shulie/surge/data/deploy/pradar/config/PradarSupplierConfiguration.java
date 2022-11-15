@@ -1,27 +1,24 @@
-/*
- * Copyright 2021 Shulie Technology, Co.Ltd
- * Email: shulie@shulie.io
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.shulie.surge.data.deploy.pradar.config;
+
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 import com.pamirs.pradar.log.parser.DataType;
-import io.shulie.surge.data.JettySupplierModule;
-import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
+import io.shulie.surge.data.JettySupplier;
+import io.shulie.surge.data.JettySupplierSpec;
+import io.shulie.surge.data.common.aggregation.Scheduler;
+import io.shulie.surge.data.deploy.pradar.agg.E2ETraceMetricsAggarator;
+import io.shulie.surge.data.deploy.pradar.agg.TraceMetricsAggarator;
+import io.shulie.surge.data.deploy.pradar.collector.OutputCollector;
+import io.shulie.surge.data.deploy.pradar.common.EagleLoader;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
+import io.shulie.surge.data.deploy.pradar.common.RuleLoader;
 import io.shulie.surge.data.deploy.pradar.digester.*;
+import io.shulie.surge.data.deploy.pradar.servlet.EngineDataWriteServlet;
+import io.shulie.surge.data.deploy.pradar.servlet.HealthCheckServlet;
+import io.shulie.surge.data.deploy.pradar.servlet.LogWriteServlet;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.runtime.digest.DataDigester;
@@ -38,6 +35,7 @@ import io.shulie.surge.deploy.pradar.common.CommonStat;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,172 +43,163 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * pradar supplier初始化
- */
-public class PradarSupplierConfiguration {
-    private static Logger logger = LoggerFactory.getLogger(PradarSupplierConfiguration.class);
+ * @author vincent
+ * @date 2022/11/14 17:21
+ **/
+public class PradarSupplierConfiguration implements PradarConfiguration {
 
-    private Integer workPort;
-    private String dataSourceType;
-    private String openMqConsumer;
+    private static final Logger logger = LoggerFactory.getLogger(PradarSupplierConfiguration.class);
     private Map<String, String> netMap;
     private Map<String, String> hostNameMap;
+    private String host = "";
+    private String work = "";
     private Map<String, String> serverPortsMap = Maps.newHashMap();
+    private String dataSourceType;
     private boolean registerZk;
     private boolean generalVersion;
-    private String host;
-    private String work;
-    private int coreSize = 0;
+    private int coreSize;
+    private boolean httpEnabled;
 
-    public PradarSupplierConfiguration() {
-    }
+    private boolean openMqConsumer;
+    private int workerPort;
 
-    public PradarSupplierConfiguration(Integer workPort) {
-        this.workPort = workPort;
-    }
+    /**
+     * trace指标聚合器
+     */
+    @Inject
+    private TraceMetricsAggarator traceMetricsAggarator;
+    /**
+     * E2E指标聚合器
+     */
+    @Inject
+    private E2ETraceMetricsAggarator e2eTraceMetricsAggarator;
+    /**
+     * 边读取器
+     */
+    @Inject
+    private EagleLoader eagleLoader;
+    /**
+     * 断言规则
+     */
+    @Inject
+    private RuleLoader ruleLoader;
 
-    public PradarSupplierConfiguration(String netMapStr, String dataSourceType, String openMqConsumer) {
+    /**
+     * 输出器
+     */
+    private OutputCollector outputCollector;
+
+    /**
+     * 参数初始化
+     *
+     * @param args
+     */
+    public void initArgs(Map<String, Object> args) {
+        //移除无关参数
+        args.remove(ParamUtil.WORKERS);
+        String netMapStr = Objects.toString(args.get(ParamUtil.NET));
         if (null != netMapStr && StringUtils.isNotBlank(netMapStr)) {
             this.netMap = JSON.parseObject(netMapStr, Map.class);
         }
-        this.dataSourceType = dataSourceType;
-        this.openMqConsumer = openMqConsumer;
-    }
+        String hostNameMapStr = Objects.toString(args.get(ParamUtil.HOSTNAME));
+        if (null != hostNameMapStr && StringUtils.isNotBlank(hostNameMapStr)) {
+            this.hostNameMap = JSON.parseObject(hostNameMapStr, Map.class);
+        }
+        String serverPortsMapStr = Objects.toString(args.get(ParamUtil.PORTS));
+        if (null != serverPortsMapStr && StringUtils.isNotBlank(serverPortsMapStr)) {
+            this.serverPortsMap = JSON.parseObject(serverPortsMapStr, Map.class);
+        }
+        String registerZkStr = Objects.toString(args.get(ParamUtil.REGISTERZK));
+        this.registerZk = CommonStat.TRUE.equals(String.valueOf(registerZkStr)) ? true : false;
+        this.coreSize = Integer.valueOf(Objects.toString(args.get(ParamUtil.CORE_SIZE)));
+        this.dataSourceType = Objects.toString(args.get(ParamUtil.DATA_SOURCE_TYPE));
+        this.openMqConsumer = Objects.isNull(args.get(ParamUtil.MQConsumer)) ? true : false;
 
-
-    public PradarSupplierConfiguration(Integer workPort, Object netMapStr) {
-        this.workPort = workPort;
-        if (null != netMapStr && StringUtils.isNotBlank(String.valueOf(netMapStr))) {
-            this.netMap = JSON.parseObject(String.valueOf(netMapStr), Map.class);
-        }
-    }
-
-    public PradarSupplierConfiguration(Integer workPort,
-                                       Object netMapStr,
-                                       Object hostNameMapStr,
-                                       Object registerZk,
-                                       Object coreSize,
-                                       Object dataSourceType,
-                                       Object serverPortsMapStr,
-                                       Object generalVersion,
-                                       Object host,
-                                       Object work,
-                                       Object mqConsumer) {
-        this.workPort = workPort;
-        if (null != netMapStr && StringUtils.isNotBlank(String.valueOf(netMapStr))) {
-            this.netMap = JSON.parseObject(String.valueOf(netMapStr), Map.class);
-        }
-        if (null != hostNameMapStr && StringUtils.isNotBlank(String.valueOf(hostNameMapStr))) {
-            this.hostNameMap = JSON.parseObject(String.valueOf(hostNameMapStr), Map.class);
-        }
-        if (null != serverPortsMapStr && StringUtils.isNotBlank(String.valueOf(serverPortsMapStr))) {
-            this.serverPortsMap = JSON.parseObject(String.valueOf(serverPortsMapStr), Map.class);
-        }
-        this.registerZk = CommonStat.TRUE.equals(String.valueOf(registerZk)) ? true : false;
-        this.generalVersion = CommonStat.TRUE.equals(String.valueOf(generalVersion)) ? true : false;
-        this.coreSize = Integer.valueOf(Objects.toString(coreSize));
-        this.dataSourceType = Objects.toString(dataSourceType);
         if (null != host) {
-            this.host = Objects.toString(host);
+            this.host = Objects.toString(args.get(ParamUtil.HOST));
         }
         if (null != work) {
-            this.work = Objects.toString(work);
+            this.work = Objects.toString(args.get(ParamUtil.WORK));
         }
-        this.openMqConsumer = Objects.isNull(mqConsumer) ? "true" : "false";
+        String httpEnabledStr = Objects.toString(args.get(ParamUtil.HTTP));
+
+        workerPort = NumberUtils.toInt(Objects.toString(args.getOrDefault("workerPort", "0")));
+        this.httpEnabled = CommonStat.TRUE.equals(String.valueOf(httpEnabledStr)) ? true : false;
+        this.registerZk = CommonStat.TRUE.equals(Objects.toString(args.get(ParamUtil.REGISTERZK))) ? true : false;
+        this.generalVersion = CommonStat.TRUE.equals(String.valueOf(generalVersion)) ? true : false;
     }
 
     /**
-     * 初始化initDataRuntime
+     * 装载module
      *
-     * @throws Exception
+     * @param bootstrap
      */
-    public DataRuntime initDataRuntime() {
-        DataBootstrap bootstrap = DataBootstrap.create("deploy.properties", "pradar");
-        DataBootstrapEnhancer.enhancer(bootstrap);
+    @Override
+    public void install(DataBootstrap bootstrap) {
         bootstrap.install(
-                new PradarModule(workPort),
+                new PradarModule(workerPort),
                 new NettyRemotingModule(),
-                new JettySupplierModule(),
                 new InfluxDBModule(),
                 new ClickHouseModule(),
                 new ClickHouseShardModule(),
                 new MysqlModule());
-        DataRuntime dataRuntime = bootstrap.startRuntime();
-        return dataRuntime;
     }
 
     /**
-     * 初始化
-     *
-     * @throws Exception
-     */
-    public void init() throws Exception {
-        buildSupplier(initDataRuntime()).start();
-    }
-
-    /**
-     * trace 日志 构建基础的消费digester ,可使用在单节点启动和storm集群中
+     * 运行时启动后初始化
      *
      * @param dataRuntime
-     * @return
      */
-    public DataDigester[] buildTraceLogProcess(DataRuntime dataRuntime) {
-        LogDigester logDigester = dataRuntime.getInstance(LogDigester.class);
-        logDigester.setDataSourceType(this.dataSourceType);
-        if (openMqConsumer.equals("true")) {
-            RocketmqDigester rocketmqDigester = dataRuntime.getInstance(RocketmqDigester.class);
-            return new DataDigester[]{logDigester, rocketmqDigester};
+    @Override
+    public void doAfterInit(DataRuntime dataRuntime) throws Exception {
+        NettyRemotingSupplier nettyRemotingSupplier = buildSupplier(dataRuntime, true);
+        Injector injector = dataRuntime.getInstance(Injector.class);
+        injector.injectMembers(this);
+        /**
+         * 初始化metrics聚合任务。此处注入和diggest同一个对象
+         */
+        if (!generalVersion) {
+            traceMetricsAggarator.init(new Scheduler(1), outputCollector);
         }
-        return new DataDigester[]{logDigester};
-    }
+        e2eTraceMetricsAggarator.init(new Scheduler(1), outputCollector);
+        // 初始化边缓存
+        eagleLoader.init();
+        ruleLoader.init();
+        nettyRemotingSupplier.start();
 
+        // 确认是否开始Http服务
+        if (httpEnabled) {
+            //启动jetty
+            JettySupplier jettySupplier = buildJettySupplier(dataRuntime, true);
+            jettySupplier.start();
+        }
 
-    /**
-     * 基础cpu、load处理
-     *
-     * @param dataRuntime
-     * @return
-     */
-    public DataDigester[] buildMonitorProcess(DataRuntime dataRuntime) {
-        BaseDataDigester baseDataDigester = dataRuntime.getInstance(BaseDataDigester.class);
-        return new DataDigester[]{baseDataDigester};
-    }
-
-    /**
-     * agent日志处理
-     *
-     * @param dataRuntime
-     * @return
-     */
-    public DataDigester[] buildAgentProcess(DataRuntime dataRuntime) {
-        DataDigester agentInfoDigester = dataRuntime.getInstance(AgentInfoDigester.class);
-        return new DataDigester[]{agentInfoDigester};
     }
 
     /**
-     * 单节点的metrics计算
+     * 设置收集器
      *
-     * @param dataRuntime
-     * @return
+     * @param outputCollector
      */
-    public DataDigester[] buildMetricsProcess(DataRuntime dataRuntime) {
-        MetricsDigester metricsDigester = dataRuntime.getInstance(MetricsDigester.class);
-        return new DataDigester[]{metricsDigester};
+    @Override
+    public void collector(OutputCollector outputCollector) {
+        this.outputCollector = outputCollector;
     }
 
     /**
      * 创建订阅器
      *
      * @param dataRuntime
-     * @return
      * @throws Exception
      */
-    public NettyRemotingSupplier buildSupplier(DataRuntime dataRuntime) {
+    private NettyRemotingSupplier buildSupplier(DataRuntime dataRuntime, Boolean isDistributed) {
         try {
             NettyRemotingSupplierSpec nettyRemotingSupplierSpec = new NettyRemotingSupplierSpec();
             nettyRemotingSupplierSpec.setNetMap(netMap);
             nettyRemotingSupplierSpec.setHostNameMap(hostNameMap);
-            nettyRemotingSupplierSpec.setRegisterZk(true);
+            nettyRemotingSupplierSpec.setRegisterZk(registerZk);
+            nettyRemotingSupplierSpec.setHost(host);
+            nettyRemotingSupplierSpec.setWork(work);
             NettyRemotingSupplier nettyRemotingSupplier = dataRuntime.createGenericInstance(nettyRemotingSupplierSpec);
 
             /**
@@ -218,7 +207,9 @@ public class PradarSupplierConfiguration {
              */
             ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
             traceLogProcessorConfigSpec.setName("trace-log");
-            traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogProcess(dataRuntime)));
+            traceLogProcessorConfigSpec.setDigesters(
+                    ArrayUtils.addAll(buildTraceLogProcess(dataRuntime),
+                            isDistributed ? buildTraceLogComplexProcess(dataRuntime) : buildE2EProcessByStandadlone(dataRuntime)));
             traceLogProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
 
@@ -231,10 +222,24 @@ public class PradarSupplierConfiguration {
             baseProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
 
+            /**
+             * agent日志
+             */
+            ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
+            agentProcessorConfigSpec.setName("agent-log");
+            agentProcessorConfigSpec.setDigesters(buildAgentProcess(dataRuntime));
+            agentProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor agentProcessor = dataRuntime.createGenericInstance(agentProcessorConfigSpec);
+
+
             Map<String, DataQueue> queueMap = Maps.newHashMap();
             queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
             queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
+            queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
+
             nettyRemotingSupplier.setQueue(queueMap);
+            nettyRemotingSupplier.setInputPortMap(serverPortsMap);
+            nettyRemotingSupplier.setWork(work);
             return nettyRemotingSupplier;
         } catch (Throwable e) {
             logger.error("netty fail " + ExceptionUtils.getStackTrace(e));
@@ -243,94 +248,124 @@ public class PradarSupplierConfiguration {
     }
 
 
-    public boolean isRegisterZk() {
-        return registerZk;
-    }
+    /**
+     * 创建jetty订阅器
+     *
+     * @param dataRuntime
+     * @throws Exception
+     */
+    private JettySupplier buildJettySupplier(DataRuntime dataRuntime, Boolean isDistributed) {
+        try {
+            JettySupplierSpec jettySupplierSpec = new JettySupplierSpec();
+            JettySupplier jettySupplier = dataRuntime.createGenericInstance(jettySupplierSpec);
 
-    public int getCoreSize() {
-        return coreSize;
-    }
+            /**
+             * storm消费trace日志
+             */
+            ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
+            traceLogProcessorConfigSpec.setName("trace-log");
+            traceLogProcessorConfigSpec.setDigesters(
+                    ArrayUtils.addAll(buildTraceLogProcess(dataRuntime),
+                            isDistributed ? buildTraceLogComplexProcess(dataRuntime) : buildE2EProcessByStandadlone(dataRuntime)));
+            traceLogProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
 
-    public void setCoreSize(int coreSize) {
-        this.coreSize = coreSize;
-    }
+            /**
+             * storm消费monitor日志
+             */
+            ProcessorConfigSpec<PradarProcessor> baseProcessorConfigSpec = new PradarProcessorConfigSpec();
+            baseProcessorConfigSpec.setName("base");
+            baseProcessorConfigSpec.setDigesters(buildMonitorProcess(dataRuntime));
+            baseProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
 
-    public Integer getWorkPort() {
-        return workPort;
-    }
+            /**
+             * agent日志
+             */
+            ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
+            agentProcessorConfigSpec.setName("agent-log");
+            agentProcessorConfigSpec.setDigesters(buildAgentProcess(dataRuntime));
+            agentProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor agentProcessor = dataRuntime.createGenericInstance(agentProcessorConfigSpec);
 
-    public void setWorkPort(Integer workPort) {
-        this.workPort = workPort;
-    }
 
-    public Map<String, String> getNetMap() {
-        return netMap;
-    }
+            Map<String, DataQueue> queueMap = Maps.newHashMap();
+            queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
+            queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
+            queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
 
-    public void setNetMap(Map<String, String> netMap) {
-        this.netMap = netMap;
-    }
-
-    public Map<String, String> getHostNameMap() {
-        return hostNameMap;
-    }
-
-    public void setHostNameMap(Map<String, String> hostNameMap) {
-        this.hostNameMap = hostNameMap;
-    }
-
-    public void setRegisterZk(boolean registerZk) {
-        this.registerZk = registerZk;
-    }
-
-    public String getDataSourceType() {
-        return dataSourceType;
-    }
-
-    public void setDataSourceType(String dataSourceType) {
-        this.dataSourceType = dataSourceType;
-    }
-
-    public Map<String, String> getServerPortsMap() {
-        return serverPortsMap;
-    }
-
-    public boolean isGeneralVersion() {
-        return generalVersion;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public String getWork() {
-        return work;
-    }
-
-    public String getOpenMqConsumer() {
-        return openMqConsumer;
-    }
-
-    public void setOpenMqConsumer(String openMqConsumer) {
-        this.openMqConsumer = openMqConsumer;
+            jettySupplier.setQueue(queueMap);
+            jettySupplier.addServlet("/takin-surge/log/engine/metrics/upload", dataRuntime.getInstance(EngineDataWriteServlet.class));
+            jettySupplier.addServlet("/takin-surge/health", dataRuntime.getInstance(HealthCheckServlet.class));
+            LogWriteServlet logWriteServlet = dataRuntime.getInstance(LogWriteServlet.class);
+            logWriteServlet.setQueueMap(queueMap);
+            jettySupplier.addServlet("/takin-surge/log/link/upload", logWriteServlet);
+            return jettySupplier;
+        } catch (Throwable e) {
+            logger.error("jetty fail " + ExceptionUtils.getStackTrace(e));
+            throw new RuntimeException("jetty fail");
+        }
     }
 
     /**
-     * 简单使用 启动日志数据写入, 此处功能默认数据链路数据存储到mysql
-     * java -cp xxx.jar io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration
+     * trace 日志 构建基础的消费digester ,可使用在单节点启动和storm集群中
      *
-     * @param args
-     * @throws Exception
+     * @param dataRuntime
+     * @return
      */
-    public static void main(String[] args) throws Exception {
-        Map<String, String> inputMap = Maps.newHashMap();
-        ParamUtil.parseInputParam(inputMap, args);
-        // 默认将数据写入到mysql
-        inputMap.put(ParamUtil.DATA_SOURCE_TYPE, CommonStat.MYSQL);
+    private DataDigester[] buildTraceLogProcess(DataRuntime dataRuntime) {
+        LogDigester logDigester = dataRuntime.getInstance(LogDigester.class);
+        logDigester.setDataSourceType(this.dataSourceType);
+        if (openMqConsumer) {
+            RocketmqDigester rocketmqDigester = dataRuntime.getInstance(RocketmqDigester.class);
+            return new DataDigester[]{logDigester, rocketmqDigester};
+        }
+        return new DataDigester[]{logDigester};
+    }
 
-        PradarSupplierConfiguration pradarSupplierConfiguration =
-                new PradarSupplierConfiguration(inputMap.get(ParamUtil.NET),
-                        inputMap.get(ParamUtil.DATA_SOURCE_TYPE), inputMap.get(ParamUtil.MQConsumer));
-        pradarSupplierConfiguration.init();
+    /**
+     * 基础cpu、load处理
+     *
+     * @param dataRuntime
+     * @return
+     */
+    private DataDigester[] buildMonitorProcess(DataRuntime dataRuntime) {
+        BaseDataDigester baseDataDigester = dataRuntime.getInstance(BaseDataDigester.class);
+        return new DataDigester[]{baseDataDigester};
+    }
+
+    /**
+     * agent日志处理
+     *
+     * @param dataRuntime
+     * @return
+     */
+    private DataDigester[] buildAgentProcess(DataRuntime dataRuntime) {
+        DataDigester agentInfoDigester = dataRuntime.getInstance(AgentInfoDigester.class);
+        return new DataDigester[]{agentInfoDigester};
+    }
+
+    /**
+     * 用于分片任务计算
+     *
+     * @param dataRuntime
+     * @return
+     */
+    private DataDigester[] buildTraceLogComplexProcess(DataRuntime dataRuntime) {
+        TraceMetricsDiggester traceMetricsDiggester = dataRuntime.getInstance(TraceMetricsDiggester.class);
+        traceMetricsDiggester.init();
+        return new DataDigester[]{traceMetricsDiggester};
+    }
+
+    /**
+     * 单机模式E2E计算任务
+     *
+     * @param dataRuntime
+     * @return
+     */
+    private DataDigester[] buildE2EProcessByStandadlone(DataRuntime dataRuntime) {
+        E2EDefaultDigester e2eDefaultDigester = dataRuntime.getInstance(E2EDefaultDigester.class);
+        e2eDefaultDigester.init();
+        return new DataDigester[]{e2eDefaultDigester};
     }
 }

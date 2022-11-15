@@ -41,8 +41,8 @@ import java.util.Map;
 /**
  *
  */
-public class PradarTraceReduceBolt extends BaseBasicBolt {
-    private static Logger logger = LoggerFactory.getLogger(PradarTraceReduceBolt.class);
+public class PradarAppRelationReduceBolt extends BaseBasicBolt {
+    private static Logger logger = LoggerFactory.getLogger(PradarAppRelationReduceBolt.class);
     private PradarReduceConfiguration pradarReduceConfiguration;
 
     @Inject
@@ -52,7 +52,7 @@ public class PradarTraceReduceBolt extends BaseBasicBolt {
     public void prepare(Map stormConf, TopologyContext context) {
         try {
             Map<String, Object> args = Maps.newHashMap(stormConf);
-            args.put("receivers", "trace");
+            args.put("receivers", "appRelation");
             DataBootstrap bootstrap = DataBootstrap.create("deploy.properties", "pradar");
             DataBootstrapEnhancer.enhancer(bootstrap);
             pradarReduceConfiguration = new PradarReduceConfiguration();
@@ -70,12 +70,12 @@ public class PradarTraceReduceBolt extends BaseBasicBolt {
 
     @Override
     public void execute(Tuple input, BasicOutputCollector basicOutputCollector) {
-        if (!input.getSourceStreamId().equals(PradarRtConstant.REDUCE_TRACE_METRICS_STREAM_ID)) {
+        if (!input.getSourceStreamId().equals(PradarRtConstant.REDUCE_APP_RELATION_TRACE_METRICS_STREAM_ID)) {
             return;
         }
         Long slotKey = input.getLong(0);
         List<Pair<Metric, CallStat>> job = (List<Pair<Metric, CallStat>>) input.getValue(1);
-        pradarReduceConfiguration.getTraceMetricsReceiver().execute(slotKey, job);
+        pradarReduceConfiguration.getAppRelationMetricsReceiver().execute(slotKey, job);
     }
 
     @Override

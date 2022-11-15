@@ -15,30 +15,26 @@
 
 package io.shulie.surge.data.deploy.pradar;
 
-import com.google.inject.Inject;
-import com.google.inject.Injector;
-import io.shulie.surge.data.JettySupplier;
+import com.google.common.collect.Maps;
 import io.shulie.surge.data.JettySupplierObserver;
-import io.shulie.surge.data.common.aggregation.Scheduler;
-import io.shulie.surge.data.deploy.pradar.agg.E2ETraceMetricsAggarator;
-import io.shulie.surge.data.deploy.pradar.agg.TraceMetricsAggarator;
-import io.shulie.surge.data.deploy.pradar.common.*;
+import io.shulie.surge.data.deploy.pradar.collector.OutputCollector;
+import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
+import io.shulie.surge.data.deploy.pradar.common.PradarRtConstant;
 import io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration;
-import io.shulie.surge.data.runtime.common.DataRuntime;
-import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplier;
-import net.openhft.affinity.AffinityLock;
+import io.shulie.surge.data.runtime.common.DataBootstrap;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Values;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static io.shulie.surge.data.JettySupplier.registedPort;
 
@@ -48,79 +44,27 @@ import static io.shulie.surge.data.JettySupplier.registedPort;
 
 public class PradarLogSpout extends BaseRichSpout {
     private static Logger logger = LoggerFactory.getLogger(PradarLogSpout.class);
-    @Inject
-    private TraceMetricsAggarator traceMetricsAggarator;
-    @Inject
-    private E2ETraceMetricsAggarator e2eTraceMetricsAggarator;
-    @Inject
-    private EagleLoader eagleLoader;
-    @Inject
-    private RuleLoader ruleLoader;
 
     @Override
     public void open(Map map, TopologyContext topologyContext, SpoutOutputCollector spoutOutputCollector) {
-        PradarStormConfigHolder.init(map);
-        PradarSupplierConfiguration pradarSupplierConfiguration =
-                new PradarSupplierConfiguration(
-                        topologyContext.getThisWorkerPort(),
-                        map.get(ParamUtil.NET),
-                        map.get(ParamUtil.HOSTNAME),
-                        map.get(ParamUtil.REGISTERZK),
-                        map.get(ParamUtil.CORE_SIZE),
-                        map.get(ParamUtil.DATA_SOURCE_TYPE),
-                        map.get(ParamUtil.PORTS),
-                        map.get(ParamUtil.GENERAL_VERSION),
-                        map.get(ParamUtil.HOST),
-                        map.get(ParamUtil.WORK),
-                        map.get(ParamUtil.MQConsumer));
-        Object openAffinityLock = map.getOrDefault(ParamUtil.AffinityLock, "false");
-        AffinityLock affinityLock = null;
-        if (Objects.toString(openAffinityLock).equals("true")) {
-            affinityLock = AffinityUtil.acquireLock(topologyContext.getThisTaskId());
-            logger.info("当前Topology TaskId={},当前进程={},绑定的cpu Id={}", topologyContext.getThisTaskId(), getProcessID(), affinityLock.cpuId());
-        }
-        try {
-            DataRuntime dataRuntime = pradarSupplierConfiguration.initDataRuntime();
-            PradarStormSupplierConfiguration pradarStormSupplierConfiguration = new PradarStormSupplierConfiguration(
-                    pradarSupplierConfiguration.getNetMap(), pradarSupplierConfiguration.getHostNameMap(),
-                    pradarSupplierConfiguration.isRegisterZk(), pradarSupplierConfiguration.getCoreSize(),
-                    pradarSupplierConfiguration.getDataSourceType(),
-                    pradarSupplierConfiguration.getServerPortsMap(),
-                    pradarSupplierConfiguration.isGeneralVersion(),
-                    pradarSupplierConfiguration.getHost(),
-                    pradarSupplierConfiguration.getWork(),
-                    pradarSupplierConfiguration.getOpenMqConsumer()
-            );
+        PradarSupplierConfiguration pradarSupplierConfiguration = new PradarSupplierConfiguration();
+        Map<String, Object> args = Maps.newHashMap(map);
+        args.put("workerPort", topologyContext.getThisWorkerPort());
+        pradarSupplierConfiguration.initArgs(args);
+        DataBootstrap bootstrap = DataBootstrap.create("deploy.properties", "pradar");
+        DataBootstrapEnhancer.enhancer(bootstrap);
+        pradarSupplierConfiguration.install(bootstrap);
+        pradarSupplierConfiguration.collector(new OutputCollector() {
+            @Override
+            public List<Integer> getReduceIds() {
+                return topologyContext.getThisWorkerTasks();
+            }
 
-            NettyRemotingSupplier nettyRemotingSupplier = pradarStormSupplierConfiguration.buildSupplier(dataRuntime, true);
-            Injector injector = dataRuntime.getInstance(Injector.class);
-            injector.injectMembers(this);
-            /**
-             * 初始化metrics聚合任务。此处注入和diggest同一个对象
-             */
-            if (!pradarSupplierConfiguration.isGeneralVersion()) {
-                traceMetricsAggarator.init(new Scheduler(1), spoutOutputCollector, topologyContext);
+            @Override
+            public void emit(int partition, String streamId, Object... values) {
+                spoutOutputCollector.emitDirect(partition, streamId, new Values(values));
             }
-            e2eTraceMetricsAggarator.init(new Scheduler(1), spoutOutputCollector, topologyContext);
-            // 初始化边缓存
-            eagleLoader.init();
-            ruleLoader.init();
-            nettyRemotingSupplier.start();
-
-            // 确认是否开始Http服务
-            Object http = map.getOrDefault(ParamUtil.HTTP, "true");
-            if (Objects.toString(http).equals("true")) {
-                //启动jetty
-                JettySupplier jettySupplier = pradarStormSupplierConfiguration.buildJettySupplier(dataRuntime, true);
-                jettySupplier.start();
-            }
-        } catch (Throwable e) {
-            throw new RuntimeException("fail to start PradarLogSpout", e);
-        } finally {
-            if (affinityLock != null) {
-                affinityLock.release();
-            }
-        }
+        });
         logger.info("PradarLogSpout start successfull...");
     }
 

@@ -39,13 +39,12 @@
         <nacos.version>2.0.4</nacos.version>
     </properties>
     <modules>
+        <module>surge-data</module>
         <module>surge-deploy-pradar</module>
         <module>surge-deploy-pradar-common</module>
-        <module>surge-deploy-pradar-storm</module>
         <module>surge-deploy-pradar-parser</module>
         <module>surge-deploy-pradar-link</module>
-        <module>surge-data</module>
-        <module>surge-deploy-spring</module>
+        <module>surge-deploy-pradar-storm</module>
     </modules>
 
     <dependencyManagement>
@@ -162,6 +161,11 @@
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>2.6</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid</artifactId>
+                <version>1.2.8</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
