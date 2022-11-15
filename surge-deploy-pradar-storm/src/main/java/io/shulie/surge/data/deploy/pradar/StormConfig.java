@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-package io.shulie.surge.data.deploy.pradar.common;
+package io.shulie.surge.data.deploy.pradar;
 
 
 import io.shulie.surge.data.common.aggregation.metrics.CallStat;

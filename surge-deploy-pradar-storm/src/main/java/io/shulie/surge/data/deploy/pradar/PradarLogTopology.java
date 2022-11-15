@@ -18,7 +18,6 @@ package io.shulie.surge.data.deploy.pradar;
 import com.google.common.collect.Maps;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
 import io.shulie.surge.data.deploy.pradar.common.PradarRtConstant;
-import io.shulie.surge.data.deploy.pradar.common.StormConfig;
 import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
