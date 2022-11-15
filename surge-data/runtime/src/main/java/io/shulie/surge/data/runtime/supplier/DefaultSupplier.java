@@ -26,15 +26,15 @@ import static com.google.common.base.Preconditions.checkState;
 
 
 /**
- * @author vincent 
+ * @author vincent
  */
-class DefaultSupplier implements Supplier {
+public class DefaultSupplier implements Supplier {
 
     private final CopyOnWriteArrayList<LifecycleObserver<Supplier>> observers =
             Lists.newCopyOnWriteArrayList();
 
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private DataQueue queue;
+    protected DataQueue queue;
 
     /**
      * 开始获取数据

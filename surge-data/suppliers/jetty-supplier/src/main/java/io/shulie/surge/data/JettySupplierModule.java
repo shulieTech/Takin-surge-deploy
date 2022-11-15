@@ -23,4 +23,16 @@ public class JettySupplierModule extends BaseDataModule {
     protected void configure() {
         bindGeneric(JettySupplier.class, JettySupplierFactory.class, JettySupplierSpec.class);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.getClass().hashCode();
+    }
 }

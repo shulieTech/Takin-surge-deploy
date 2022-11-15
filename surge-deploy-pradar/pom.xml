@@ -177,7 +177,8 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration
+                            <mainClass>
+                                io.shulie.surge.data.deploy.pradar.config.PradarNettyRemotingSupplierConfiguration
                             </mainClass><!--这里改成自己的启动位置（主类位置）-->
                         </manifest>
                     </archive>

@@ -1,4 +1,4 @@
-package io.shulie.surge.data.deploy.pradar.common;
+package io.shulie.surge.data.runtime.common;
 
 import com.google.common.collect.Maps;
 

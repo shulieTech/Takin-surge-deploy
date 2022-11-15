@@ -47,51 +47,53 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
+ * pradar supplier配置
+ *
  * @author vincent
  * @date 2022/11/14 17:21
  **/
 public class PradarSupplierConfiguration implements PradarConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(PradarSupplierConfiguration.class);
-    private Map<String, String> netMap;
-    private Map<String, String> hostNameMap;
-    private String host = "";
-    private String work = "";
-    private Map<String, String> serverPortsMap = Maps.newHashMap();
-    private String dataSourceType;
-    private boolean registerZk;
-    private boolean generalVersion;
-    private int coreSize;
+    protected Map<String, String> netMap;
+    protected Map<String, String> hostNameMap;
+    protected String host = "";
+    protected String work = "";
+    protected Map<String, String> serverPortsMap = Maps.newHashMap();
+    protected String dataSourceType;
+    protected boolean registerZk;
+    protected boolean generalVersion;
+    protected int coreSize;
     private boolean httpEnabled;
-    private boolean openMqConsumer;
-    private int workerPort;
-    private String taskId;
-    private boolean affinityLockEnabled;
+    protected boolean openMqConsumer;
+    protected int workerPort;
+    protected String taskId;
+    protected boolean affinityLockEnabled;
     /**
      * trace指标聚合器
      */
     @Inject
-    private TraceMetricsAggarator traceMetricsAggarator;
+    protected TraceMetricsAggarator traceMetricsAggarator;
     /**
      * E2E指标聚合器
      */
     @Inject
-    private E2ETraceMetricsAggarator e2eTraceMetricsAggarator;
+    protected E2ETraceMetricsAggarator e2eTraceMetricsAggarator;
     /**
      * 边读取器
      */
     @Inject
-    private EagleLoader eagleLoader;
+    protected EagleLoader eagleLoader;
     /**
      * 断言规则
      */
     @Inject
-    private RuleLoader ruleLoader;
+    protected RuleLoader ruleLoader;
 
     /**
      * 输出器
      */
-    private OutputCollector outputCollector;
+    protected OutputCollector outputCollector;
 
     /**
      * 参数初始化
@@ -143,13 +145,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      */
     @Override
     public void install(DataBootstrap bootstrap) {
-        bootstrap.install(
-                new PradarModule(workerPort),
-                new NettyRemotingModule(),
-                new InfluxDBModule(),
-                new ClickHouseModule(),
-                new ClickHouseShardModule(),
-                new MysqlModule());
+        bootstrap.install(new PradarModule(workerPort), new NettyRemotingModule(), new InfluxDBModule(), new ClickHouseModule(), new ClickHouseShardModule(), new MysqlModule());
     }
 
     /**
@@ -189,11 +185,10 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
 
     }
 
-    private int getProcessID() {
+    protected int getProcessID() {
         RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
         System.out.println(runtimeMXBean.getName());
-        return Integer.valueOf(runtimeMXBean.getName().split("@")[0])
-                .intValue();
+        return Integer.valueOf(runtimeMXBean.getName().split("@")[0]).intValue();
     }
 
     /**
@@ -212,7 +207,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @param dataRuntime
      * @throws Exception
      */
-    private NettyRemotingSupplier buildSupplier(DataRuntime dataRuntime, Boolean isDistributed) {
+    protected NettyRemotingSupplier buildSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
         try {
             NettyRemotingSupplierSpec nettyRemotingSupplierSpec = new NettyRemotingSupplierSpec();
             nettyRemotingSupplierSpec.setNetMap(netMap);
@@ -222,40 +217,11 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
             nettyRemotingSupplierSpec.setWork(work);
             NettyRemotingSupplier nettyRemotingSupplier = dataRuntime.createGenericInstance(nettyRemotingSupplierSpec);
 
-            /**
-             * storm消费trace日志
-             */
-            ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
-            traceLogProcessorConfigSpec.setName("trace-log");
-            traceLogProcessorConfigSpec.setDigesters(
-                    ArrayUtils.addAll(buildTraceLogProcess(dataRuntime),
-                            isDistributed ? buildTraceLogComplexProcess(dataRuntime) : buildE2EProcessByStandadlone(dataRuntime)));
-            traceLogProcessorConfigSpec.setExecuteSize(coreSize);
-            PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
-
-            /**
-             * storm消费monitor日志
-             */
-            ProcessorConfigSpec<PradarProcessor> baseProcessorConfigSpec = new PradarProcessorConfigSpec();
-            baseProcessorConfigSpec.setName("base");
-            baseProcessorConfigSpec.setDigesters(buildMonitorProcess(dataRuntime));
-            baseProcessorConfigSpec.setExecuteSize(coreSize);
-            PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
-
-            /**
-             * agent日志
-             */
-            ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
-            agentProcessorConfigSpec.setName("agent-log");
-            agentProcessorConfigSpec.setDigesters(buildAgentProcess(dataRuntime));
-            agentProcessorConfigSpec.setExecuteSize(coreSize);
-            PradarProcessor agentProcessor = dataRuntime.createGenericInstance(agentProcessorConfigSpec);
-
 
             Map<String, DataQueue> queueMap = Maps.newHashMap();
-            queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
-            queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
-            queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
+            queueMap.put(String.valueOf(DataType.TRACE_LOG), buidTraceProcesser(dataRuntime, isDistributed));
+            queueMap.put(String.valueOf(DataType.MONITOR_LOG), buidMonitorProcesser(dataRuntime));
+            queueMap.put(String.valueOf(DataType.AGENT_LOG), buidAgentLogProcesser(dataRuntime));
 
             nettyRemotingSupplier.setQueue(queueMap);
             nettyRemotingSupplier.setInputPortMap(serverPortsMap);
@@ -265,6 +231,58 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
             logger.error("netty fail " + ExceptionUtils.getStackTrace(e));
             throw new RuntimeException("netty fail");
         }
+    }
+
+    /**
+     * 创建trace处理器
+     *
+     * @param dataRuntime
+     * @return
+     * @throws Exception
+     */
+    protected PradarProcessor buidTraceProcesser(DataRuntime dataRuntime, boolean isDistributed) throws Exception {
+        /**
+         * storm消费trace日志
+         */
+        ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
+        traceLogProcessorConfigSpec.setName("trace-log");
+        traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogDigesters(dataRuntime), isDistributed ? buildTraceLogComplexDigester(dataRuntime) : buildE2EProcessByStandadloneDigesters(dataRuntime)));
+        traceLogProcessorConfigSpec.setExecuteSize(coreSize);
+        return dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
+
+    }
+
+    /**
+     * 创建monitor处理器
+     *
+     * @param dataRuntime
+     * @return
+     * @throws Exception
+     */
+    protected PradarProcessor buidMonitorProcesser(DataRuntime dataRuntime) throws Exception {
+        /**
+         * storm消费monitor日志
+         */
+        ProcessorConfigSpec<PradarProcessor> baseProcessorConfigSpec = new PradarProcessorConfigSpec();
+        baseProcessorConfigSpec.setName("base");
+        baseProcessorConfigSpec.setDigesters(buildMonitorDigesters(dataRuntime));
+        baseProcessorConfigSpec.setExecuteSize(coreSize);
+        return dataRuntime.createGenericInstance(baseProcessorConfigSpec);
+    }
+
+    /**
+     * 创建agent日志处理器
+     *
+     * @param dataRuntime
+     * @return
+     * @throws Exception
+     */
+    protected PradarProcessor buidAgentLogProcesser(DataRuntime dataRuntime) throws Exception {
+        ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
+        agentProcessorConfigSpec.setName("agent-log");
+        agentProcessorConfigSpec.setDigesters(buildAgentDigesters(dataRuntime));
+        agentProcessorConfigSpec.setExecuteSize(coreSize);
+        return dataRuntime.createGenericInstance(agentProcessorConfigSpec);
     }
 
 
@@ -284,9 +302,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
              */
             ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
             traceLogProcessorConfigSpec.setName("trace-log");
-            traceLogProcessorConfigSpec.setDigesters(
-                    ArrayUtils.addAll(buildTraceLogProcess(dataRuntime),
-                            isDistributed ? buildTraceLogComplexProcess(dataRuntime) : buildE2EProcessByStandadlone(dataRuntime)));
+            traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogDigesters(dataRuntime), isDistributed ? buildTraceLogComplexDigester(dataRuntime) : buildE2EProcessByStandadloneDigesters(dataRuntime)));
             traceLogProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
 
@@ -295,7 +311,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
              */
             ProcessorConfigSpec<PradarProcessor> baseProcessorConfigSpec = new PradarProcessorConfigSpec();
             baseProcessorConfigSpec.setName("base");
-            baseProcessorConfigSpec.setDigesters(buildMonitorProcess(dataRuntime));
+            baseProcessorConfigSpec.setDigesters(buildMonitorDigesters(dataRuntime));
             baseProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
 
@@ -304,7 +320,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
              */
             ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
             agentProcessorConfigSpec.setName("agent-log");
-            agentProcessorConfigSpec.setDigesters(buildAgentProcess(dataRuntime));
+            agentProcessorConfigSpec.setDigesters(buildAgentDigesters(dataRuntime));
             agentProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor agentProcessor = dataRuntime.createGenericInstance(agentProcessorConfigSpec);
 
@@ -333,7 +349,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @param dataRuntime
      * @return
      */
-    private DataDigester[] buildTraceLogProcess(DataRuntime dataRuntime) {
+    private DataDigester[] buildTraceLogDigesters(DataRuntime dataRuntime) {
         LogDigester logDigester = dataRuntime.getInstance(LogDigester.class);
         logDigester.setDataSourceType(this.dataSourceType);
         if (openMqConsumer) {
@@ -349,7 +365,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @param dataRuntime
      * @return
      */
-    private DataDigester[] buildMonitorProcess(DataRuntime dataRuntime) {
+    private DataDigester[] buildMonitorDigesters(DataRuntime dataRuntime) {
         BaseDataDigester baseDataDigester = dataRuntime.getInstance(BaseDataDigester.class);
         return new DataDigester[]{baseDataDigester};
     }
@@ -360,7 +376,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @param dataRuntime
      * @return
      */
-    private DataDigester[] buildAgentProcess(DataRuntime dataRuntime) {
+    private DataDigester[] buildAgentDigesters(DataRuntime dataRuntime) {
         DataDigester agentInfoDigester = dataRuntime.getInstance(AgentInfoDigester.class);
         return new DataDigester[]{agentInfoDigester};
     }
@@ -371,7 +387,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @param dataRuntime
      * @return
      */
-    private DataDigester[] buildTraceLogComplexProcess(DataRuntime dataRuntime) {
+    private DataDigester[] buildTraceLogComplexDigester(DataRuntime dataRuntime) {
         TraceMetricsDiggester traceMetricsDiggester = dataRuntime.getInstance(TraceMetricsDiggester.class);
         traceMetricsDiggester.init();
         return new DataDigester[]{traceMetricsDiggester};
@@ -383,9 +399,18 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @param dataRuntime
      * @return
      */
-    private DataDigester[] buildE2EProcessByStandadlone(DataRuntime dataRuntime) {
+    private DataDigester[] buildE2EProcessByStandadloneDigesters(DataRuntime dataRuntime) {
         E2EDefaultDigester e2eDefaultDigester = dataRuntime.getInstance(E2EDefaultDigester.class);
         e2eDefaultDigester.init();
         return new DataDigester[]{e2eDefaultDigester};
+    }
+
+    /**
+     * 停止运行。如果已经停止，则应该不会有任何效果。
+     * 建议实现使用同步方式执行。
+     */
+    @Override
+    public void stop() throws Exception {
+
     }
 }

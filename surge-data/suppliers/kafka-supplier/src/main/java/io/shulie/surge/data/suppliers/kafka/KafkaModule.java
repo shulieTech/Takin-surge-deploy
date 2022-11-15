@@ -13,34 +13,18 @@
  * limitations under the License.
  */
 
-package io.shulie.surge.data.deploy.pradar.config;
+package io.shulie.surge.data.suppliers.kafka;
 
-import io.shulie.surge.data.runtime.common.TaskIdentifier;
-import io.shulie.surge.data.runtime.common.impl.DefaultTaskIdentifier;
-import io.shulie.surge.data.runtime.module.BaseConfigModule;
+import io.shulie.surge.data.runtime.module.BaseDataModule;
 
-/**
- *
- */
-public class PradarModule extends BaseConfigModule {
-    private Integer workPort;
+public class KafkaModule extends BaseDataModule {
 
-    public PradarModule() {
-    }
-
-    public PradarModule(Integer workPort) {
-        this.workPort = workPort;
-    }
+    private static final long serialVersionUID = 6167505168329934505L;
 
     @Override
     protected void configure() {
-        bindGeneric(PradarProcessor.class, PradarProcessorGenericFactory.class, PradarProcessorConfigSpec.class);
-
-        DefaultTaskIdentifier identifier = new DefaultTaskIdentifier();
-        identifier.setWorkerId(String.valueOf(workPort == null ? 0 : workPort));
-        bind(TaskIdentifier.class).toInstance(identifier);
+        bindGeneric(KafkaSupplier.class, KafkaSupplierFactory.class, KafkaSupplierSpec.class);
     }
-
 
     @Override
     public boolean equals(Object o) {
@@ -53,4 +37,5 @@ public class PradarModule extends BaseConfigModule {
     public int hashCode() {
         return this.getClass().hashCode();
     }
+
 }

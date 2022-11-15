@@ -1,8 +1,10 @@
 package io.shulie.surge.data.deploy.pradar;
 
+import io.shulie.surge.data.deploy.pradar.collector.OutputCollector;
 import io.shulie.surge.data.deploy.pradar.common.ParameterTool;
 import io.shulie.surge.data.deploy.pradar.starter.PradarLinkStarter;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -15,8 +17,20 @@ public class PradarKafkaBootstrap {
         Map<String, String> conf = ParameterTool.fromArgs(args).getConfiguration();
 
         //接收器启动
-        PradarkafkaSupplierStarter pradarkafkaSupplierStarter = new PradarkafkaSupplierStarter();
+        PradarKafkaSupplierStarter pradarkafkaSupplierStarter = new PradarKafkaSupplierStarter();
         pradarkafkaSupplierStarter.init(conf);
+        pradarkafkaSupplierStarter.getPradarConfiguration().collector(new OutputCollector() {
+            @Override
+            public List<Integer> getReduceIds() {
+                return null;
+            }
+
+            @Override
+            public void emit(int partition, String streamId, Object... values) {
+
+            }
+        });
+
         pradarkafkaSupplierStarter.start();
 
 

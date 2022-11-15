@@ -18,9 +18,9 @@ import java.util.Map;
  **/
 public class PradarSupplierStarter implements PradarTaskStarter {
     private static final Logger logger = LoggerFactory.getLogger(PradarLinkStarter.class);
-    private DataBootstrap bootstrap;
-    private PradarSupplierConfiguration pradarSupplierConfiguration;
-    private DataRuntime dataRuntime;
+    protected DataBootstrap bootstrap;
+    protected PradarConfiguration pradarSupplierConfiguration;
+    protected DataRuntime dataRuntime;
 
     /**
      * 初始化
@@ -30,14 +30,14 @@ public class PradarSupplierStarter implements PradarTaskStarter {
     @Override
     public void init(Map<String, ?> args) {
         try {
-            logger.info("PradarkafkaSupplierStarter initial.");
+            logger.info("PradarSupplierStarter initial.");
             bootstrap = DataBootstrap.create("deploy.properties", "pradar");
             DataBootstrapEnhancer.enhancer(bootstrap);
             pradarSupplierConfiguration = new PradarSupplierConfiguration();
             pradarSupplierConfiguration.initArgs(args);
             pradarSupplierConfiguration.install(bootstrap);
         } catch (Throwable e) {
-            throw new RuntimeException("fail to start PradarkafkaSupplierStarter", e);
+            throw new RuntimeException("fail to start PradarSupplierStarter", e);
         }
     }
 
@@ -57,13 +57,13 @@ public class PradarSupplierStarter implements PradarTaskStarter {
     @Override
     public void start() throws Exception {
         try {
-            logger.info("PradarkafkaSupplierStarter start");
+            logger.info("PradarSupplierStarter start");
             dataRuntime = bootstrap.startRuntime();
             pradarSupplierConfiguration.doAfterInit(dataRuntime);
         } catch (Throwable e) {
-            throw new RuntimeException("fail to start PradarkafkaSupplierStarter", e);
+            throw new RuntimeException("fail to start PradarSupplierStarter", e);
         }
-        logger.info("PradarkafkaSupplierStarter start successfull...");
+        logger.info("PradarSupplierStarter start successfull...");
     }
 
     /**
