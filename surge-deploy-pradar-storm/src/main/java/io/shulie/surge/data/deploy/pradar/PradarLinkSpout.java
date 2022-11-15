@@ -16,10 +16,7 @@
 package io.shulie.surge.data.deploy.pradar;
 
 import com.google.common.collect.Maps;
-import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
-import io.shulie.surge.data.deploy.pradar.config.PradarLinkConfiguration;
-import io.shulie.surge.data.runtime.common.DataBootstrap;
-import io.shulie.surge.data.runtime.common.DataRuntime;
+import io.shulie.surge.data.deploy.pradar.starter.PradarLinkStarter;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -37,18 +34,11 @@ public class PradarLinkSpout extends BaseRichSpout {
 
     @Override
     public void open(Map conf, TopologyContext topologyContext, SpoutOutputCollector collector) {
-
         try {
-
             Map<String, Object> args = Maps.newHashMap(conf);
-            DataBootstrap bootstrap = DataBootstrap.create("deploy.properties", "pradar");
-            DataBootstrapEnhancer.enhancer(bootstrap);
-            PradarLinkConfiguration pradarLinkConfiguration = new PradarLinkConfiguration();
-            pradarLinkConfiguration.initArgs(args);
-            pradarLinkConfiguration.install(bootstrap);
-            DataRuntime dataRuntime = bootstrap.startRuntime();
-            pradarLinkConfiguration.doAfterInit(dataRuntime);
-
+            PradarLinkStarter pradarLinkStarter = new PradarLinkStarter();
+            pradarLinkStarter.init(args);
+            pradarLinkStarter.start();
         } catch (Throwable e) {
             throw new RuntimeException("fail to start PradarLinkSpout", e);
         }
