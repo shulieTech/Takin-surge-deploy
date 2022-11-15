@@ -58,7 +58,7 @@ public class ParamUtil {
     public static final String MQConsumer = "-DMqConsumer=";
     // 是否开启cpu亲和性
     public static final String AffinityLock = "-DLock=";
-
+    public static final String TASK_ID = "taskId";
     /**
      * 读取系统参数，是否设置ip映射
      */

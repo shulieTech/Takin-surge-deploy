@@ -12,6 +12,7 @@ import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.deploy.pradar.agg.E2ETraceMetricsAggarator;
 import io.shulie.surge.data.deploy.pradar.agg.TraceMetricsAggarator;
 import io.shulie.surge.data.deploy.pradar.collector.OutputCollector;
+import io.shulie.surge.data.deploy.pradar.common.AffinityUtil;
 import io.shulie.surge.data.deploy.pradar.common.EagleLoader;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
 import io.shulie.surge.data.deploy.pradar.common.RuleLoader;
@@ -32,6 +33,7 @@ import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplier;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplierSpec;
 import io.shulie.surge.deploy.pradar.common.CommonStat;
+import net.openhft.affinity.AffinityLock;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -39,6 +41,8 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.util.Map;
 import java.util.Objects;
 
@@ -59,10 +63,10 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
     private boolean generalVersion;
     private int coreSize;
     private boolean httpEnabled;
-
     private boolean openMqConsumer;
     private int workerPort;
-
+    private String taskId;
+    private boolean affinityLockEnabled;
     /**
      * trace指标聚合器
      */
@@ -97,6 +101,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
     public void initArgs(Map<String, Object> args) {
         //移除无关参数
         args.remove(ParamUtil.WORKERS);
+        taskId = Objects.toString(args.get(ParamUtil.TASK_ID));
         String netMapStr = Objects.toString(args.get(ParamUtil.NET));
         if (null != netMapStr && StringUtils.isNotBlank(netMapStr)) {
             this.netMap = JSON.parseObject(netMapStr, Map.class);
@@ -123,9 +128,11 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
         }
         String httpEnabledStr = Objects.toString(args.get(ParamUtil.HTTP));
 
-        workerPort = NumberUtils.toInt(Objects.toString(args.getOrDefault("workerPort", "0")));
+        this.workerPort = NumberUtils.toInt(Objects.toString(args.getOrDefault("workerPort", "0")));
         this.httpEnabled = CommonStat.TRUE.equals(String.valueOf(httpEnabledStr)) ? true : false;
         this.registerZk = CommonStat.TRUE.equals(Objects.toString(args.get(ParamUtil.REGISTERZK))) ? true : false;
+        this.generalVersion = CommonStat.TRUE.equals(String.valueOf(generalVersion)) ? true : false;
+        this.affinityLockEnabled = CommonStat.TRUE.equals(args.getOrDefault(ParamUtil.AffinityLock, "false")) ? true : false;
         this.generalVersion = CommonStat.TRUE.equals(String.valueOf(generalVersion)) ? true : false;
     }
 
@@ -167,6 +174,12 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
         ruleLoader.init();
         nettyRemotingSupplier.start();
 
+        AffinityLock affinityLock = null;
+        if (affinityLockEnabled) {
+            affinityLock = AffinityUtil.acquireLock(NumberUtils.toInt(taskId));
+            logger.info("当前Topology TaskId={},当前进程={},绑定的cpu Id={}", taskId, getProcessID(), affinityLock.cpuId());
+        }
+
         // 确认是否开始Http服务
         if (httpEnabled) {
             //启动jetty
@@ -174,6 +187,13 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
             jettySupplier.start();
         }
 
+    }
+
+    private int getProcessID() {
+        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+        System.out.println(runtimeMXBean.getName());
+        return Integer.valueOf(runtimeMXBean.getName().split("@")[0])
+                .intValue();
     }
 
     /**

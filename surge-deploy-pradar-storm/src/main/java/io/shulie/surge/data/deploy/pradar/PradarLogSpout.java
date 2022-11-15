@@ -31,8 +31,6 @@ import org.apache.storm.tuple.Values;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.util.List;
 import java.util.Map;
 
@@ -68,12 +66,6 @@ public class PradarLogSpout extends BaseRichSpout {
         logger.info("PradarLogSpout start successfull...");
     }
 
-    public static final int getProcessID() {
-        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-        System.out.println(runtimeMXBean.getName());
-        return Integer.valueOf(runtimeMXBean.getName().split("@")[0])
-                .intValue();
-    }
 
     @Override
     public void nextTuple() {
