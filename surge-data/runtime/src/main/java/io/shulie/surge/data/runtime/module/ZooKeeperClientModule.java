@@ -22,7 +22,10 @@ import io.shulie.surge.data.runtime.common.zk.CuratorClientProvider;
 import io.shulie.surge.data.runtime.common.zk.NetflixCuratorZkClientFactory;
 import io.shulie.surge.data.runtime.common.zk.ZkClientProvider;
 import io.shulie.surge.data.runtime.common.zk.ZookeeperClientProvider;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.zookeeper.ZooKeeper;
+
+import java.util.Properties;
 
 /**
  * ZooKeeper 实现注入
@@ -33,6 +36,14 @@ public class ZooKeeperClientModule extends BaseDataModule {
 
 	@Override
 	protected void configure() {
+
+		Properties properties = bootstrap.getProperties();
+		String property = properties.getProperty("config.data.zk.servers");
+		// 配置了zk地址才使用zk
+		if(StringUtils.isEmpty(property)){
+			return;
+		}
+
 		bindGeneric(ZkClient.class, NetflixCuratorZkClientFactory.class, ZkClientSpec.class);
 
 		// 使用默认的 zookeeper 配置
