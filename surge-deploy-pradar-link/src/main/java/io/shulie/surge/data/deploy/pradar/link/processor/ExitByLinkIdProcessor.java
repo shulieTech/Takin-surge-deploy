@@ -26,7 +26,6 @@ import io.shulie.surge.data.deploy.pradar.link.TaskManager;
 import io.shulie.surge.data.deploy.pradar.link.enums.TraceLogQueryScopeEnum;
 import io.shulie.surge.data.deploy.pradar.link.model.LinkEntranceModel;
 import io.shulie.surge.data.deploy.pradar.link.util.ServiceUtils;
-import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
@@ -63,7 +62,7 @@ public class ExitByLinkIdProcessor extends AbstractProcessor {
     private MysqlSupport mysqlSupport;
 
     @Inject
-    private TaskManager<String, String> taskManager;
+    private TaskManager<String> taskManager;
 
     /**
      * 是否开启出口(远程调用)功能扫描
@@ -115,8 +114,7 @@ public class ExitByLinkIdProcessor extends AbstractProcessor {
             return;
         }
         Set<String> linkIdSet = linkConfig.keySet();
-        Map<String, List<String>> avgMap = taskManager.allotOfAverage(taskIds, new ArrayList<>(linkIdSet));
-        List<String> avgList = avgMap.get(currentTaskId);
+        List<String> avgList = taskManager.allotOfAverage(new ArrayList<>(linkIdSet));
         if (CollectionUtils.isNotEmpty(avgList)) {
             for (int i = 0; i < avgList.size(); i++) {
                 String linkId = avgList.get(i);

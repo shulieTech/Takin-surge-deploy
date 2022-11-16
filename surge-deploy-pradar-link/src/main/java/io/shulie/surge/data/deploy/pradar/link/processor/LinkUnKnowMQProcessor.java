@@ -63,7 +63,7 @@ public class LinkUnKnowMQProcessor extends AbstractProcessor {
     };
 
     @Inject
-    private TaskManager<String, String> taskManager;
+    private TaskManager<String> taskManager;
 
     /**
      * 处理Mq未知
@@ -187,8 +187,7 @@ public class LinkUnKnowMQProcessor extends AbstractProcessor {
             return;
         }
         Set<String> linkIdSet = linkConfig.keySet();
-        Map<String, List<String>> avgMap = taskManager.allotOfAverage(taskIds, new ArrayList<>(linkIdSet));
-        List<String> avgList = avgMap.get(currentTaskId);
+        List<String> avgList = taskManager.allotOfAverage(new ArrayList<>(linkIdSet));
         if (CollectionUtils.isNotEmpty(avgList)) {
             for (int i = 0; i < avgList.size(); i++) {
                 String linkId = avgList.get(i);

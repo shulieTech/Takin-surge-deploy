@@ -16,7 +16,6 @@
 package io.shulie.surge.data.deploy.pradar.link.processor;
 
 import com.alibaba.fastjson.JSON;
-import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
@@ -27,14 +26,12 @@ import io.shulie.surge.data.deploy.pradar.link.enums.TraceLogQueryScopeEnum;
 import io.shulie.surge.data.deploy.pradar.link.model.LinkEdgeModel;
 import io.shulie.surge.data.deploy.pradar.link.model.LinkNodeModel;
 import io.shulie.surge.data.deploy.pradar.link.util.ServiceUtils;
-import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
 import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParser;
 import io.shulie.surge.data.deploy.pradar.parser.unknown.UnknownNodeRpcBasedParser;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
-import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -62,7 +59,7 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
     private MysqlSupport mysqlSupport;
     public AbstractLinkCache linkCache;
     @Inject
-    private TaskManager<String, String> taskManager;
+    private TaskManager<String> taskManager;
 
     /**
      * 是否开启未知节点扫描功能
@@ -210,8 +207,7 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
             return;
         }
         Set<String> linkIdSet = linkConfig.keySet();
-        Map<String, List<String>> avgMap = taskManager.allotOfAverage(taskIds, new ArrayList<>(linkIdSet));
-        List<String> avgList = avgMap.get(currentTaskId);
+        List<String> avgList = taskManager.allotOfAverage(new ArrayList<>(linkIdSet));
         if (CollectionUtils.isNotEmpty(avgList)) {
             for (int i = 0; i < avgList.size(); i++) {
                 String linkId = avgList.get(i);

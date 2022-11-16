@@ -16,13 +16,23 @@
 package io.shulie.surge.data.deploy.pradar.link;
 
 import com.google.common.collect.Maps;
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.shulie.surge.data.common.aggregation.Scheduler;
+import io.shulie.surge.data.common.utils.DateUtils;
+import io.shulie.surge.data.sink.mysql.MysqlSupport;
 
+import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
+ * 任务管理器
+ *
  * @Author: xingchen
  * @ClassName: TaskManager
  * @Package: io.shulie.surge.data.deploy.pradar.common
@@ -30,27 +40,56 @@ import java.util.Map;
  * @Description:
  */
 @Singleton
-public class TaskManager<T1, T2> {
+public class TaskManager<T2> implements Serializable {
+
+    @Inject
+    private MysqlSupport mysqlSupport;
+
+    private List<TaskNode> workers;
+
+    private TaskNode taskNode;
+
+
+    //注册节点
+    @Inject
+    public void init() {
+        Scheduler scheduler = new Scheduler(1);
+        scheduler.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                //注册节点
+                mysqlSupport.update("insert into t_link_task(uuid,pid,ip,host) values(?,?,?,?) on ON DUPLICATE KEY UPDATE gmt_modify = now()", new Object[]{taskNode.getUuid(), taskNode.getPid(), taskNode.getIp(), taskNode.getHost()});
+                //查询注册的节点信息
+                Date date = DateUtils.addSeconds(new Date(), -30);
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String modifyDate = formatter.format(date);
+                List<TaskNode> list = mysqlSupport.queryForList("select uuid,pid,ip,host from t_link_task where gmt_modify>= '" + modifyDate + "'", TaskNode.class);
+                workers = list;
+            }
+        }, 0, 30, TimeUnit.SECONDS);
+    }
+
+
     /*
      * 平均分配任务
      */
-    public Map<T1, List<T2>> allotOfAverage(List<T1> workers, List<T2> tasks) {
-        Map<T1, List<T2>> allot = Maps.newHashMap();
-        if (workers != null && workers.size() > 0
-                && tasks != null && tasks.size() > 0) {
+    public List<T2> allotOfAverage(List<T2> tasks) {
+        Map<String, List<T2>> allot = Maps.newHashMap();
+        if (workers != null && workers.size() > 0 && tasks != null && tasks.size() > 0) {
             for (int i = 0; i < tasks.size(); i++) {
                 int j = i % workers.size();
-                if (allot.containsKey(workers.get(j))) {
+                if (allot.containsKey(workers.get(j).getUuid())) {
                     List<T2> list = allot.get(workers.get(j));
                     list.add(tasks.get(i));
-                    allot.put(workers.get(j), list);
+                    allot.put(workers.get(j).getUuid(), list);
                 } else {
                     List<T2> list = new ArrayList<>();
                     list.add(tasks.get(i));
-                    allot.put(workers.get(j), list);
+                    allot.put(workers.get(j).getUuid(), list);
                 }
             }
         }
-        return allot;
+        return allot.get(taskNode.getUuid());
     }
+
 }
