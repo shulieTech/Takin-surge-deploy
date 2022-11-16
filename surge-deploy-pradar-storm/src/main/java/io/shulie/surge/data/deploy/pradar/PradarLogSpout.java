@@ -18,6 +18,7 @@ package io.shulie.surge.data.deploy.pradar;
 import com.google.common.collect.Maps;
 import io.shulie.surge.data.JettySupplierObserver;
 import io.shulie.surge.data.deploy.pradar.collector.OutputCollector;
+import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
 import io.shulie.surge.data.deploy.pradar.common.PradarRtConstant;
 import io.shulie.surge.data.deploy.pradar.config.PradarConfiguration;
 import io.shulie.surge.data.deploy.pradar.starter.PradarSupplierStarter;
@@ -48,6 +49,7 @@ public class PradarLogSpout extends BaseRichSpout {
 
             Map<String, Object> args = Maps.newHashMap(map);
             args.put("workerPort", topologyContext.getThisWorkerPort());
+            args.put(ParamUtil.TASK_ID,topologyContext.getThisTaskId());
             PradarSupplierStarter pradarSupplierStarter = new PradarSupplierStarter();
             pradarSupplierStarter.init(args);
             PradarConfiguration pradarSupplierConfiguration = pradarSupplierStarter.getPradarConfiguration();
