@@ -28,3 +28,4 @@ package-info.java
 jacoco*
 */src/test/*
 rules/
+logs

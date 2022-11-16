@@ -31,4 +31,16 @@ public class MysqlModule extends BaseDataModule {
         bindGeneric(MysqlSupport.class, MysqlSupportFactory.class, MysqlSupportSpec.class);
         bind(MysqlSupport.class).toProvider(MysqlSupportProvider.class);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.getClass().hashCode();
+    }
 }

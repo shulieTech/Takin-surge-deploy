@@ -22,6 +22,7 @@ import io.shulie.surge.data.common.utils.IpAddressUtils;
 import io.shulie.surge.data.common.zk.ZkClient;
 import io.shulie.surge.data.common.zk.ZkHeartbeatNode;
 import io.shulie.surge.data.runtime.supplier.Supplier;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +45,7 @@ public final class NettyRemotingSupplierObserver implements LifecycleObserver<Su
     private Map<String, String> netMap;
 
     private Map<String, String> hostNameMap;
+    private String defaultHost;
 
     private boolean defaultRegistZk;
 
@@ -57,10 +59,12 @@ public final class NettyRemotingSupplierObserver implements LifecycleObserver<Su
 
     public NettyRemotingSupplierObserver(Map<String, String> netMap,
                                          Map<String, String> hostNameMap,
-                                         boolean defaultRegistZk) {
+                                         boolean defaultRegistZk,
+                                         String host) {
         this.netMap = netMap;
         this.hostNameMap = hostNameMap;
         this.defaultRegistZk = defaultRegistZk;
+        this.defaultHost = host;
     }
 
     @Override
@@ -87,6 +91,7 @@ public final class NettyRemotingSupplierObserver implements LifecycleObserver<Su
     }
 
     private void registerToZk(String host, int port, String pradarServerPath) {
+
         String taskPath = pradarServerPath + "/" + host + ":" + port;
         this.heartbeatNode = zkClient.createHeartbeatNode(taskPath);
         try {
@@ -115,6 +120,9 @@ public final class NettyRemotingSupplierObserver implements LifecycleObserver<Su
     }
 
     private String parseHostName() {
+        if (StringUtils.isNotBlank(this.defaultHost)) {
+            return defaultHost;
+        }
         // 获取当前系统名
         String osName = IpAddressUtils.getLocalHostName();
         String host = IpAddressUtils.getLocalAddress();

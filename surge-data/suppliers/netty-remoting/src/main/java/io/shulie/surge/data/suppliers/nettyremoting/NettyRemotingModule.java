@@ -19,8 +19,23 @@ import io.shulie.surge.data.runtime.module.BaseDataModule;
 
 public class NettyRemotingModule extends BaseDataModule {
 
+    private static final long serialVersionUID = 3037667161555666018L;
+
     @Override
     protected void configure() {
         bindGeneric(NettyRemotingSupplier.class, NettyRemotingSupplierFactory.class, NettyRemotingSupplierSpec.class);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.getClass().hashCode();
+    }
+
 }

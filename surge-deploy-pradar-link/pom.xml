@@ -25,18 +25,37 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>surge-deploy-pradar-link</artifactId>
-    <version>${surge.deploy.pradar.link.version}</version>
+    <version>1.0.2.7</version>
 
     <dependencies>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
+            <artifactId>mysql</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.9.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.shulie.instrument.module</groupId>
+            <artifactId>simulator-internal-bootstrap-api</artifactId>
+            <version>1.0.3</version>
+        </dependency>
+
+        <!--version managed by parent pom -->
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
             <artifactId>common</artifactId>
-            <version>1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>clickhouse</artifactId>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-parser</artifactId>
-            <version>1.0.2</version>
             <exclusions>
                 <exclusion>
                     <artifactId>asm</artifactId>
@@ -50,26 +69,9 @@
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
-            <artifactId>clickhouse</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>io.shulie.surge.data</groupId>
-            <artifactId>mysql</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-common</artifactId>
-            <version>1.1</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>commons-beanutils</groupId>
-            <artifactId>commons-beanutils</artifactId>
-            <version>1.9.4</version>
-        </dependency>
-
         <!-- mockito-->
         <dependency>
             <groupId>org.mockito</groupId>
@@ -102,11 +104,6 @@
             <groupId>org.jooq</groupId>
             <artifactId>jooq-codegen</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.shulie.instrument.module</groupId>
-            <artifactId>simulator-internal-bootstrap-api</artifactId>
-            <version>1.0.3</version>
         </dependency>
     </dependencies>
 
@@ -142,7 +139,7 @@
         <!-- 默认 -->
         <profile>
             <id>rdc</id>
-            <properties></properties>
+            <properties/>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
@@ -150,7 +147,7 @@
         <profile>
             <!--远程仓库-->
             <id>ossrh</id>
-            <properties></properties>
+            <properties/>
             <build>
                 <plugins>
                     <plugin>

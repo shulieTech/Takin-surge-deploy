@@ -35,8 +35,6 @@ public class DefaultMultiProcessorSupplier implements MultiProcessorSupplier {
             Lists.newCopyOnWriteArrayList();
 
     private final AtomicBoolean running = new AtomicBoolean(false);
-    protected Map<String, DataQueue> queueMap;
-
     /**
      * 开始获取数据
      *
@@ -61,6 +59,8 @@ public class DefaultMultiProcessorSupplier implements MultiProcessorSupplier {
             observer.afterStart(this);
         }
     }
+
+    protected Map<String, DataQueue> queueMap;
 
     /**
      * 停止获取数据

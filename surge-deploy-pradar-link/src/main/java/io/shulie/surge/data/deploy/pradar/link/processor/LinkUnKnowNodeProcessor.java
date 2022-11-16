@@ -16,7 +16,6 @@
 package io.shulie.surge.data.deploy.pradar.link.processor;
 
 import com.alibaba.fastjson.JSON;
-import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
@@ -26,14 +25,13 @@ import io.shulie.surge.data.deploy.pradar.link.TaskManager;
 import io.shulie.surge.data.deploy.pradar.link.enums.TraceLogQueryScopeEnum;
 import io.shulie.surge.data.deploy.pradar.link.model.LinkEdgeModel;
 import io.shulie.surge.data.deploy.pradar.link.model.LinkNodeModel;
-import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
+import io.shulie.surge.data.deploy.pradar.link.util.ServiceUtils;
 import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParser;
 import io.shulie.surge.data.deploy.pradar.parser.unknown.UnknownNodeRpcBasedParser;
 import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
-import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -61,7 +59,7 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
     private MysqlSupport mysqlSupport;
     public AbstractLinkCache linkCache;
     @Inject
-    private TaskManager<String, String> taskManager;
+    private TaskManager<String> taskManager;
 
     /**
      * 是否开启未知节点扫描功能
@@ -99,13 +97,13 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
                 List<RpcBased> rpcBaseds = entry.getValue();
                 // 只需要http客户端和dubbo客户端
                 List<RpcBased> clientList = rpcBaseds.stream().filter(rpcBased ->
-                        isHttpClient(rpcBased) || isRpcClient(rpcBased)).collect(Collectors.toList());
+                        ServiceUtils.isHttpClient(rpcBased) || ServiceUtils.isRpcClient(rpcBased)).collect(Collectors.toList());
                 if (CollectionUtils.isEmpty(clientList)) {
                     return;
                 }
                 clientList.stream().forEach(client -> {
                     String appName = client.getAppName();
-                    String service = formatService(client.getServiceName(), client.getRpcType());
+                    String service = ServiceUtils.formatService(client.getServiceName(), client.getRpcType());
                     String method = MethodHandler.convert(client.getMethodName());
                     String clientKey = appName + "|" + service + "|" + method;
                     boolean exist = false;
@@ -154,13 +152,6 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
             logger.error(ExceptionUtils.getStackTrace(e));
         }
 
-    }
-
-    private String formatService(String serviceName, int rpcType) {
-        if (rpcType == MiddlewareType.TYPE_WEB_SERVER) {
-            return ApiProcessor.parsePath(serviceName);
-        }
-        return serviceName;
     }
 
     private Pair<LinkNodeModel, LinkEdgeModel> analyseLinkCommon(String linkId, RpcBased rpcBased) {
@@ -216,8 +207,7 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
             return;
         }
         Set<String> linkIdSet = linkConfig.keySet();
-        Map<String, List<String>> avgMap = taskManager.allotOfAverage(taskIds, new ArrayList<>(linkIdSet));
-        List<String> avgList = avgMap.get(currentTaskId);
+        List<String> avgList = taskManager.allotOfAverage(new ArrayList<>(linkIdSet));
         if (CollectionUtils.isNotEmpty(avgList)) {
             for (int i = 0; i < avgList.size(); i++) {
                 String linkId = avgList.get(i);
@@ -227,63 +217,11 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
         }
     }
 
-    @Override
-    public void share(int taskId) {
-        if (!unknowNodeProcessDisable.get()) {
-            return;
-        }
-        if (!isHandler(intervalTime.get())) {
-            return;
-        }
-        Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();
-        List<Map.Entry<String, Map<String, Object>>> linkList = Lists.newArrayList(linkConfig.entrySet());
-        for (int i = 0; i < linkList.size(); i++) {
-            if (i % taskId == 0) {
-                Map.Entry<String, Map<String, Object>> link = linkList.get(i);
-                processUnKnowNodeCommon(link.getKey(), link.getValue());
-            }
-        }
-    }
-
-    @Override
-    public void share() {
-        if (!unknowNodeProcessDisable.get()) {
-            return;
-        }
-        if (!isHandler(intervalTime.get())) {
-            return;
-        }
-        // 读取所有的配置
-        Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();
-        List<Map.Entry<String, Map<String, Object>>> linkList = Lists.newArrayList(linkConfig.entrySet());
-        for (int i = 0; i < linkList.size(); i++) {
-            Map.Entry<String, Map<String, Object>> link = linkList.get(i);
-            processUnKnowNodeCommon(link.getKey(), link.getValue());
-        }
-    }
-
-    @Override
-    public void init() {
-    }
-
     public void init(String dataSourceType) {
         this.setDataSourceType(dataSourceType);
     }
 
     public void setLinkCache(AbstractLinkCache linkCache) {
         this.linkCache = linkCache;
-    }
-
-    public boolean isHttpClient(RpcBased rpcBased) {
-        return rpcBased.getLogType() == PradarLogType.LOG_TYPE_RPC_CLIENT
-                && rpcBased.getRpcType() == MiddlewareType.TYPE_WEB_SERVER
-                && !rpcBased.getMiddlewareName().toUpperCase().contains("FEIGN");
-    }
-
-    public boolean isRpcClient(RpcBased rpcBased) {
-        return rpcBased.getLogType() == PradarLogType.LOG_TYPE_RPC_CLIENT
-                && rpcBased.getRpcType() == MiddlewareType.TYPE_RPC
-                && !rpcBased.getServiceName().toLowerCase().contains("oss")
-                && !rpcBased.getMiddlewareName().toUpperCase().contains("FEIGN");
     }
 }

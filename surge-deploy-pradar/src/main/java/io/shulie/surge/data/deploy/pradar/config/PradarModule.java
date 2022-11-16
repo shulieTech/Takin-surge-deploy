@@ -40,4 +40,17 @@ public class PradarModule extends BaseConfigModule {
         identifier.setWorkerId(String.valueOf(workPort == null ? 0 : workPort));
         bind(TaskIdentifier.class).toInstance(identifier);
     }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.getClass().hashCode();
+    }
 }

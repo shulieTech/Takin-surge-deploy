@@ -57,7 +57,7 @@ public class ExitProcessor extends AbstractProcessor {
     private MysqlSupport mysqlSupport;
 
     @Inject
-    private TaskManager<String, String> taskManager;
+    private TaskManager<String> taskManager;
 
     /**
      * 是否开启出口(远程调用)功能扫描
@@ -199,8 +199,7 @@ public class ExitProcessor extends AbstractProcessor {
             Map<String, List<Map<String, Object>>> nameMap = appNames.stream().collect(
                     Collectors.groupingBy(name -> name.get("userAppKey") + "#" + name.get("envCode") + "#" + name.get("appName")));
             List<String> nameList = new ArrayList<>(nameMap.keySet());
-            Map<String, List<String>> idMap = taskManager.allotOfAverage(taskIds, nameList);
-            List<String> avgList = idMap.get(currentId);
+            List<String> avgList = taskManager.allotOfAverage(nameList);
             if (CollectionUtils.isNotEmpty(avgList)) {
                 avgList.stream().forEach(avg -> {
                     Optional<Map<String, Object>> appMap = nameMap.get(avg).stream().findFirst();

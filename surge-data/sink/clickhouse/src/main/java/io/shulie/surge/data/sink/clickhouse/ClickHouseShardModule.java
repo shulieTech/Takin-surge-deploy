@@ -28,4 +28,16 @@ public class ClickHouseShardModule extends BaseDataModule {
         bindGeneric(ClickHouseShardSupport.class, ClickHouseShardSupportFactory.class, ClickHouseShardSupportSpec.class);
         bind(ClickHouseShardSupport.class).toProvider(ClickHouseShardSupportProvider.class);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.getClass().hashCode();
+    }
 }

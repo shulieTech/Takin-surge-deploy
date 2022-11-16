@@ -24,7 +24,7 @@
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>io.shulie.surge.data</groupId>
+
     <artifactId>sink</artifactId>
     <packaging>pom</packaging>
 
@@ -37,4 +37,15 @@
         <module>mysql</module>
         <module>hdfs</module>
     </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>runtime</artifactId>
+        </dependency>
+    </dependencies>
 </project>

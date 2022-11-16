@@ -24,7 +24,7 @@
         <artifactId>surge-deploy</artifactId>
         <version>1.0</version>
     </parent>
-    <groupId>io.shulie.surge.data</groupId>
+
     <artifactId>surge-data</artifactId>
     <packaging>pom</packaging>
     <version>1.0</version>
@@ -38,6 +38,13 @@
     <properties>
         <surge.data.version>1.0</surge.data.version>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+    </dependencies>
 
     <dependencyManagement>
         <dependencies>
@@ -55,16 +62,6 @@
                 <groupId>io.shulie.surge.data</groupId>
                 <artifactId>sink</artifactId>
                 <version>1.0</version>
-            </dependency>
-            <dependency>
-                <groupId>io.shulie.surge.data</groupId>
-                <artifactId>common</artifactId>
-                <version>1.1</version>
-            </dependency>
-            <dependency>
-                <groupId>io.shulie.surge.data</groupId>
-                <artifactId>runtime</artifactId>
-                <version>1.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

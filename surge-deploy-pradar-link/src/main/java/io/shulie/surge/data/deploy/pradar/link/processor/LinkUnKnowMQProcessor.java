@@ -15,7 +15,6 @@
 
 package io.shulie.surge.data.deploy.pradar.link.processor;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import io.shulie.surge.data.deploy.pradar.link.AbstractLinkCache;
@@ -48,7 +47,7 @@ import static io.shulie.surge.data.deploy.pradar.link.LinkSqlContants.UNKNOW_APP
  * @Date: 2021/1/2010:08
  * @Description:
  */
-public class LinkUnKnowMQProcessor implements Processor {
+public class LinkUnKnowMQProcessor extends AbstractProcessor {
 
     private static Logger logger = LoggerFactory.getLogger(LinkUnKnowMQProcessor.class);
 
@@ -64,7 +63,7 @@ public class LinkUnKnowMQProcessor implements Processor {
     };
 
     @Inject
-    private TaskManager<String, String> taskManager;
+    private TaskManager<String> taskManager;
 
     /**
      * 处理Mq未知
@@ -188,8 +187,7 @@ public class LinkUnKnowMQProcessor implements Processor {
             return;
         }
         Set<String> linkIdSet = linkConfig.keySet();
-        Map<String, List<String>> avgMap = taskManager.allotOfAverage(taskIds, new ArrayList<>(linkIdSet));
-        List<String> avgList = avgMap.get(currentTaskId);
+        List<String> avgList = taskManager.allotOfAverage(new ArrayList<>(linkIdSet));
         if (CollectionUtils.isNotEmpty(avgList)) {
             for (int i = 0; i < avgList.size(); i++) {
                 String linkId = avgList.get(i);
@@ -197,35 +195,6 @@ public class LinkUnKnowMQProcessor implements Processor {
                 processUnKnownNodeMq(linkId, link);
             }
         }
-    }
-
-    @Override
-    public void share(int taskId) {
-        if (taskId == -1) {
-            return;
-        }
-        Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();
-        List<Map.Entry<String, Map<String, Object>>> linkList = Lists.newArrayList(linkConfig.entrySet());
-        for (int i = 0; i < linkList.size(); i++) {
-            if (i % taskId == 0) {
-                Map.Entry<String, Map<String, Object>> link = linkList.get(i);
-                processUnKnownNodeMq(link.getKey(), link.getValue());
-            }
-        }
-    }
-
-    @Override
-    public void share() {
-        Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();
-        List<Map.Entry<String, Map<String, Object>>> linkList = Lists.newArrayList(linkConfig.entrySet());
-        for (int i = 0; i < linkList.size(); i++) {
-            Map.Entry<String, Map<String, Object>> link = linkList.get(i);
-            processUnKnownNodeMq(link.getKey(), link.getValue());
-        }
-    }
-
-    @Override
-    public void init() {
     }
 
     public void setLinkCache(AbstractLinkCache linkCache) {

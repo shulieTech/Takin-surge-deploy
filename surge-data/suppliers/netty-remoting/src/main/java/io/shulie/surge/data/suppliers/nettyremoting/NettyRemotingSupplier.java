@@ -15,6 +15,7 @@
 
 package io.shulie.surge.data.suppliers.nettyremoting;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -30,18 +31,24 @@ import io.netty.channel.ChannelHandlerContext;
 import io.shulie.surge.data.common.lifecycle.LifecycleObserver;
 import io.shulie.surge.data.common.pool.DataPoolExecutors;
 import io.shulie.surge.data.common.utils.IpAddressUtils;
+import io.shulie.surge.data.common.zk.ZkClient;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.disruptor.RingBufferIllegalStateException;
 import io.shulie.surge.data.runtime.processor.DataQueue;
 import io.shulie.surge.data.runtime.supplier.DefaultMultiProcessorSupplier;
 import io.shulie.surge.data.runtime.supplier.Supplier;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 /**
  * @author vincent
@@ -69,6 +76,14 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
 
     // 外部设置的端口段映射
     private Map<String, String> inputPortMap = Maps.newHashMap();
+    private String work = "";
+
+    @Inject
+    @Named("config.log.pradar.server")
+    protected transient String pradarServerPath;
+
+    @Inject
+    private ZkClient zkClient;
 
     /**
      * 开始获取数据
@@ -80,9 +95,45 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
     public void start() throws Exception {
         // 获取启动的端口
         Map<String, Integer> parsePortRange = parsePort();
+        if ("k8s".equals(work)) {
+            startK8s(parsePortRange);
+        } else {
+            for (int index = parsePortRange.get(MIN); index <= parsePortRange.get(MAX); index++) {
+                try {
+                    port = index;
+                    remotingServer = getRemotingServer(port);
+                } catch (Throwable e) {
+                    logger.error("next port start " + index);
+                    continue;
+                }
+                // 启动成功以后就停止掉
+                break;
+            }
+        }
+        super.start();
+        apiProcessor.init();
+    }
+
+    /**
+     * k8s里面,多个容器占用的端口是一样的,端口占用不会报错,尽量不要有相同端口
+     *
+     * @param parsePortRange
+     */
+    private void startK8s(Map<String, Integer> parsePortRange) {
         for (int index = parsePortRange.get(MIN); index <= parsePortRange.get(MAX); index++) {
             try {
+                TimeUnit.SECONDS.sleep(RandomUtils.nextInt(1, 10));
+                List<String> children = zkClient.listChildren(pradarServerPath);
+                List<String> ports = Lists.newArrayList();
+                if (CollectionUtils.isNotEmpty(children)) {
+                    ports = children.stream().map(sub -> sub.split(":")[1]).collect(Collectors.toList());
+                }
                 port = index;
+                // 如果已经存在此端口了,继续下一个端口
+                if (ports.contains(String.valueOf(port))) {
+                    continue;
+                }
+                // 判断zk里面是否存在
                 remotingServer = getRemotingServer(port);
             } catch (Throwable e) {
                 logger.error("next port start " + index);
@@ -91,8 +142,6 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
             // 启动成功以后就停止掉
             break;
         }
-        super.start();
-        apiProcessor.init();
     }
 
     /**
@@ -247,5 +296,9 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
 
     public void setInputPortMap(Map<String, String> inputPortMap) {
         this.inputPortMap = inputPortMap;
+    }
+
+    public void setWork(String work) {
+        this.work = work;
     }
 }

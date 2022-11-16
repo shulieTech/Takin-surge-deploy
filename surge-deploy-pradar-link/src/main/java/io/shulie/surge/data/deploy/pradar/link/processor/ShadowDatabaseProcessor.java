@@ -96,7 +96,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     private MysqlSupport mysqlSupport;
 
     @Inject
-    private TaskManager<String, InnerEntity> taskManager;
+    private TaskManager<InnerEntity> taskManager;
 
     @Override
     public void share(List<String> taskIds, String currentTaskId) {
@@ -108,8 +108,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
         if (CollectionUtils.isEmpty(entityCache)) {
             return;
         }
-        Map<String, List<InnerEntity>> avgMap = taskManager.allotOfAverage(taskIds, entityCache);
-        List<InnerEntity> avgList = avgMap.get(currentTaskId);
+        List<InnerEntity> avgList = taskManager.allotOfAverage(entityCache);
         if (CollectionUtils.isNotEmpty(avgList)) {
             for (int i = 0, size = avgList.size(); i < size; i++) {
                 analysisAndSave(entityCache.get(i));

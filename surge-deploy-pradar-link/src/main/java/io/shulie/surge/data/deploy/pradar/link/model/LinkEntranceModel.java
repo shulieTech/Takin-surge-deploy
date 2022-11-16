@@ -38,17 +38,19 @@ public class LinkEntranceModel extends LinkPublicModel {
     String middlewareDetail;
     String downAppName;
     String defaultWhiteInfo;
+    String rpcId;
+    String linkId;
 
     public static String getCols() {
-        return "(entrance_id,app_name,service_name,method_name,middleware_name,rpc_type,extend,link_type,up_app_name,middleware_detail,down_app_name,default_white_info,user_app_key,env_code,user_id,gmt_modify)";
+        return "(entrance_id,link_id,rpcId,app_name,service_name,method_name,middleware_name,rpc_type,extend,link_type,up_app_name,middleware_detail,down_app_name,default_white_info,user_app_key,env_code,user_id,gmt_modify)";
     }
 
     public static String getParamCols() {
-        return "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())";
+        return "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())";
     }
 
     public Object[] getValues() {
-        return new Object[]{entranceId, appName, serviceName, methodName, middlewareName, rpcType, extend, linkType, upAppName, middlewareDetail, downAppName, defaultWhiteInfo, getUserAppKey(), getEnvCode(), getUserId()};
+        return new Object[]{entranceId, linkId, rpcId, appName, serviceName, methodName, middlewareName, rpcType, extend, linkType, upAppName, middlewareDetail, downAppName, defaultWhiteInfo, getUserAppKey(), getEnvCode(), getUserId()};
     }
 
     public static String getOnDuplicateCols() {
@@ -67,12 +69,12 @@ public class LinkEntranceModel extends LinkPublicModel {
             if ("1".equals(dataMap.get("linkType")) && "HTTP".equals(dataMap.get("middlewareName"))) {
                 calConditionList = Arrays.asList(new String[]{"serviceName", "appName", "rpcType", "middlewareName", "extend", "linkType", "middlewareDetail"});
             }
-
             for (String key : calConditionList) {
                 sb.append(dataMap.get(key)).append('|');
             }
             sb.deleteCharAt(sb.length() - 1);
             linkEntranceModel.setEntranceId(Md5Utils.md5(sb.toString()));
+            linkEntranceModel.setLinkId(linkEntranceModel.getEntranceId());
             linkEntranceModel.setGmtModify(new Date());
             linkEntranceModel.setUserId(TenantConstants.DEFAULT_USERID);
             return linkEntranceModel;
@@ -186,6 +188,22 @@ public class LinkEntranceModel extends LinkPublicModel {
         this.defaultWhiteInfo = defaultWhiteInfo;
     }
 
+    public String getRpcId() {
+        return rpcId;
+    }
+
+    public void setRpcId(String rpcId) {
+        this.rpcId = rpcId;
+    }
+
+    public String getLinkId() {
+        return linkId;
+    }
+
+    public void setLinkId(String linkId) {
+        this.linkId = linkId;
+    }
+
     @Override
     public String toString() {
         return "LinkEntranceModel{" +
@@ -202,6 +220,8 @@ public class LinkEntranceModel extends LinkPublicModel {
                 ", middlewareDetail='" + middlewareDetail + '\'' +
                 ", downAppName='" + downAppName + '\'' +
                 ", defaultWhiteInfo='" + defaultWhiteInfo + '\'' +
+                ", rpcId='" + rpcId + '\'' +
+                ", linkId='" + linkId + '\'' +
                 '}';
     }
 }

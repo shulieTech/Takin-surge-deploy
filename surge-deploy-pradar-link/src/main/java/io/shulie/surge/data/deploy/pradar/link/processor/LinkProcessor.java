@@ -64,7 +64,7 @@ public class LinkProcessor extends AbstractProcessor {
     private static final String NEW_LINE_MATCHER = "\r\n";
 
     private static final String LINK_TOPOLOGY_SQL
-            = " appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,parsedServiceName,methodName,port,remoteIp,userAppKey,envCode,userId ";
+            = " appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,parsedServiceName,parsedMiddlewareName,parsedExtend,parsedMethod,methodName,port,remoteIp,userAppKey,envCode,userId ";
 
     @Inject
     private ClickHouseSupport clickHouseSupport;
@@ -73,7 +73,7 @@ public class LinkProcessor extends AbstractProcessor {
     private MysqlSupport mysqlSupport;
 
     @Inject
-    private TaskManager<String, String> taskManager;
+    private TaskManager<String> taskManager;
 
     /**
      * 是否开启链路梳理功能
@@ -134,8 +134,7 @@ public class LinkProcessor extends AbstractProcessor {
             return;
         }
         Set<String> linkIdSet = linkConfig.keySet();
-        Map<String, List<String>> avgMap = taskManager.allotOfAverage(taskIds, new ArrayList<>(linkIdSet));
-        List<String> avgList = avgMap.get(currentTaskId);
+        List<String> avgList = taskManager.allotOfAverage(new ArrayList<>(linkIdSet));
         if (CollectionUtils.isNotEmpty(avgList)) {
             for (int i = 0; i < avgList.size(); i++) {
                 String linkId = avgList.get(i);

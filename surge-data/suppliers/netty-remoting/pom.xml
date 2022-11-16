@@ -32,12 +32,10 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>runtime</artifactId>
-            <version>1.2</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.pradar</groupId>
             <artifactId>log-remoting</artifactId>
-            <version>${log.remoting.version}</version>
         </dependency>
     </dependencies>
 </project>
