@@ -52,6 +52,7 @@ public final class KafkaSupplier extends DefaultSupplier {
     private String bootstrap;
 
     private String topic;
+
     private KafkaConsumer consumer;
 
     public KafkaSupplier(String bootstrap, String topic) {
@@ -153,4 +154,7 @@ public final class KafkaSupplier extends DefaultSupplier {
         super.addObserver(observer);
     }
 
+    public KafkaConsumer getConsumer() {
+        return consumer;
+    }
 }

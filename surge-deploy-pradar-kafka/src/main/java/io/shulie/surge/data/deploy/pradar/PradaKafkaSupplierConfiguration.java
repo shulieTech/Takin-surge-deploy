@@ -2,7 +2,6 @@ package io.shulie.surge.data.deploy.pradar;
 
 import com.google.inject.Injector;
 import io.shulie.surge.data.common.aggregation.Scheduler;
-import io.shulie.surge.data.deploy.pradar.collector.OutputCollector;
 import io.shulie.surge.data.deploy.pradar.common.AffinityUtil;
 import io.shulie.surge.data.deploy.pradar.config.PradarModule;
 import io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration;
@@ -33,8 +32,20 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
 
     private static final Logger logger = LoggerFactory.getLogger(PradaKafkaSupplierConfiguration.class);
 
+    private static final String TRACE_TOPIC = "trace-log";
+    private static final String BASE_TOPIC = "base-log";
+    private static final String AGENT_LOG_TOPIC = "agent-log";
+
+    private static final String TRACE_REDUCE_TOPIC = "trace-reduce-metrics";
+
+    private static final String E2E_TOPIC = "e2e-metrics";
+
+
     private String bootstrap;
-    private String topic;
+    private String topics;
+    private KafkaSupplier kafkaTraceSupplier;
+    private KafkaSupplier kafkaBaseSupplier;
+    private KafkaSupplier kafkaAgentLogSupplier;
 
     /**
      * 参数初始化
@@ -45,7 +56,6 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
     public void initArgs(Map<String, ?> args) {
         super.initArgs(args);
         bootstrap = Objects.toString(args.get("bootstrap"));
-        topic = Objects.toString(args.get("topic"));
     }
 
     /**
@@ -71,11 +81,10 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     @Override
     public void doAfterInit(DataRuntime dataRuntime) throws Exception {
-        KafkaSupplier kafkaTraceSupplier = buildTraceSupplier(dataRuntime, true);
         Injector injector = dataRuntime.getInstance(Injector.class);
         injector.injectMembers(this);
+        KafkaSupplier kafkaTraceSupplier = buildTraceSupplier(dataRuntime, true);
         KafkaSupplier kafkaBaseSupplier = buildBaseSupplier(dataRuntime, true);
-
         KafkaSupplier kafkaAgentLogSupplier = buildAgentLogSupplier(dataRuntime, true);
 
 
@@ -83,12 +92,13 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
          * 初始化metrics聚合任务。此处注入和diggest同一个对象
          */
         if (!generalVersion) {
-            traceMetricsAggarator.init(new Scheduler(1), outputCollector);
+            buildTraceMetricsAggarator();
+            buildE2eTraceMetricsAggarator();
         }
-        e2eTraceMetricsAggarator.init(new Scheduler(1), outputCollector);
         // 初始化边缓存
         eagleLoader.init();
         ruleLoader.init();
+
         kafkaTraceSupplier.start();
         kafkaBaseSupplier.start();
         kafkaAgentLogSupplier.start();
@@ -100,6 +110,21 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
         }
     }
 
+
+    /**
+     * trace metrics aggarator
+     */
+    protected void buildTraceMetricsAggarator() {
+        traceMetricsAggarator.init(new Scheduler(1), new KafkaOutputCollector(bootstrap, TRACE_REDUCE_TOPIC));
+    }
+
+    /**
+     * trace metrics aggarator
+     */
+    protected void buildE2eTraceMetricsAggarator() {
+        e2eTraceMetricsAggarator.init(new Scheduler(1), new KafkaOutputCollector(bootstrap, E2E_TOPIC));
+    }
+
     /**
      * 创建订阅器
      *
@@ -109,7 +134,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     protected KafkaSupplier buildTraceSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
         try {
-            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, topic);
+            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, TRACE_TOPIC);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
             kafkaSupplier.setQueue(buidTraceProcesser(dataRuntime, isDistributed));
             return kafkaSupplier;
@@ -128,7 +153,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     protected KafkaSupplier buildBaseSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
         try {
-            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, topic);
+            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, BASE_TOPIC);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
             kafkaSupplier.setQueue(buidMonitorProcesser(dataRuntime));
             return kafkaSupplier;
@@ -147,7 +172,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     protected KafkaSupplier buildAgentLogSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
         try {
-            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, topic);
+            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, AGENT_LOG_TOPIC);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
             kafkaSupplier.setQueue(buidAgentLogProcesser(dataRuntime));
             return kafkaSupplier;
@@ -157,13 +182,4 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
         }
     }
 
-    /**
-     * 设置收集器
-     *
-     * @param outputCollector
-     */
-    @Override
-    public void collector(OutputCollector outputCollector) {
-        this.outputCollector = outputCollector;
-    }
 }

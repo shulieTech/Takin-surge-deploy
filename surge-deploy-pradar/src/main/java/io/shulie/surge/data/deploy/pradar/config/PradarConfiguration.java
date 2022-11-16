@@ -20,7 +20,7 @@ public interface PradarConfiguration extends Stoppable, Serializable {
      *
      * @param args
      */
-    public void initArgs(Map<String, ?> args);
+    void initArgs(Map<String, ?> args);
 
 
     /**
