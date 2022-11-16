@@ -31,7 +31,7 @@ public class PradarLinkStarter implements PradarTaskStarter {
     @Override
     public void init(Map<String, ?> args) {
         try {
-            logger.info("PradarKafkaLinkStarter initial.");
+            logger.info("PradarLinkStarter initial.");
             bootstrap = DataBootstrap.create("deploy.properties", "pradar");
             DataBootstrapEnhancer.enhancer(bootstrap);
             pradarLinkConfiguration = new PradarLinkConfiguration();
@@ -58,13 +58,13 @@ public class PradarLinkStarter implements PradarTaskStarter {
     @Override
     public void start() throws Exception {
         try {
-            logger.info("PradarKafkaLinkStarter start");
+            logger.info("PradarLinkStarter start");
             dataRuntime = bootstrap.startRuntime();
             pradarLinkConfiguration.doAfterInit(dataRuntime);
         } catch (Throwable e) {
             throw new RuntimeException("fail to start PradarLinkSpout", e);
         }
-        logger.info("PradarKafkaLinkStarter start successfull...");
+        logger.info("PradarLinkStarter start successfull...");
     }
 
     /**

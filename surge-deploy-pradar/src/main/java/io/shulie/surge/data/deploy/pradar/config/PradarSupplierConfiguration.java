@@ -22,7 +22,9 @@ import io.shulie.surge.data.deploy.pradar.servlet.HealthCheckServlet;
 import io.shulie.surge.data.deploy.pradar.servlet.LogWriteServlet;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
+import io.shulie.surge.data.runtime.common.remote.impl.RemoteZkModule;
 import io.shulie.surge.data.runtime.digest.DataDigester;
+import io.shulie.surge.data.runtime.module.ZooKeeperClientModule;
 import io.shulie.surge.data.runtime.processor.DataQueue;
 import io.shulie.surge.data.runtime.processor.ProcessorConfigSpec;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
@@ -145,7 +147,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      */
     @Override
     public void install(DataBootstrap bootstrap) {
-        bootstrap.install(new PradarModule(workerPort), new NettyRemotingModule(), new InfluxDBModule(), new ClickHouseModule(), new ClickHouseShardModule(), new MysqlModule());
+        bootstrap.install(new PradarModule(workerPort), new NettyRemotingModule(), new InfluxDBModule(), new ClickHouseModule(), new ClickHouseShardModule(), new MysqlModule(), new ZooKeeperClientModule(), new RemoteZkModule());
     }
 
     /**

@@ -25,6 +25,8 @@ import io.shulie.surge.data.deploy.pradar.model.AmdbAppModel;
 import io.shulie.surge.data.deploy.pradar.model.AmdbAppRelationModel;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
+import io.shulie.surge.data.runtime.common.remote.impl.RemoteZkModule;
+import io.shulie.surge.data.runtime.module.ZooKeeperClientModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBSupport;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
@@ -87,7 +89,9 @@ public class PradarAggregationConfiguration extends AbstractPradarConfiguration 
         bootstrap.install(
                 new PradarModule(0),
                 new InfluxDBModule(),
-                new MysqlModule());
+                new MysqlModule(),
+                new ZooKeeperClientModule(),
+                new RemoteZkModule());
     }
 
     /**

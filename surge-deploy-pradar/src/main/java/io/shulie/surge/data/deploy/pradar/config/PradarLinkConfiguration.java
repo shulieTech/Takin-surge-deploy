@@ -7,7 +7,9 @@ import io.shulie.surge.data.deploy.pradar.link.AbstractLinkCache;
 import io.shulie.surge.data.deploy.pradar.link.processor.*;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
+import io.shulie.surge.data.runtime.common.remote.impl.RemoteZkModule;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
+import io.shulie.surge.data.runtime.module.ZooKeeperClientModule;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -62,7 +64,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
      */
     @Override
     public void install(DataBootstrap bootstrap) {
-        bootstrap.install(new PradarModule(), new ClickHouseModule(), new MysqlModule());
+        bootstrap.install(new PradarModule(), new ClickHouseModule(), new MysqlModule(), new ZooKeeperClientModule(), new RemoteZkModule());
     }
 
     /**
