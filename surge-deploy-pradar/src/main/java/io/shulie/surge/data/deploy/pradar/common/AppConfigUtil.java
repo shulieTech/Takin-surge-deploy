@@ -16,6 +16,8 @@
 package io.shulie.surge.data.deploy.pradar.common;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.nacos.api.config.ConfigService;
+import com.alibaba.nacos.api.config.listener.AbstractListener;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -67,8 +69,13 @@ public class AppConfigUtil {
     @Named("amdb.port")
     private String PORT;
 
-    @Inject
+    @Inject(optional = true)
     private ZkClient zkClient;
+
+    @Inject(optional = true)
+    private ConfigService configService;
+
+    private volatile Map<String, Object> nacosConfigs;
 
     /**
      * 采样率缓存
@@ -107,12 +114,7 @@ public class AppConfigUtil {
 
             // 全局采样率
             if (StringUtils.isBlank(sampling)) {
-                if (zkClient.exists(globalSamplingPath)) {
-                    byte[] data = zkClient.getData(globalSamplingPath);
-                    if (data != null) {
-                        sampling = new String(data, "utf-8");
-                    }
-                }
+                sampling = getValueFromRemoteConfigs(globalSamplingPath);
                 logger.info("get global sampling:{}", sampling);
             }
             return NumberUtils.toInt(sampling, 1);
@@ -127,25 +129,41 @@ public class AppConfigUtil {
         public Integer load(String appName) throws Exception {
             // 应用自定义采样率
             String zkPath = appSlowSqlZkPath.replace("{appName}", appName);
-            String simpling = null;
-            if (zkClient.exists(zkPath)) {
-                byte[] data = zkClient.getData(zkPath);
-                if (data != null) {
-                    simpling = new String(data, "utf-8");
-                }
-            }
+            String simpling = getValueFromRemoteConfigs(zkPath);
             // 全局采样率
             if (StringUtils.isBlank(simpling)) {
-                if (zkClient.exists(globalSlowSqlPath)) {
-                    byte[] data = zkClient.getData(globalSlowSqlPath);
-                    if (data != null) {
-                        simpling = new String(data, "utf-8");
-                    }
-                }
+                simpling = getValueFromRemoteConfigs(globalSlowSqlPath);
             }
             return NumberUtils.toInt(simpling, 1000);
         }
     });
+
+    private String getValueFromRemoteConfigs(String dataId) throws Exception {
+        Object value = null;
+        if (zkClient != null) {
+            if (zkClient.exists(dataId)) {
+                byte[] data = zkClient.getData(dataId);
+                if (data != null) {
+                    value = new String(data, "utf-8");
+                }
+            }
+        }
+        if (configService != null) {
+            if (nacosConfigs == null) {
+                String nacosId = "pradarConfig", group = "PRADAR_CONFIG";
+                configService.addListener(nacosId, group, new AbstractListener() {
+                    @Override
+                    public void receiveConfigInfo(String s) {
+                        nacosConfigs = JSON.parseObject(s, Map.class);
+                    }
+                });
+                String content = configService.getConfig(nacosId, group, 3000);
+                nacosConfigs = JSON.parseObject(content, Map.class);
+                value = nacosConfigs.get(dataId);
+            }
+        }
+        return value != null ? value.toString() : null;
+    }
 
     /**
      * 获取应用采样率配置
