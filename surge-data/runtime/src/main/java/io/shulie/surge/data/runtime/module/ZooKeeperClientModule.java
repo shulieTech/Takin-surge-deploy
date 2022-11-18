@@ -22,7 +22,10 @@ import io.shulie.surge.data.runtime.common.zk.CuratorClientProvider;
 import io.shulie.surge.data.runtime.common.zk.NetflixCuratorZkClientFactory;
 import io.shulie.surge.data.runtime.common.zk.ZkClientProvider;
 import io.shulie.surge.data.runtime.common.zk.ZookeeperClientProvider;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.zookeeper.ZooKeeper;
+
+import java.util.Properties;
 
 /**
  * ZooKeeper 实现注入
@@ -31,14 +34,22 @@ import org.apache.zookeeper.ZooKeeper;
  */
 public class ZooKeeperClientModule extends BaseDataModule {
 
-	@Override
-	protected void configure() {
-		bindGeneric(ZkClient.class, NetflixCuratorZkClientFactory.class, ZkClientSpec.class);
+    @Override
+    protected void configure() {
 
-		// 使用默认的 zookeeper 配置
-		bind(ZooKeeper.class).toProvider(ZookeeperClientProvider.class).in(Scopes.SINGLETON);
+        Properties properties = bootstrap.getProperties();
+        String property = properties.getProperty("config.data.zk.servers");
+        // 配置了zk地址才使用zk
+        if (StringUtils.isEmpty(property)) {
+            return;
+        }
 
-		bind(org.I0Itec.zkclient.ZkClient.class).toProvider(ZkClientProvider.class);
-		bind(ZkClient.class).toProvider(CuratorClientProvider.class);
-	}
+        bindGeneric(ZkClient.class, NetflixCuratorZkClientFactory.class, ZkClientSpec.class);
+
+        // 使用默认的 zookeeper 配置
+        bind(ZooKeeper.class).toProvider(ZookeeperClientProvider.class).in(Scopes.SINGLETON);
+
+        bind(org.I0Itec.zkclient.ZkClient.class).toProvider(ZkClientProvider.class);
+        bind(ZkClient.class).toProvider(CuratorClientProvider.class);
+    }
 }

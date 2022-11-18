@@ -15,22 +15,31 @@
 
 package io.shulie.surge.data.runtime.common.remote.impl;
 
-import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.TypeLiteral;
 import com.google.inject.matcher.Matchers;
 import com.google.inject.name.Named;
 import io.shulie.surge.data.runtime.common.guice.FieldInjectionListener;
 import io.shulie.surge.data.runtime.common.remote.Remote;
+import io.shulie.surge.data.runtime.module.BaseDataModule;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
-import java.util.List;
+import java.util.Properties;
 
 @SuppressWarnings("serial")
-public class RemoteZkModule extends AbstractModule implements Serializable{
+public class RemoteZkModule extends BaseDataModule implements Serializable {
 
 	@Override
 	protected void configure() {
+
+		Properties properties = bootstrap.getProperties();
+		String property = properties.getProperty("config.data.zk.servers");
+		// 配置了zk地址才使用zk
+		if (StringUtils.isEmpty(property)) {
+			return;
+		}
+
 		bind(new TypeLiteral<Remote<Boolean>>() {
 		}).annotatedWith(Named.class).to(new TypeLiteral<ZkDataImpl<Boolean>>() {
 		});
