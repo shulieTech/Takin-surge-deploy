@@ -80,7 +80,7 @@ public class TaskManager<T2> implements Serializable {
             for (int i = 0; i < tasks.size(); i++) {
                 int j = i % workers.size();
                 if (allot.containsKey(workers.get(j).getUuid())) {
-                    List<T2> list = allot.get(workers.get(j));
+                    List<T2> list = allot.get(workers.get(j).getUuid());
                     list.add(tasks.get(i));
                     allot.put(workers.get(j).getUuid(), list);
                 } else {

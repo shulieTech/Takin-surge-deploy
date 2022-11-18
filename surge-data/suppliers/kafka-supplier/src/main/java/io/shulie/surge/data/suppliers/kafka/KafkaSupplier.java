@@ -16,7 +16,6 @@
 package io.shulie.surge.data.suppliers.kafka;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import io.shulie.surge.data.common.lifecycle.LifecycleObserver;
 import io.shulie.surge.data.runtime.common.ObjectSerializer;
@@ -24,11 +23,12 @@ import io.shulie.surge.data.runtime.common.ObjectSerializerFactory;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.supplier.DefaultSupplier;
 import io.shulie.surge.data.runtime.supplier.Supplier;
+import io.shulie.takin.sdk.kafka.entity.MessageEntity;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.Headers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +71,7 @@ public final class KafkaSupplier extends DefaultSupplier {
         //启动
         super.start();
         apiProcessor.init();
+
         Properties properties = new Properties();
         properties.put("bootstrap", bootstrap);
         properties.put("group.id", "KafkaAggregationReceiver");
@@ -93,24 +94,17 @@ public final class KafkaSupplier extends DefaultSupplier {
                         Iterator<ConsumerRecord<String, byte[]>> iterator = records.iterator();
                         while (iterator.hasNext()) {
                             ConsumerRecord<String, byte[]> record = iterator.next();
-                            String messageKey = record.key();
                             byte[] value = record.value();
-                            ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("kryo");
-                            Headers headers = record.headers();
-                            Map<String, Object> headMap = Maps.newHashMap();
-                            if (headers != null) {
-                                for (Header header : headers.toArray()) {
-                                    headMap.put(header.key(), objectSerializer.serialize(header.value()));
+                            ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("thrift");
+                            MessageEntity messageEntity = objectSerializer.deserialize(value);
+                            if (messageEntity != null) {
+                                Map<String, Object> header = messageEntity.getHeaders();
+                                String message = null;
+                                if (MapUtils.isNotEmpty(messageEntity.getBody()) && messageEntity.getBody().containsKey("content")) {
+                                    message = ObjectUtils.toString(messageEntity.getBody().get("content"));
                                 }
+                                queue.publish(header, message);
                             }
-
-                            Map<String, Object> header = Maps.newHashMap();
-//                            header.put("hostIp", hostIp);
-//                            header.put("dataVersion", dataVersion);
-//                            header.put("dataType", dataType);
-//                            header.put("receiveHttpTime", receiveHttpTime);
-
-                            queue.publish(header, new String(""));
                         }
                     }
                 } catch (InterruptedException e) {

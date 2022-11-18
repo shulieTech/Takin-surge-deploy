@@ -1,0 +1,2 @@
+io.shulie.surge.data.runtime.common.KryoObjectSerializer
+io.shulie.surge.data.suppliers.kafka.ThriftObjectSerializer
