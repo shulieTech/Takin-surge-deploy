@@ -42,10 +42,6 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
 
 
     private String bootstrap;
-    private String topics;
-    private KafkaSupplier kafkaTraceSupplier;
-    private KafkaSupplier kafkaBaseSupplier;
-    private KafkaSupplier kafkaAgentLogSupplier;
 
     /**
      * 参数初始化
