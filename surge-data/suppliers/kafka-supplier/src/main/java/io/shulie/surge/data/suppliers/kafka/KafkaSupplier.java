@@ -103,6 +103,8 @@ public final class KafkaSupplier extends DefaultSupplier {
                                 if (MapUtils.isNotEmpty(messageEntity.getBody()) && messageEntity.getBody().containsKey("content")) {
                                     message = ObjectUtils.toString(messageEntity.getBody().get("content"));
                                 }
+                                header.put("dataVersion", header.get("version"));
+                                header.put("receiveHttpTime", System.currentTimeMillis());
                                 queue.publish(header, message);
                             }
                         }
