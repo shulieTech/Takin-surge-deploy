@@ -73,11 +73,11 @@ public final class KafkaSupplier extends DefaultSupplier {
         apiProcessor.init();
 
         Properties properties = new Properties();
-        properties.put("bootstrap", bootstrap);
+        properties.put("bootstrap.servers", bootstrap);
         properties.put("group.id", "KafkaAggregationReceiver");
         properties.put("enable.auto.commit", "true");
         properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        properties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
 
         consumer = new KafkaConsumer<String, byte[]>(properties);
         consumer.subscribe(Lists.newArrayList(topic));

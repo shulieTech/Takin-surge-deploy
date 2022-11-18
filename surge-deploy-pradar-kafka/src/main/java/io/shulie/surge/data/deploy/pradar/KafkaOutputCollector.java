@@ -27,11 +27,11 @@ public class KafkaOutputCollector implements OutputCollector {
         this.topic = topic;
         this.bootstrap = bootstrap;
         Properties properties = new Properties();
-        properties.put("bootstrap", bootstrap);
+        properties.put("bootstrap.servers", bootstrap);
         properties.put("group.id", "KafkaAggregationReceiver");
         properties.put("enable.auto.commit", "true");
-        properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        properties.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
         kafkaProducer = new KafkaProducer<String, byte[]>(properties);
     }
 

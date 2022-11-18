@@ -40,11 +40,11 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
     public void init(Aggregation aggregation) {
         super.init(aggregation);
         Properties properties = new Properties();
-        properties.put("bootstrap", bootstraps);
+        properties.put("bootstrap.servers", bootstraps);
         properties.put("group.id", "KafkaAggregationReceiver");
         properties.put("enable.auto.commit", "true");
         properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        properties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
 
         KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<String, byte[]>(properties);
         consumer.subscribe(Lists.newArrayList(topic));
