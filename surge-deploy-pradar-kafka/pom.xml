@@ -97,7 +97,6 @@
             <groupId>io.shulie.surge.data.suppliers</groupId>
             <artifactId>kafka-supplier</artifactId>
             <version>1.0</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 

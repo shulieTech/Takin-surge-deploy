@@ -75,7 +75,7 @@ public class PradarProcessor extends DefaultProcessor<String, DigestContext> {
     public boolean removeDelay(Map<String, Object> header, long eventTime, long processTime, String log) {
         //return false;
         if (System.currentTimeMillis() - eventTime > MAX_LOG_PROCESS_TIME_BEFORE) {
-            logger.error("Receive log delay over {} mils,removeDelay,hostIp:{},eventTime:{},processTime:{}/n,log content:{}", MAX_LOG_PROCESS_TIME_BEFORE, header.get("hostIp"), eventTime, processTime, log);
+            logger.error("Receive log delay over {} mils,removeDelay,eventTime:{},processTime:{}/n,log content:{}", MAX_LOG_PROCESS_TIME_BEFORE, eventTime, processTime, log);
             return true;
         }
         return false;
