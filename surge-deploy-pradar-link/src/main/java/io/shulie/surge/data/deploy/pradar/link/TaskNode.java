@@ -27,23 +27,50 @@ public class TaskNode implements Serializable {
         return id;
     }
 
-    public int getPid() {
-        return pid;
-    }
-
-    public String getIp() {
-        return ip;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
     public void setId(int id) {
         this.id = id;
     }
 
     public String getUuid() {
         return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
+
+    public int getPid() {
+        return pid;
+    }
+
+    public void setPid(int pid) {
+        this.pid = pid;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    @Override
+    public String toString() {
+        return "TaskNode{" +
+                "id=" + id +
+                ", uuid='" + uuid + '\'' +
+                ", pid=" + pid +
+                ", host='" + host + '\'' +
+                ", ip='" + ip + '\'' +
+                '}';
     }
 }

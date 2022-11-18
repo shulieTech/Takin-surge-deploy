@@ -21,6 +21,7 @@ import com.google.inject.Singleton;
 import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.common.utils.DateUtils;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
@@ -47,7 +48,7 @@ public class TaskManager<T2> implements Serializable {
 
     private List<TaskNode> workers;
 
-    private TaskNode taskNode;
+    private TaskNode taskNode = new TaskNode();
 
 
     //注册节点
@@ -58,12 +59,12 @@ public class TaskManager<T2> implements Serializable {
             @Override
             public void run() {
                 //注册节点
-                mysqlSupport.update("insert into t_link_task(uuid,pid,ip,host) values(?,?,?,?) on ON DUPLICATE KEY UPDATE gmt_modify = now()", new Object[]{taskNode.getUuid(), taskNode.getPid(), taskNode.getIp(), taskNode.getHost()});
+                mysqlSupport.update("insert into t_amdb_link_task_node(uuid,pid,ip,host) values(?,?,?,?) ON DUPLICATE KEY UPDATE gmt_modify = now()", new Object[]{taskNode.getUuid(), taskNode.getPid(), taskNode.getIp(), taskNode.getHost()});
                 //查询注册的节点信息
                 Date date = DateUtils.addSeconds(new Date(), -30);
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 String modifyDate = formatter.format(date);
-                List<TaskNode> list = mysqlSupport.queryForList("select uuid,pid,ip,host from t_link_task where gmt_modify>= '" + modifyDate + "'", TaskNode.class);
+                List<TaskNode> list = mysqlSupport.query("select id,uuid,pid,ip,host from t_amdb_link_task_node where gmt_modify>= '" + modifyDate + "'", new BeanPropertyRowMapper<TaskNode>(TaskNode.class));
                 workers = list;
             }
         }, 0, 30, TimeUnit.SECONDS);

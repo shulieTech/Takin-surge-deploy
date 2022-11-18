@@ -17,8 +17,6 @@ import org.apache.commons.lang3.time.DateFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executors;
@@ -74,7 +72,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
      */
     @Override
     public void doAfterInit(DataRuntime dataRuntime) {
-        initWithTaskSize(dataRuntime, Arrays.asList(defaultTaskId), defaultTaskId);
+        initWithTaskSize(dataRuntime);
     }
 
     /**
@@ -82,7 +80,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
      *
      * @throws Exception
      */
-    private void initWithTaskSize(DataRuntime dataRuntime, List<String> allTaskIds, String currentTaskId) {
+    private void initWithTaskSize(DataRuntime dataRuntime) {
         Scheduler scheduler = new Scheduler(10);
         try {
             ApiProcessor apiProcessor = dataRuntime.getInstance(ApiProcessor.class);
@@ -99,7 +97,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
                 @Override
                 public void run() {
                     try {
-                        linkProcessor.share(allTaskIds, currentTaskId);
+                        linkProcessor.share();
                     } catch (Exception e) {
                         logger.error("do link task error!", e);
                     }
@@ -118,7 +116,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
                     try {
                         logger.info("EntranceProcessor start run:{}", DateFormatUtils.format(
                                 System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
-                        entranceProcessor.share(allTaskIds, currentTaskId);
+                        entranceProcessor.share();
                         logger.info("EntranceProcessor run finish:{}", DateFormatUtils.format(
                                 System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
                     } catch (Throwable e) {
@@ -139,7 +137,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
                     try {
                         logger.info("ExitProcessor start run:{}", DateFormatUtils.format(
                                 System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
-                        exitProcessor.share(allTaskIds, currentTaskId);
+                        exitProcessor.share();
                         logger.info("ExitProcessor run finish:{}", DateFormatUtils.format(
                                 System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
                     } catch (Throwable e) {
@@ -161,7 +159,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
                     try {
                         logger.info("ExitByLinkIdProcessor start run:{}", DateFormatUtils.format(
                                 System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
-                        exitByLinkIdProcessor.share(allTaskIds, currentTaskId);
+                        exitByLinkIdProcessor.share();
                         logger.info("ExitByLinkIdProcessor run finish:{}", DateFormatUtils.format(
                                 System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss"));
                     } catch (Throwable e) {
@@ -189,14 +187,14 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
                 @Override
                 public void run() {
                     try {
-                        shadowDatabaseProcessor.share(allTaskIds, currentTaskId);
+                        shadowDatabaseProcessor.share();
                     } catch (Throwable e) {
                         logger.error("do shadow_database task error!", e);
                     }
                 }
             }, defaultDelayTime, periodTime, TimeUnit.SECONDS);
 
-            processUnknow(dataRuntime, linkProcessor.getLinkCache(), allTaskIds, currentTaskId);
+            processUnknow(dataRuntime, linkProcessor.getLinkCache());
         } catch (Exception e) {
             logger.error("Build task error.", e);
         }
@@ -208,7 +206,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
      *
      * @param dataRuntime
      */
-    private void processUnknow(DataRuntime dataRuntime, AbstractLinkCache linkCache, List<String> allTaskIds, String currentTaskId) {
+    private void processUnknow(DataRuntime dataRuntime, AbstractLinkCache linkCache) {
         try {
             LinkUnKnowNodeProcessor linkUnKnowNodeProcessor = dataRuntime.getInstance(LinkUnKnowNodeProcessor.class);
             linkUnKnowNodeProcessor.init(dataSourceType);
@@ -218,7 +216,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
                 @Override
                 public void run() {
                     try {
-                        linkUnKnowNodeProcessor.share(allTaskIds, currentTaskId);
+                        linkUnKnowNodeProcessor.share();
                     } catch (Exception e) {
                         logger.error("do link task error!", e);
                     }
@@ -233,7 +231,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
                 @Override
                 public void run() {
                     try {
-                        linkUnKnownMqProcessor.share(allTaskIds, currentTaskId);
+                        linkUnKnownMqProcessor.share();
                     } catch (Exception e) {
                         logger.error("do link task error!", e);
                     }
@@ -251,7 +249,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
                 @Override
                 public void run() {
                     try {
-                        linkUnKnowNodeCleanProcessor.share(allTaskIds, currentTaskId);
+                        linkUnKnowNodeCleanProcessor.share();
                     } catch (Exception e) {
                         logger.error("do link task error!", e);
                     }

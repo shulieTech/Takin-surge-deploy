@@ -122,7 +122,7 @@ public class LinkProcessor extends AbstractProcessor {
      * @throws IOException
      */
     @Override
-    public void share(List<String> taskIds, String currentTaskId) {
+    public void share() {
         if (!linkProcessDisable.get()) {
             return;
         }
@@ -171,25 +171,25 @@ public class LinkProcessor extends AbstractProcessor {
             }
         }
     }
-
-    /**
-     * 解析任务不按照任务编号去分配
-     *
-     * @throws IOException
-     */
-    @Override
-    public void share() {
-        if (!linkProcessDisable.get()) {
-            return;
-        }
-        if (!isHandler(intervalTime.get())) {
-            return;
-        }
-        Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();
-        for (Map.Entry<String, Map<String, Object>> entry : linkConfig.entrySet()) {
-            saveLink(entry.getKey(), entry.getValue());
-        }
-    }
+//
+//    /**
+//     * 解析任务不按照任务编号去分配
+//     *
+//     * @throws IOException
+//     */
+//    @Override
+//    public void share() {
+//        if (!linkProcessDisable.get()) {
+//            return;
+//        }
+//        if (!isHandler(intervalTime.get())) {
+//            return;
+//        }
+//        Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();
+//        for (Map.Entry<String, Map<String, Object>> entry : linkConfig.entrySet()) {
+//            saveLink(entry.getKey(), entry.getValue());
+//        }
+//    }
 
     @Override
     public void init() {
