@@ -135,8 +135,8 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
             kafkaSupplier.setQueue(buidTraceProcesser(dataRuntime, isDistributed));
             return kafkaSupplier;
         } catch (Throwable e) {
-            logger.error("netty fail " + ExceptionUtils.getStackTrace(e));
-            throw new RuntimeException("netty fail");
+            logger.error("KafkaSupplier fail " + ExceptionUtils.getStackTrace(e));
+            throw new RuntimeException("KafkaSupplier fail");
         }
     }
 

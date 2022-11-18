@@ -106,37 +106,37 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
         //移除无关参数
         args.remove(ParamUtil.WORKERS);
         taskId = Objects.toString(args.get(ParamUtil.TASK_ID));
-        String netMapStr = Objects.toString(args.get(ParamUtil.NET),"");
+        String netMapStr = Objects.toString(args.get(ParamUtil.NET), "");
         if (null != netMapStr && StringUtils.isNotBlank(netMapStr)) {
             this.netMap = JSON.parseObject(netMapStr, Map.class);
         }
-        String hostNameMapStr = Objects.toString(args.get(ParamUtil.HOSTNAME),"");
+        String hostNameMapStr = Objects.toString(args.get(ParamUtil.HOSTNAME), "");
         if (null != hostNameMapStr && StringUtils.isNotBlank(hostNameMapStr)) {
             this.hostNameMap = JSON.parseObject(hostNameMapStr, Map.class);
         }
-        String serverPortsMapStr = Objects.toString(args.get(ParamUtil.PORTS),"");
+        String serverPortsMapStr = Objects.toString(args.get(ParamUtil.PORTS), "");
         if (null != serverPortsMapStr && StringUtils.isNotBlank(serverPortsMapStr)) {
             this.serverPortsMap = JSON.parseObject(serverPortsMapStr, Map.class);
         }
-        String registerZkStr = Objects.toString(args.get(ParamUtil.REGISTERZK),"");
+        String registerZkStr = Objects.toString(args.get(ParamUtil.REGISTERZK), "");
         this.registerZk = CommonStat.TRUE.equals(String.valueOf(registerZkStr)) ? true : false;
-        this.coreSize = Integer.valueOf(Objects.toString(args.get(ParamUtil.CORE_SIZE),""));
-        this.dataSourceType = Objects.toString(args.get(ParamUtil.DATA_SOURCE_TYPE),"");
-        this.openMqConsumer = Objects.isNull(args.get(ParamUtil.MQConsumer)) ? true : false;
+        this.coreSize = NumberUtils.toInt(Objects.toString(args.get(ParamUtil.CORE_SIZE), ""), Runtime.getRuntime().availableProcessors() * 2);
+        this.dataSourceType = Objects.toString(args.get(ParamUtil.DATA_SOURCE_TYPE), "");
+        this.openMqConsumer = Objects.isNull(args.get(ParamUtil.MQConsumer)) ? false : true;
 
         if (null != host) {
-            this.host = Objects.toString(args.get(ParamUtil.HOST),"");
+            this.host = Objects.toString(args.get(ParamUtil.HOST), "");
         }
         if (null != work) {
-            this.work = Objects.toString(args.get(ParamUtil.WORK),"");
+            this.work = Objects.toString(args.get(ParamUtil.WORK), "");
         }
-        String httpEnabledStr = Objects.toString(args.get(ParamUtil.HTTP),"");
+        String httpEnabledStr = Objects.toString(args.get(ParamUtil.HTTP), "");
 
-        this.workerPort = NumberUtils.toInt(Objects.toString(args.get("workerPort"),""));
+        this.workerPort = NumberUtils.toInt(Objects.toString(args.get("workerPort"), ""));
         this.httpEnabled = CommonStat.TRUE.equals(httpEnabledStr) ? true : false;
-        this.registerZk = CommonStat.TRUE.equals(Objects.toString(args.get(ParamUtil.REGISTERZK),"")) ? true : false;
-        this.generalVersion = CommonStat.TRUE.equals(Objects.toString(args.get(ParamUtil.GENERAL_VERSION),"")) ? true : false;
-        this.affinityLockEnabled = CommonStat.TRUE.equals(Objects.toString(args.get(ParamUtil.AffinityLock),"")) ? true : false;
+        this.registerZk = CommonStat.TRUE.equals(Objects.toString(args.get(ParamUtil.REGISTERZK), "")) ? true : false;
+        this.generalVersion = CommonStat.TRUE.equals(Objects.toString(args.get(ParamUtil.GENERAL_VERSION), "")) ? true : false;
+        this.affinityLockEnabled = CommonStat.TRUE.equals(Objects.toString(args.get(ParamUtil.AffinityLock), "")) ? true : false;
     }
 
     /**

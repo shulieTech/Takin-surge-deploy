@@ -23,6 +23,9 @@ public class KafkaSupplierSpec implements GenericFactorySpec<KafkaSupplier> {
     private String bootstrap;
     private String topic;
 
+    public KafkaSupplierSpec() {
+    }
+
     public KafkaSupplierSpec(String bootstrap, String topic) {
         this.bootstrap = bootstrap;
         this.topic = topic;
