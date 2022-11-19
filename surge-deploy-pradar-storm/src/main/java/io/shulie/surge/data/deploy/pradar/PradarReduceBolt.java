@@ -47,7 +47,7 @@ public class PradarReduceBolt extends BaseBasicBolt {
     @Override
     public void prepare(Map stormConf, TopologyContext context) {
         try {
-            Map<String, Object> args = Maps.newHashMap(stormConf);
+            Map<String, String> args = Maps.newHashMap(stormConf);
             args.put("receivers", "metrics");
             pradarAggregationStarter = new PradarAggregationStarter();
             pradarAggregationStarter.init(args);

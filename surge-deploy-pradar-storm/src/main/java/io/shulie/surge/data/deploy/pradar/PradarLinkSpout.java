@@ -35,7 +35,7 @@ public class PradarLinkSpout extends BaseRichSpout {
     @Override
     public void open(Map conf, TopologyContext topologyContext, SpoutOutputCollector collector) {
         try {
-            Map<String, Object> args = Maps.newHashMap(conf);
+            Map<String, String> args = Maps.newHashMap(conf);
             PradarLinkStarter pradarLinkStarter = new PradarLinkStarter();
             pradarLinkStarter.init(args);
             pradarLinkStarter.start();
