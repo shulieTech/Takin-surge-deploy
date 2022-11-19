@@ -80,7 +80,7 @@ public final class KafkaSupplier extends DefaultSupplier {
         properties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
 
         consumer = new KafkaConsumer<String, byte[]>(properties);
-        consumer.subscribe(Lists.newArrayList(topic));
+        consumer.subscribe(Lists.newArrayList(topic.split(",")));
         messageFetcher = new Thread(new Runnable() {
             @Override
             public void run() {

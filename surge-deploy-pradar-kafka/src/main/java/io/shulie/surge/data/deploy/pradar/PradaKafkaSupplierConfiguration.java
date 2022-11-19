@@ -33,6 +33,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
     private static final Logger logger = LoggerFactory.getLogger(PradaKafkaSupplierConfiguration.class);
 
     private static final String TRACE_TOPIC = "stress-test-agent-trace";
+    private static final String PRESURCE_ENGINE_TRACE_TOPIC = "stress-test-pressure-engine-trace-log";
     private static final String BASE_TOPIC = "stress-test-agent-monitor";
     private static final String AGENT_LOG_TOPIC = "stress-test-agent-log";
 
@@ -130,7 +131,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     protected KafkaSupplier buildTraceSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
         try {
-            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, TRACE_TOPIC);
+            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, TRACE_TOPIC + ',' + PRESURCE_ENGINE_TRACE_TOPIC);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
             kafkaSupplier.setQueue(buidTraceProcesser(dataRuntime, isDistributed));
             return kafkaSupplier;
