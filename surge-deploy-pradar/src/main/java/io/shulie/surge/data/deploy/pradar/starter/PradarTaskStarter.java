@@ -18,7 +18,7 @@ public interface PradarTaskStarter extends Lifecycle {
      *
      * @param args
      */
-    void init(Map<String, ?> args);
+    void init(Map<String, String> args);
 
 
     /**

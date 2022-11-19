@@ -47,7 +47,7 @@ public class KafkaOutputCollector implements OutputCollector {
     @Override
     public void emit(int partition, String streamId, Object... values) {
         ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("kryo");
-        ProducerRecord producerRecord = new ProducerRecord(topic, partition, streamId, objectSerializer.serialize(values));
+        ProducerRecord<String, byte[]> producerRecord = new ProducerRecord<String, byte[]>(topic, partition, "" + values[0], objectSerializer.serialize(values[1]));
         kafkaProducer.send(producerRecord);
     }
 }

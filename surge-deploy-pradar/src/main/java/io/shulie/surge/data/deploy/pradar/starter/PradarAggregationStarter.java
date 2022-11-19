@@ -29,7 +29,7 @@ public class PradarAggregationStarter implements PradarTaskStarter {
      * @param args
      */
     @Override
-    public void init(Map<String, ?> args) {
+    public void init(Map<String, String> args) {
         try {
             logger.info("PradarKafkaAggregationStarter initial.");
             bootstrap = DataBootstrap.create("deploy.properties", "pradar");

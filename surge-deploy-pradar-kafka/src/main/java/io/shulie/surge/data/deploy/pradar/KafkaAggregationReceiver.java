@@ -9,6 +9,8 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Properties;
@@ -21,6 +23,7 @@ import java.util.Properties;
  **/
 public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
 
+    private static final Logger logger = LoggerFactory.getLogger(KafkaAggregationReceiver.class);
     private String topic;
     private String bootstraps;
     private long pollTimeout = 100l;
@@ -53,10 +56,6 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
             public void run() {
                 try {
                     while (true) {
-                        /**
-                         * 指定超时时间，通常情况下consumer拿到了足够多的可用数据，会立即从该方法返回，但若当前没有足够多数据
-                         * consumer会处于阻塞状态，但当到达设定的超时时间，则无论数据是否足够都为立即返回
-                         */
                         ConsumerRecords<String, byte[]> records = consumer.poll(pollTimeout);
                         Iterator<ConsumerRecord<String, byte[]>> iterator = records.iterator();
                         while (iterator.hasNext()) {
@@ -64,15 +63,15 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
                             String messageKey = record.key();
                             byte[] value = record.value();
                             ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("kryo");
-                            execute(NumberUtils.toLong(messageKey), objectSerializer.deserialize(value));
+                            try {
+                                execute(NumberUtils.toLong(messageKey), objectSerializer.deserialize(value));
+                            } catch (Exception e) {
+                                logger.error("Execute aggregation error.", e);
+                            }
                         }
                     }
                 } finally {
-                    /**
-                     * consumer程序结束后一定要显示关闭consumer以释放KafkaConuser运行过程中占用的各种系统资源
-                     * KafkaConsumer.close()：关闭consumer并等待30秒
-                     * KafkaConsumer.close(timeout): 关闭consumer并最多等待给定的timeout秒
-                     */
+
                     consumer.close();
                 }
             }

@@ -29,7 +29,7 @@ public class PradarLinkStarter implements PradarTaskStarter {
      * @param args
      */
     @Override
-    public void init(Map<String, ?> args) {
+    public void init(Map<String, String> args) {
         try {
             logger.info("PradarLinkStarter initial.");
             bootstrap = DataBootstrap.create("deploy.properties", "pradar");

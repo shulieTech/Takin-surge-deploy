@@ -24,8 +24,9 @@ public class PradarKafkaAggregationStarter extends PradarAggregationStarter {
      * @param args
      */
     @Override
-    public void init(Map<String, ?> args) {
+    public void init(Map<String, String> args) {
         try {
+            args.put("receivers", "trace");
             logger.info("PradarKafkaAggregationStarter initial.");
             bootstrap = DataBootstrap.create("deploy.properties", "pradar");
             DataBootstrapEnhancer.enhancer(bootstrap);

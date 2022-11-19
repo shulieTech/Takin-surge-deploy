@@ -14,10 +14,10 @@ import java.util.Objects;
 public class PradarKafkaAggregationConfiguration extends PradarAggregationConfiguration {
 
     public static final String METRICS_TOPIC = "agg-metrics";
-    public static final String E2E_TOPIC = "agg-e2e-metrics";
-    public static final String TRACE_TOPIC = "agg-trace-metrics";
+    private static final String TRACE_REDUCE_TOPIC = "trace-reduce-metrics";
+    private static final String E2E_TOPIC = "e2e-metrics";
     public static final String APP_RELATION_TOPIC = "agg-app-relation-metrics";
-    private String bootstraps;
+    private String bootstrap;
 
     /**
      * 初始化
@@ -27,7 +27,7 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
     @Override
     public void initArgs(Map<String, ?> args) {
         super.initArgs(args);
-        bootstraps = Objects.toString(args.get("bootstraps"));
+        bootstrap = Objects.toString(args.get("bootstrap"));
     }
 
     /**
@@ -38,7 +38,7 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
      */
     @Override
     protected AggregationReceiver metricsReceiver(Aggregation aggregation) {
-        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(METRICS_TOPIC, bootstraps);
+        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(METRICS_TOPIC, bootstrap);
         kafkaAggregationReceiver.init(aggregation);
         return kafkaAggregationReceiver;
     }
@@ -51,7 +51,7 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
      */
     @Override
     protected AggregationReceiver e2eReceiver(Aggregation aggregation) {
-        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(E2E_TOPIC, bootstraps);
+        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(E2E_TOPIC, bootstrap);
         kafkaAggregationReceiver.init(aggregation);
         return kafkaAggregationReceiver;
     }
@@ -64,7 +64,7 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
      */
     @Override
     protected AggregationReceiver traceMetricsReceiver(Aggregation aggregation) {
-        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(TRACE_TOPIC, bootstraps);
+        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(TRACE_REDUCE_TOPIC, bootstrap);
         kafkaAggregationReceiver.init(aggregation);
         return kafkaAggregationReceiver;
     }
@@ -77,7 +77,7 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
      */
     @Override
     protected AggregationReceiver appRelationMetricsReceiver(Aggregation aggregation) {
-        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(APP_RELATION_TOPIC, bootstraps);
+        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(APP_RELATION_TOPIC, bootstrap);
         kafkaAggregationReceiver.init(aggregation);
         return kafkaAggregationReceiver;
     }

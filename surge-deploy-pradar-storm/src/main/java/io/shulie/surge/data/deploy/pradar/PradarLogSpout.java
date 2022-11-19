@@ -47,9 +47,9 @@ public class PradarLogSpout extends BaseRichSpout {
     public void open(Map map, TopologyContext topologyContext, SpoutOutputCollector spoutOutputCollector) {
         try {
 
-            Map<String, Object> args = Maps.newHashMap(map);
-            args.put("workerPort", topologyContext.getThisWorkerPort());
-            args.put(ParamUtil.TASK_ID,topologyContext.getThisTaskId());
+            Map<String, String> args = Maps.newHashMap(map);
+            args.put("workerPort", String.valueOf(topologyContext.getThisWorkerPort()));
+            args.put(ParamUtil.TASK_ID, String.valueOf(topologyContext.getThisTaskId()));
             PradarSupplierStarter pradarSupplierStarter = new PradarSupplierStarter();
             pradarSupplierStarter.init(args);
             PradarConfiguration pradarSupplierConfiguration = pradarSupplierStarter.getPradarConfiguration();

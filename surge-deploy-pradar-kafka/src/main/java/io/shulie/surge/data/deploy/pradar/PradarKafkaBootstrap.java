@@ -37,7 +37,7 @@ public class PradarKafkaBootstrap {
 
                 //聚合器启动
                 PradarKafkaAggregationStarter pradarKafkaAggregationStarter = new PradarKafkaAggregationStarter();
-                pradarKafkaAggregationStarter.init(conf);
+                pradarKafkaAggregationStarter.init(Maps.newHashMap(conf));
                 pradarKafkaAggregationStarter.start();
 
                 Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
