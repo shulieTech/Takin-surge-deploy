@@ -2,7 +2,6 @@ package io.shulie.surge.data.deploy.pradar;
 
 import com.google.common.collect.Maps;
 import io.shulie.surge.data.deploy.pradar.common.ParameterTool;
-import io.shulie.surge.data.deploy.pradar.starter.PradarLinkStarter;
 
 import java.util.Map;
 
@@ -37,7 +36,6 @@ public class PradarKafkaBootstrap {
         }
 
         if (PradarKafkaSwitcher.AGGREGATION_SWITCHER) {
-
             //聚合器启动
             PradarKafkaAggregationStarter pradarKafkaAggregationStarter = new PradarKafkaAggregationStarter();
             pradarKafkaAggregationStarter.init(Maps.newHashMap(conf));
@@ -57,7 +55,7 @@ public class PradarKafkaBootstrap {
 
         if (PradarKafkaSwitcher.LINK_TASK_SWITCHER) {
             //link分析启动
-            PradarLinkStarter pradarKafkaLinkStarter = new PradarLinkStarter();
+            PradarKafkaLinkStarter pradarKafkaLinkStarter = new PradarKafkaLinkStarter();
             pradarKafkaLinkStarter.init(Maps.newHashMap(conf));
             pradarKafkaLinkStarter.start();
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {

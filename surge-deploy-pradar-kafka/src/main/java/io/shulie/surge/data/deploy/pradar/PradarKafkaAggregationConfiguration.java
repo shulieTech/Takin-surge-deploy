@@ -3,6 +3,12 @@ package io.shulie.surge.data.deploy.pradar;
 import io.shulie.surge.data.common.aggregation.Aggregation;
 import io.shulie.surge.data.deploy.pradar.agg.AggregationReceiver;
 import io.shulie.surge.data.deploy.pradar.config.PradarAggregationConfiguration;
+import io.shulie.surge.data.deploy.pradar.config.PradarModule;
+import io.shulie.surge.data.runtime.common.DataBootstrap;
+import io.shulie.surge.data.runtime.common.remote.impl.RemoteNacosModule;
+import io.shulie.surge.data.runtime.module.NacosClientModule;
+import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
+import io.shulie.surge.data.sink.mysql.MysqlModule;
 
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +34,18 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
     public void initArgs(Map<String, ?> args) {
         super.initArgs(args);
         bootstrap = Objects.toString(args.get("bootstrap"));
+    }
+
+
+    /**
+     * 装载module
+     *
+     * @param bootstrap
+     */
+    @Override
+
+    public void install(DataBootstrap bootstrap) {
+        bootstrap.install(new PradarModule(0), new InfluxDBModule(), new MysqlModule(), new NacosClientModule(), new RemoteNacosModule());
     }
 
     /**

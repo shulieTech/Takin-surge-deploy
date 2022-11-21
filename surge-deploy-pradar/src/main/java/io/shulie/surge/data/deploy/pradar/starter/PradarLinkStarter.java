@@ -19,9 +19,9 @@ import java.util.Map;
 public class PradarLinkStarter implements PradarTaskStarter {
 
     private static final Logger logger = LoggerFactory.getLogger(PradarLinkStarter.class);
-    private DataBootstrap bootstrap;
-    private PradarLinkConfiguration pradarLinkConfiguration;
-    private DataRuntime dataRuntime;
+    protected DataBootstrap bootstrap;
+    protected PradarLinkConfiguration pradarLinkConfiguration;
+    protected DataRuntime dataRuntime;
 
     /**
      * 初始化

@@ -7,6 +7,8 @@ import io.shulie.surge.data.deploy.pradar.config.PradarModule;
 import io.shulie.surge.data.deploy.pradar.config.PradarSupplierConfiguration;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
+import io.shulie.surge.data.runtime.common.remote.impl.RemoteNacosModule;
+import io.shulie.surge.data.runtime.module.NacosClientModule;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseShardModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
@@ -68,7 +70,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
                 new InfluxDBModule(),
                 new ClickHouseModule(),
                 new ClickHouseShardModule(),
-                new MysqlModule());
+                new MysqlModule(), new NacosClientModule(), new RemoteNacosModule());
     }
 
     /**
