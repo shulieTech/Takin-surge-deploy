@@ -81,7 +81,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
      * @throws Exception
      */
     private void initWithTaskSize(DataRuntime dataRuntime) {
-        Scheduler scheduler = new Scheduler(10);
+        scheduler = new Scheduler(10);
         try {
             ApiProcessor apiProcessor = dataRuntime.getInstance(ApiProcessor.class);
             apiProcessor.init();
