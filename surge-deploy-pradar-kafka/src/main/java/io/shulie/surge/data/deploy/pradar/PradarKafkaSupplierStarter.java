@@ -26,7 +26,8 @@ public class PradarKafkaSupplierStarter extends PradarSupplierStarter {
     public void init(Map<String, String> args) {
         try {
             logger.info("PradarSupplierStarter initial.");
-            bootstrap = DataBootstrap.create("deploy.properties", "pradar");
+            String propertiesFile = args.getOrDefault("properties", "deploy.properties");
+            bootstrap = DataBootstrap.create(propertiesFile, "pradar");
             DataBootstrapEnhancer.enhancer(bootstrap);
             pradarSupplierConfiguration = new PradaKafkaSupplierConfiguration();
             pradarSupplierConfiguration.initArgs(args);

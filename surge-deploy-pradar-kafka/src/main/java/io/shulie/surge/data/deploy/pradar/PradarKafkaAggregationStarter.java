@@ -28,7 +28,8 @@ public class PradarKafkaAggregationStarter extends PradarAggregationStarter {
         try {
             args.put("receivers", "trace");
             logger.info("PradarKafkaAggregationStarter initial.");
-            bootstrap = DataBootstrap.create("deploy.properties", "pradar");
+            String propertiesFile = args.getOrDefault("properties", "deploy.properties");
+            bootstrap = DataBootstrap.create(propertiesFile, "pradar");
             DataBootstrapEnhancer.enhancer(bootstrap);
             pradarAggregationConfiguration = new PradarKafkaAggregationConfiguration();
             pradarAggregationConfiguration.initArgs(args);
