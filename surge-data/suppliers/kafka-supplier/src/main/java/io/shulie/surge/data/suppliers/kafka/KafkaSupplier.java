@@ -26,6 +26,7 @@ import io.shulie.surge.data.runtime.supplier.Supplier;
 import io.shulie.takin.sdk.kafka.entity.MessageEntity;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -74,7 +75,8 @@ public final class KafkaSupplier extends DefaultSupplier {
 
         Properties properties = new Properties();
         properties.put("bootstrap.servers", bootstrap);
-        properties.put("group.id", "KafkaAggregationReceiver");
+        properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
+        properties.put("group.id", "KafkaSupplierReceiver");
         properties.put("enable.auto.commit", "true");
         properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         properties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
