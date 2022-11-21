@@ -19,10 +19,8 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import io.shulie.surge.data.runtime.common.remote.impl.RemoteNacosModule;
-import io.shulie.surge.data.runtime.common.remote.impl.RemoteZkModule;
 import io.shulie.surge.data.runtime.module.BaseConfigModule;
 import io.shulie.surge.data.runtime.module.NacosClientModule;
-import io.shulie.surge.data.runtime.module.ZooKeeperClientModule;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -133,7 +131,7 @@ public final class DataBootstrap {
      * @return
      */
     public DataRuntime startRuntime() {
-        install(new BaseConfigModule(), new ZooKeeperClientModule(), new NacosClientModule(), new RemoteZkModule(), new RemoteNacosModule());
+        install(new BaseConfigModule(), new NacosClientModule(), new RemoteNacosModule());
         for (Module module : modules) {
             if (module instanceof DataBootstrapAware) {
                 DataBootstrapAware m = ((DataBootstrapAware) module);

@@ -33,24 +33,26 @@ public class PradarKafkaBootstrap {
                     }
                 }
             }));
-            if (PradarKafkaSwitcher.AGGREGATION_SWITCHER) {
 
-                //聚合器启动
-                PradarKafkaAggregationStarter pradarKafkaAggregationStarter = new PradarKafkaAggregationStarter();
-                pradarKafkaAggregationStarter.init(Maps.newHashMap(conf));
-                pradarKafkaAggregationStarter.start();
+        }
 
-                Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            pradarKafkaAggregationStarter.stop();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+        if (PradarKafkaSwitcher.AGGREGATION_SWITCHER) {
+
+            //聚合器启动
+            PradarKafkaAggregationStarter pradarKafkaAggregationStarter = new PradarKafkaAggregationStarter();
+            pradarKafkaAggregationStarter.init(Maps.newHashMap(conf));
+            pradarKafkaAggregationStarter.start();
+
+            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        pradarKafkaAggregationStarter.stop();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                }));
-            }
+                }
+            }));
         }
 
         if (PradarKafkaSwitcher.LINK_TASK_SWITCHER) {
