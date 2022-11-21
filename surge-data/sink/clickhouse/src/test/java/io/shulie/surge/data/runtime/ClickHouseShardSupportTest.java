@@ -16,12 +16,16 @@
 package io.shulie.surge.data.runtime;
 
 
-import com.google.inject.*;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.Singleton;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
-import io.shulie.surge.data.sink.clickhouse.*;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 import org.junit.Test;
 
+import java.io.FileNotFoundException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
@@ -118,7 +122,7 @@ public class ClickHouseShardSupportTest {
 
 
     @Test
-    public void multipleClickSupport() throws InterruptedException {
+    public void multipleClickSupport() throws InterruptedException, FileNotFoundException {
         DataRuntime dataRuntime = initDataRuntime();
 
         int threadNumber = 10;
@@ -136,14 +140,14 @@ public class ClickHouseShardSupportTest {
     }
 
     @Test
-    public void multipleClickSupport2() throws InterruptedException {
+    public void multipleClickSupport2() throws InterruptedException, FileNotFoundException {
         DataRuntime dataRuntime = initDataRuntime();
         Injector inject = dataRuntime.getInstance(Injector.class);
         inject.injectMembers(this);
         assert clickhouseHolder.diffCKInstance() : "same clickHouseShardSupport instance";
     }
 
-    public DataRuntime initDataRuntime() {
+    public DataRuntime initDataRuntime() throws FileNotFoundException {
         DataBootstrap bootstrap = DataBootstrap.create("clickhouse.properties");
         bootstrap.install(new ClickHouseModule());
         return bootstrap.startRuntime();

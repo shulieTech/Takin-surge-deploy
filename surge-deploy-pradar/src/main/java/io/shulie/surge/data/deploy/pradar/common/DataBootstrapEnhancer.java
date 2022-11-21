@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.Enumeration;
 import java.util.Objects;
@@ -36,7 +37,7 @@ public class DataBootstrapEnhancer {
     private DataBootstrapEnhancer() {
     }
 
-    public static void enhancer(DataBootstrap dataBootstrap) {
+    public static void enhancer(DataBootstrap dataBootstrap) throws FileNotFoundException {
         Objects.requireNonNull(dataBootstrap);
 
         Properties externalProperties = loadExternalProperties();
@@ -51,7 +52,7 @@ public class DataBootstrapEnhancer {
         dataBootstrap.getProperties().putAll(externalProperties);
     }
 
-    private static void aliasProperties(Properties externalProperties) {
+    private static void aliasProperties(Properties externalProperties) throws FileNotFoundException {
 
         String aliasFile = PradarStormConfigHolder.getProperties(ParamUtil.EXTERNAL_ALIAS_FILE_KEY);
         if (aliasFile == null || aliasFile.length() == 0) {

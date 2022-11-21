@@ -20,8 +20,7 @@ import com.google.inject.Injector;
 import com.google.inject.Module;
 import io.shulie.surge.data.runtime.module.BaseConfigModule;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -38,7 +37,7 @@ public final class DataBootstrap {
     private final Set<Module> modules;
     private final List<PostInjectionCallback> postInjectionCallbacks;
 
-    private DataBootstrap(Properties properties) {
+    private DataBootstrap(Properties properties) throws FileNotFoundException {
         this.properties = mergeProperties(properties);
         this.moduleContext = new HashMap<String, Object>();
         this.modules = new HashSet<Module>();
@@ -52,7 +51,7 @@ public final class DataBootstrap {
      * @param properties
      * @return
      */
-    public static final DataBootstrap create(Properties properties) {
+    public static final DataBootstrap create(Properties properties) throws FileNotFoundException {
         return new DataBootstrap(properties);
     }
 
@@ -63,7 +62,7 @@ public final class DataBootstrap {
      * @param propertyFileName
      * @return
      */
-    public static final DataBootstrap create(String propertyFileName) {
+    public static final DataBootstrap create(String propertyFileName) throws FileNotFoundException {
         return new DataBootstrap(readConfig(propertyFileName));
     }
 
@@ -74,7 +73,7 @@ public final class DataBootstrap {
      * @param propertyFileName
      * @return
      */
-    public static final DataBootstrap create(String propertyFileName, String pointName) {
+    public static final DataBootstrap create(String propertyFileName, String pointName) throws FileNotFoundException {
         Properties properties = readConfig(propertyFileName);
         properties.put("config.pointName", pointName);
         return create(properties);
@@ -160,19 +159,19 @@ public final class DataBootstrap {
     }
 
 
-    private static Properties mergeProperties(Properties override) {
+    private static Properties mergeProperties(Properties override) throws FileNotFoundException {
         // 加载默认的配置，然后把外部传入的配置覆盖上去
         Properties properties = loadDefaultConfig();
         properties.putAll(override);
         return properties;
     }
 
-    private static Properties loadDefaultConfig() {
+    private static Properties loadDefaultConfig() throws FileNotFoundException {
         String propertiesFileName = "deploy-fixed.properties";
         return readConfig(propertiesFileName);
     }
 
-    public static Properties readConfig(String configFileName) {
+    public static Properties readConfig(String configFileName) throws FileNotFoundException {
         Properties prop = new Properties();
         InputStream is = getResourceAsStream(configFileName);
         if (is != null) {
@@ -191,7 +190,11 @@ public final class DataBootstrap {
         return prop;
     }
 
-    private static InputStream getResourceAsStream(String name) {
+    private static InputStream getResourceAsStream(String name) throws FileNotFoundException {
+        File configFile = new File(name);
+        if (configFile.exists()) {
+            return new FileInputStream(configFile);
+        }
         return Thread.currentThread().getContextClassLoader().getResourceAsStream(name);
     }
 }
