@@ -59,7 +59,7 @@ public class TaskManager<T2> implements Serializable {
             @Override
             public void run() {
                 //注册节点
-                mysqlSupport.update("insert into t_amdb_link_task_node(uuid,pid,ip,host) values(?,?,?,?) ON DUPLICATE KEY UPDATE gmt_modify = now()", new Object[]{taskNode.getUuid(), taskNode.getPid(), taskNode.getIp(), taskNode.getHost()});
+                mysqlSupport.update("insert into t_amdb_link_task_node(uuid,pid,ip,host) values(?,?,?,?) ON DUPLICATE KEY UPDATE uuid = " + taskNode.getUuid() + ",gmt_modify = now()", new Object[]{taskNode.getUuid(), taskNode.getPid(), taskNode.getIp(), taskNode.getHost()});
                 //查询注册的节点信息
                 Date date = DateUtils.addSeconds(new Date(), -30);
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
