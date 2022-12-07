@@ -33,6 +33,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -43,7 +44,7 @@ import java.util.Properties;
 public final class KafkaSupplier extends DefaultSupplier {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaSupplier.class);
-    private static final long POLL_TIMEOUT = 200l;
+    private static final long POLL_TIMEOUT = 300l;
 
     @Inject
     private ApiProcessor apiProcessor;
@@ -88,31 +89,33 @@ public final class KafkaSupplier extends DefaultSupplier {
             public void run() {
                 try {
                     while (true) {
-                        /**
-                         * 指定超时时间，通常情况下consumer拿到了足够多的可用数据，会立即从该方法返回，但若当前没有足够多数据
-                         * consumer会处于阻塞状态，但当到达设定的超时时间，则无论数据是否足够都为立即返回
-                         */
-                        ConsumerRecords<String, byte[]> records = consumer.poll(POLL_TIMEOUT);
-                        Iterator<ConsumerRecord<String, byte[]>> iterator = records.iterator();
-                        while (iterator.hasNext()) {
-                            ConsumerRecord<String, byte[]> record = iterator.next();
-                            byte[] value = record.value();
-                            ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("thrift");
-                            MessageEntity messageEntity = objectSerializer.deserialize(value);
-                            if (messageEntity != null) {
-                                Map<String, Object> header = messageEntity.getHeaders();
-                                String message = null;
-                                if (MapUtils.isNotEmpty(messageEntity.getBody()) && messageEntity.getBody().containsKey("content")) {
-                                    message = ObjectUtils.toString(messageEntity.getBody().get("content"));
+                        try {
+                            /**
+                             * 指定超时时间，通常情况下consumer拿到了足够多的可用数据，会立即从该方法返回，但若当前没有足够多数据
+                             * consumer会处于阻塞状态，但当到达设定的超时时间，则无论数据是否足够都为立即返回
+                             */
+                            ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(POLL_TIMEOUT));
+                            Iterator<ConsumerRecord<String, byte[]>> iterator = records.iterator();
+                            while (iterator.hasNext()) {
+                                ConsumerRecord<String, byte[]> record = iterator.next();
+                                byte[] value = record.value();
+                                ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("thrift");
+                                MessageEntity messageEntity = objectSerializer.deserialize(value);
+                                if (messageEntity != null) {
+                                    Map<String, Object> header = messageEntity.getHeaders();
+                                    String message = null;
+                                    if (MapUtils.isNotEmpty(messageEntity.getBody()) && messageEntity.getBody().containsKey("content")) {
+                                        message = ObjectUtils.toString(messageEntity.getBody().get("content"));
+                                    }
+                                    header.put("dataVersion", header.get("version"));
+                                    header.put("receiveHttpTime", System.currentTimeMillis());
+                                    queue.publish(header, message);
                                 }
-                                header.put("dataVersion", header.get("version"));
-                                header.put("receiveHttpTime", System.currentTimeMillis());
-                                queue.publish(header, message);
                             }
+                        } catch (Exception e) {
+                            logger.error("Publish message error.");
                         }
                     }
-                } catch (InterruptedException e) {
-                    logger.error("Publish message error.");
                 } finally {
                     /**
                      * consumer程序结束后一定要显示关闭consumer以释放KafkaConuser运行过程中占用的各种系统资源

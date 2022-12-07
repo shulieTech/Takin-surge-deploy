@@ -83,6 +83,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
         Injector injector = dataRuntime.getInstance(Injector.class);
         injector.injectMembers(this);
         KafkaSupplier kafkaTraceSupplier = buildTraceSupplier(dataRuntime, true);
+        KafkaSupplier kafkaPressureEngineTraceSupplier = buildPressureEngineTraceSupplier(dataRuntime, true);
         KafkaSupplier kafkaBaseSupplier = buildBaseSupplier(dataRuntime, true);
         KafkaSupplier kafkaAgentLogSupplier = buildAgentLogSupplier(dataRuntime, true);
 
@@ -100,6 +101,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
 
         kafkaTraceSupplier.start();
         kafkaBaseSupplier.start();
+        kafkaPressureEngineTraceSupplier.start();
         kafkaAgentLogSupplier.start();
 
         AffinityLock affinityLock = null;
@@ -133,7 +135,26 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     protected KafkaSupplier buildTraceSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
         try {
-            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, TRACE_TOPIC + ',' + PRESURCE_ENGINE_TRACE_TOPIC);
+            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, TRACE_TOPIC);
+            KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
+            kafkaSupplier.setQueue(buidTraceProcesser(dataRuntime, isDistributed));
+            return kafkaSupplier;
+        } catch (Throwable e) {
+            logger.error("KafkaSupplier fail " + ExceptionUtils.getStackTrace(e));
+            throw new RuntimeException("KafkaSupplier fail");
+        }
+    }
+
+    /**
+     * 创建订阅器
+     *
+     * @param dataRuntime
+     * @param isDistributed
+     * @throws Exception
+     */
+    protected KafkaSupplier buildPressureEngineTraceSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
+        try {
+            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, PRESURCE_ENGINE_TRACE_TOPIC);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
             kafkaSupplier.setQueue(buidTraceProcesser(dataRuntime, isDistributed));
             return kafkaSupplier;

@@ -15,12 +15,16 @@
 
 package io.shulie.surge.data.deploy.pradar.link;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.common.utils.DateUtils;
+import io.shulie.surge.data.deploy.pradar.link.processor.LinkProcessor;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
 import java.io.Serializable;
@@ -43,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 @Singleton
 public class TaskManager<T2> implements Serializable {
 
+    private static final Logger logger = LoggerFactory.getLogger(TaskManager.class);
+
     @Inject
     private MysqlSupport mysqlSupport;
 
@@ -58,8 +64,9 @@ public class TaskManager<T2> implements Serializable {
         scheduler.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
+                logger.info("开始注册工作节点,当前工作节点为:{}", JSON.toJSONString(taskNode));
                 //注册节点
-                mysqlSupport.update("insert into t_amdb_link_task_node(uuid,pid,ip,host) values(?,?,?,?) ON DUPLICATE KEY UPDATE uuid = " + taskNode.getUuid() + ",gmt_modify = now()", new Object[]{taskNode.getUuid(), taskNode.getPid(), taskNode.getIp(), taskNode.getHost()});
+                mysqlSupport.update("insert into t_amdb_link_task_node(uuid,pid,ip,host) values(?,?,?,?) ON DUPLICATE KEY UPDATE uuid = '" + taskNode.getUuid() + "',gmt_modify = now()", new Object[]{taskNode.getUuid(), taskNode.getPid(), taskNode.getIp(), taskNode.getHost()});
                 //查询注册的节点信息
                 Date date = DateUtils.addSeconds(new Date(), -30);
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

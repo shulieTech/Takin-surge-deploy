@@ -2,6 +2,7 @@ package io.shulie.surge.data.deploy.pradar.link;
 
 import io.shulie.surge.data.common.utils.CommonUtils;
 import io.shulie.surge.data.common.utils.IpAddressUtils;
+import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
 
 import java.io.Serializable;
 import java.util.UUID;
@@ -15,7 +16,7 @@ import java.util.UUID;
 public class TaskNode implements Serializable {
     private int id;
 
-    private String uuid = UUID.randomUUID().toString();
+    private String uuid;
 
     private int pid = CommonUtils.getPid();
 
@@ -32,6 +33,9 @@ public class TaskNode implements Serializable {
     }
 
     public String getUuid() {
+        if (uuid == null){
+            uuid  = Md5Utils.md5(getHost() + "_" + getPid());
+        }
         return uuid;
     }
 
