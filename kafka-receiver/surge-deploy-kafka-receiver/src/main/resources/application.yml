@@ -1,0 +1,24 @@
+server:
+  port: 83
+spring:
+  datasource:
+    web:
+      username: root
+      password: shulie@2020
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://192.168.1.129:3306/trodb_combine_225?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+    cloud:
+      username: root
+      password: shulie@2020
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://192.168.1.129:3306/trodb_cloud_shunfeng?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+    amdb:
+      username: root
+      password: shulie@2020
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://192.168.1.129:3306/amdb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+#性能分析数据采样
+performance:
+  base:
+    agent:
+      frequency: 1
