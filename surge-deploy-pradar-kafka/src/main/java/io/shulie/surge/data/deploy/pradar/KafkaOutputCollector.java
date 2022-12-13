@@ -23,7 +23,8 @@ public class KafkaOutputCollector implements OutputCollector {
     private String topic;
     private String bootstrap;
 
-    public KafkaOutputCollector(String bootstrap, String topic) {
+    public KafkaOutputCollector(String bootstrap, String topic, String kafkaAuthFlag, String securityProtocol,
+                                String saslMechanism, String saslJaasConfig) {
         this.topic = topic;
         this.bootstrap = bootstrap;
         Properties properties = new Properties();
@@ -32,6 +33,11 @@ public class KafkaOutputCollector implements OutputCollector {
         properties.put("enable.auto.commit", "true");
         properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         properties.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        if ("true".equals(kafkaAuthFlag)) {
+            properties.put("security.protocol", securityProtocol);
+            properties.put("sasl.mechanism", saslMechanism);
+            properties.put("sasl.jaas.config", saslJaasConfig);
+        }
         kafkaProducer = new KafkaProducer<String, byte[]>(properties);
     }
 

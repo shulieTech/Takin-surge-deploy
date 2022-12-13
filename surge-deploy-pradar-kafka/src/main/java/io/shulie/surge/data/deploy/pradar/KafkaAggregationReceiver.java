@@ -5,6 +5,7 @@ import io.shulie.surge.data.common.aggregation.Aggregation;
 import io.shulie.surge.data.deploy.pradar.agg.DefaultAggregationReceiver;
 import io.shulie.surge.data.runtime.common.ObjectSerializer;
 import io.shulie.surge.data.runtime.common.ObjectSerializerFactory;
+import io.shulie.takin.sdk.kafka.util.PropertiesReader;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -28,10 +29,19 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
     private String bootstraps;
     private long pollTimeout = 100l;
     private Thread messageFetcher;
+    private String kafkaAuthFlag;
+    private String securityProtocol;
+    private String saslMechanism;
+    private String saslJaasConfig;
 
-    public KafkaAggregationReceiver(String topic, String bootstraps) {
+    public KafkaAggregationReceiver(String topic, String bootstraps, String kafkaAuthFlag, String securityProtocol,
+                                    String saslMechanism, String saslJaasConfig) {
         this.topic = topic;
         this.bootstraps = bootstraps;
+        this.kafkaAuthFlag = kafkaAuthFlag;
+        this.securityProtocol = securityProtocol;
+        this.saslMechanism = saslMechanism;
+        this.saslJaasConfig = saslJaasConfig;
     }
 
     /**
@@ -49,6 +59,11 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
         properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         properties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
 
+        if ("true".equals(kafkaAuthFlag)) {
+            properties.put("security.protocol", securityProtocol);
+            properties.put("sasl.mechanism", saslMechanism);
+            properties.put("sasl.jaas.config", saslJaasConfig);
+        }
         KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<String, byte[]>(properties);
         consumer.subscribe(Lists.newArrayList(topic));
         messageFetcher = new Thread(new Runnable() {

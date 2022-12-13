@@ -52,14 +52,23 @@ public final class KafkaSupplier extends DefaultSupplier {
     private Thread messageFetcher;
 
     private String bootstrap;
+    private String kafkaAuthFlag;
+    private String securityProtocol;
+    private String saslMechanism;
+    private String saslJaasConfig;
 
     private String topic;
 
     private KafkaConsumer consumer;
 
-    public KafkaSupplier(String bootstrap, String topic) {
+    public KafkaSupplier(String bootstrap, String topic, String kafkaAuthFlag, String securityProtocol,
+                         String saslMechanism, String saslJaasConfig) {
         this.bootstrap = bootstrap;
         this.topic = topic;
+        this.kafkaAuthFlag = kafkaAuthFlag;
+        this.securityProtocol = securityProtocol;
+        this.saslMechanism = saslMechanism;
+        this.saslJaasConfig = saslJaasConfig;
     }
 
     /**
@@ -81,6 +90,11 @@ public final class KafkaSupplier extends DefaultSupplier {
         properties.put("enable.auto.commit", "true");
         properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         properties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+        if ("true".equals(kafkaAuthFlag)) {
+            properties.put("security.protocol", securityProtocol);
+            properties.put("sasl.mechanism", saslMechanism);
+            properties.put("sasl.jaas.config", saslJaasConfig);
+        }
 
         consumer = new KafkaConsumer<String, byte[]>(properties);
         consumer.subscribe(Lists.newArrayList(topic.split(",")));
@@ -94,7 +108,7 @@ public final class KafkaSupplier extends DefaultSupplier {
                              * 指定超时时间，通常情况下consumer拿到了足够多的可用数据，会立即从该方法返回，但若当前没有足够多数据
                              * consumer会处于阻塞状态，但当到达设定的超时时间，则无论数据是否足够都为立即返回
                              */
-                            ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(POLL_TIMEOUT));
+                            ConsumerRecords<String, byte[]> records = consumer.poll(POLL_TIMEOUT);
                             Iterator<ConsumerRecord<String, byte[]>> iterator = records.iterator();
                             while (iterator.hasNext()) {
                                 ConsumerRecord<String, byte[]> record = iterator.next();

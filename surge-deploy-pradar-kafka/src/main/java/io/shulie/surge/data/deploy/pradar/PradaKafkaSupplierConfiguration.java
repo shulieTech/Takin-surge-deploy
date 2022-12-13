@@ -45,6 +45,10 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
 
 
     private String bootstrap;
+    private String kafkaAuthFlag;
+    private String securityProtocol;
+    private String saslMechanism;
+    private String saslJaasConfig;
 
     /**
      * 参数初始化
@@ -54,7 +58,6 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
     @Override
     public void initArgs(Map<String, ?> args) {
         super.initArgs(args);
-        bootstrap = Objects.toString(args.get("bootstrap"));
     }
 
     /**
@@ -64,6 +67,11 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     @Override
     public void install(DataBootstrap bootstrap) {
+        this.bootstrap = bootstrap.getProperties().getProperty("kafka.sdk.bootstrap", "192.168.1.92:9092");
+        kafkaAuthFlag = bootstrap.getProperties().getProperty("kafka.auth.flag", "false");
+        securityProtocol = bootstrap.getProperties().getProperty("security.protocol", "SASL_PLAINTEXT");
+        saslMechanism = bootstrap.getProperties().getProperty("sasl.mechanism", "PLAIN");
+        saslJaasConfig = bootstrap.getProperties().getProperty("sasl.jaas.config", "");
         bootstrap.install(
                 new PradarModule(0),
                 new KafkaModule(),
@@ -116,14 +124,16 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      * trace metrics aggarator
      */
     protected void buildTraceMetricsAggarator() {
-        traceMetricsAggarator.init(new Scheduler(1), new KafkaOutputCollector(bootstrap, TRACE_REDUCE_TOPIC));
+        traceMetricsAggarator.init(new Scheduler(1), new KafkaOutputCollector(bootstrap, TRACE_REDUCE_TOPIC,
+                kafkaAuthFlag, securityProtocol, saslMechanism, saslJaasConfig));
     }
 
     /**
      * trace metrics aggarator
      */
     protected void buildE2eTraceMetricsAggarator() {
-        e2eTraceMetricsAggarator.init(new Scheduler(1), new KafkaOutputCollector(bootstrap, E2E_TOPIC));
+        e2eTraceMetricsAggarator.init(new Scheduler(1), new KafkaOutputCollector(bootstrap, E2E_TOPIC,
+                kafkaAuthFlag, securityProtocol, saslMechanism, saslJaasConfig));
     }
 
     /**
@@ -135,7 +145,8 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     protected KafkaSupplier buildTraceSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
         try {
-            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, TRACE_TOPIC);
+            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, TRACE_TOPIC, kafkaAuthFlag,
+                    securityProtocol, saslMechanism, saslJaasConfig);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
             kafkaSupplier.setQueue(buidTraceProcesser(dataRuntime, isDistributed));
             return kafkaSupplier;
@@ -154,7 +165,8 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     protected KafkaSupplier buildPressureEngineTraceSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
         try {
-            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, PRESURCE_ENGINE_TRACE_TOPIC);
+            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, PRESURCE_ENGINE_TRACE_TOPIC,
+                    kafkaAuthFlag, securityProtocol, saslMechanism, saslJaasConfig);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
             kafkaSupplier.setQueue(buidTraceProcesser(dataRuntime, isDistributed));
             return kafkaSupplier;
@@ -173,7 +185,8 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     protected KafkaSupplier buildBaseSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
         try {
-            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, BASE_TOPIC);
+            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, BASE_TOPIC, kafkaAuthFlag,
+                    securityProtocol, saslMechanism, saslJaasConfig);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
             kafkaSupplier.setQueue(buidMonitorProcesser(dataRuntime));
             return kafkaSupplier;
@@ -192,7 +205,8 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
      */
     protected KafkaSupplier buildAgentLogSupplier(DataRuntime dataRuntime, Boolean isDistributed) throws Exception {
         try {
-            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, AGENT_LOG_TOPIC);
+            KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, AGENT_LOG_TOPIC, kafkaAuthFlag,
+                    securityProtocol, saslMechanism, saslJaasConfig);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
             kafkaSupplier.setQueue(buidAgentLogProcesser(dataRuntime));
             return kafkaSupplier;

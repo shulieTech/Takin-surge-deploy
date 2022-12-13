@@ -24,6 +24,10 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
     private static final String E2E_TOPIC = "e2e-metrics";
     public static final String APP_RELATION_TOPIC = "agg-app-relation-metrics";
     private String bootstrap;
+    private String kafkaAuthFlag;
+    private String securityProtocol;
+    private String saslMechanism;
+    private String saslJaasConfig;
 
     /**
      * 初始化
@@ -33,7 +37,6 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
     @Override
     public void initArgs(Map<String, ?> args) {
         super.initArgs(args);
-        bootstrap = Objects.toString(args.get("bootstrap"));
     }
 
 
@@ -45,6 +48,11 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
     @Override
 
     public void install(DataBootstrap bootstrap) {
+        this.bootstrap = bootstrap.getProperties().getProperty("kafka.sdk.bootstrap", "192.168.1.92:9092");
+        kafkaAuthFlag = bootstrap.getProperties().getProperty("kafka.auth.flag", "false");
+        securityProtocol = bootstrap.getProperties().getProperty("security.protocol", "SASL_PLAINTEXT");
+        saslMechanism = bootstrap.getProperties().getProperty("sasl.mechanism", "PLAIN");
+        saslJaasConfig = bootstrap.getProperties().getProperty("sasl.jaas.config", "");
         bootstrap.install(new PradarModule(0), new InfluxDBModule(), new MysqlModule(), new NacosClientModule(), new RemoteNacosModule());
     }
 
@@ -56,7 +64,8 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
      */
     @Override
     protected AggregationReceiver metricsReceiver(Aggregation aggregation) {
-        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(METRICS_TOPIC, bootstrap);
+        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(METRICS_TOPIC, bootstrap,
+                kafkaAuthFlag, securityProtocol, saslMechanism, saslJaasConfig);
         kafkaAggregationReceiver.init(aggregation);
         return kafkaAggregationReceiver;
     }
@@ -69,7 +78,8 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
      */
     @Override
     protected AggregationReceiver e2eReceiver(Aggregation aggregation) {
-        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(E2E_TOPIC, bootstrap);
+        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(E2E_TOPIC, bootstrap,
+                kafkaAuthFlag, securityProtocol, saslMechanism, saslJaasConfig);
         kafkaAggregationReceiver.init(aggregation);
         return kafkaAggregationReceiver;
     }
@@ -82,7 +92,8 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
      */
     @Override
     protected AggregationReceiver traceMetricsReceiver(Aggregation aggregation) {
-        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(TRACE_REDUCE_TOPIC, bootstrap);
+        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(TRACE_REDUCE_TOPIC, bootstrap,
+                kafkaAuthFlag, securityProtocol, saslMechanism, saslJaasConfig);
         kafkaAggregationReceiver.init(aggregation);
         return kafkaAggregationReceiver;
     }
@@ -95,7 +106,8 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
      */
     @Override
     protected AggregationReceiver appRelationMetricsReceiver(Aggregation aggregation) {
-        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(APP_RELATION_TOPIC, bootstrap);
+        KafkaAggregationReceiver kafkaAggregationReceiver = new KafkaAggregationReceiver(APP_RELATION_TOPIC, bootstrap,
+                kafkaAuthFlag, securityProtocol, saslMechanism, saslJaasConfig);
         kafkaAggregationReceiver.init(aggregation);
         return kafkaAggregationReceiver;
     }
