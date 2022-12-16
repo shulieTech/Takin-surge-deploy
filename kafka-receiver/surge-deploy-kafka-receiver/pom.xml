@@ -19,7 +19,7 @@
         <druid.version>1.1.22</druid.version>
         <mybatis.plus.version>3.4.0</mybatis.plus.version>
         <mybatis.version>3.5.5</mybatis.version>
-        <lombok.version>1.18.8</lombok.version>
+        <lombok.version>1.18.24</lombok.version>
         <junit.version>4.13.1</junit.version>
         <dubbo.starter.version>0.2.0</dubbo.starter.version>
         <fastjson.version>1.2.76</fastjson.version>
@@ -46,7 +46,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.1.5.RELEASE</version>
+        <version>2.3.7.RELEASE</version>
     </parent>
 
     <dependencies>
@@ -58,6 +58,13 @@
         <dependency>
             <groupId>org.influxdb</groupId>
             <artifactId>influxdb-java</artifactId>
+            <version>2.22</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.squareup.okhttp</groupId>
+                    <artifactId>okhttp</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.shulie</groupId>

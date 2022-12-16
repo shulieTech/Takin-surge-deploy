@@ -17,7 +17,10 @@ spring:
       password: shulie@2020
       driver-class-name: com.mysql.cj.jdbc.Driver
       url: jdbc:mysql://192.168.1.129:3306/amdb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=Asia/Shanghai
-#性能分析数据采样
+  influxdb:
+    url: http://192.168.1.129:8086
+    user: pradar
+    password: pradar
 performance:
   base:
     agent:
