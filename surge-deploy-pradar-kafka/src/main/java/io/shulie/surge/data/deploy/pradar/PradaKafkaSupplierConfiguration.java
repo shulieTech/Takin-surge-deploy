@@ -39,9 +39,9 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
     private static final String BASE_TOPIC = "stress-test-agent-monitor";
     private static final String AGENT_LOG_TOPIC = "stress-test-agent-log";
 
-    private static final String TRACE_REDUCE_TOPIC = "trace-reduce-metrics";
+    private static final String TRACE_REDUCE_TOPIC = "stress-test-trace-reduce-metrics";
 
-    private static final String E2E_TOPIC = "e2e-metrics";
+    private static final String E2E_TOPIC = "stress-test-e2e-metrics";
 
 
     private String bootstrap;

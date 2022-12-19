@@ -19,10 +19,10 @@ import java.util.Objects;
  **/
 public class PradarKafkaAggregationConfiguration extends PradarAggregationConfiguration {
 
-    public static final String METRICS_TOPIC = "agg-metrics";
-    private static final String TRACE_REDUCE_TOPIC = "trace-reduce-metrics";
-    private static final String E2E_TOPIC = "e2e-metrics";
-    public static final String APP_RELATION_TOPIC = "agg-app-relation-metrics";
+    public static final String METRICS_TOPIC = "stress-test-agg-metrics";
+    private static final String TRACE_REDUCE_TOPIC = "stress-test-trace-reduce-metrics";
+    private static final String E2E_TOPIC = "stress-test-e2e-metrics";
+    public static final String APP_RELATION_TOPIC = "stress-test-agg-app-relation-metrics";
     private String bootstrap;
     private String kafkaAuthFlag;
     private String securityProtocol;
