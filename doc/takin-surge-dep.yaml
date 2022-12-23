@@ -23,7 +23,7 @@ spec:
             memory: 1G
           limits:
             memory: 1G
-        command: ["/bin/sh","-c","java -Xmx1020m -Xms1020m -classpath takin-surge.jar -Dswitcher.link.task=true  -Dswitcher.aggregation=true  io.shulie.surge.data.deploy.pradar.PradarKafkaBootstrap  --properties /data/apps/takin-surge/deploy.properties"]
+        command: ["/bin/sh","-c","java -Xmx1020m -Xms1020m -classpath takin-surge.jar -Dswitcher.link.task=true  -Dswitcher.aggregation=true  io.shulie.surge.data.deploy.pradar.PradarKafkaBootstrap --properties /data/apps/takin-surge/deploy.properties"]
       - name: takin-surge
         image: harbor.dcos.xixian.unicom.local/skyeye-platform/stresstest/takin-surge:2.0.0
         imagePullPolicy: Always
@@ -32,5 +32,5 @@ spec:
             memory: 1G
           limits:
             memory: 1G
-        command: ["/bin/sh","-c","java -Xmx1020m -Xms1020m -classpath takin-surge.jar -Dswitcher.supplier=true  io.shulie.surge.data.deploy.pradar.PradarKafkaBootstrap   --properties /data/apps/takin-surge/deploy.properties"]
+        command: ["/bin/sh","-c","java -Xmx1020m -Xms1020m -classpath takin-surge.jar -Dswitcher.supplier=true  io.shulie.surge.data.deploy.pradar.PradarKafkaBootstrap --properties /data/apps/takin-surge/deploy.properties"]
 
