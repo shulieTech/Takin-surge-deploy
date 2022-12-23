@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: takin-surge-link
+  namespace: shulie-takin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: takin-surge-link
+  template:
+    metadata:
+      labels:
+        app: takin-surge-link
+    spec:
+      hostname: takin-surge-link
+      containers:
+        - name: takin-surge-link
+          image: harbor.dcos.xixian.unicom.local/skyeye-platform/stresstest/surge:2.0.0
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: 1G
+            limits:
+              memory: 1G
+          command: ["/bin/sh","-c","java -Xmx1020m -Xms1020m -classpath takin-surge.jar -Dswitcher.link.task=true  -Dswitcher.aggregation=true  io.shulie.surge.data.deploy.pradar.PradarKafkaBootstrap --properties /data/apps/takin-surge/deploy.properties"]
