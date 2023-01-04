@@ -1,0 +1,149 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: takin-surge-link
+  namespace: shulie-takin
+data:
+  deploy.properties: >
+    #zk配置
+
+    config.data.zk.servers=zookeeper:2181
+
+    config.data.zk.connTimeoutMillis=20000
+
+    config.data.zk.sessionTimeoutMillis=30000
+
+
+    #supplier 注册的zk路径
+
+    config.log.pradar.server=/config/log/pradar/server
+
+    config.log.pradar.cloud.server=/config/log/pradar/cloud/server
+
+
+    #服务端发布的端口段
+
+    netty.remoting.server.ports=[29900,29999]
+
+    #执行器数量
+
+    netty.remoting.server.processCores=4
+
+
+    #influxDB
+
+    config.influxdb.measurement=app_base_data
+
+    config.influxdb.url=http://influxdb-svc:8086
+
+    config.influxdb.username=stresstest
+
+    config.influxdb.password=ca$hc0Wa
+
+    config.influxdb.duration=2
+
+    config.influxdb.database.monitor=base
+
+    config.influxdb.database.metircs=pradar
+
+    config.influxdb.monitor.duration=72
+
+    config.influxdb.metircs.duration=2
+
+    config.influxdb.engine.duration=72
+
+    config.influxdb.database.engine=engine
+
+
+    #tro
+
+    tro.url.ip=10.125.131.12
+
+    tro.api.path=/takin-web/api/api/pull
+
+    tro.tenant.config.path=/takin-web/api/tenant/app/all
+
+    tro.entries.path=/takin-web/open/pressure/entries
+
+    tro.port=8080
+
+
+    #clickhouse
+
+    #集群url按逗号分隔jdbc:clickhouse://pradar.host.clickhouse01:8123,pradar.host.clickhouse02:8123/default
+
+    config.clickhouse.url=jdbc:clickhouse://10.125.131.12:48126,10.125.131.12:48124,10.125.131.12:48125/aiops_shard_m
+
+    config.clickhouse.userName=stresstest
+
+    config.clickhouse.password=ca$hc0Wa
+
+    config.clickhouse.enableRound=true
+
+    config.clickhouse.batchCount=10000
+
+
+    #mysql
+
+    config.mysql.url=jdbc:mysql://10.125.131.12:4416/amdb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=GMT%2B8
+
+    config.mysql.userName=stresstest
+
+    config.mysql.password=ca$hc0Wa
+
+    config.mysql.minIdle=1
+
+    config.mysql.initialSize=1
+
+    config.mysql.maxActive=20
+
+
+    #应用配置
+
+    config.simpling.app.zk.path=/config/log/trace/{appName}/simpling
+
+    config.simpling.global.zk.path=/config/log/trace/simpling
+
+    config.slowSql.app.zk.path=/config/log/pradar/sql/{appName}/slowLimit
+
+    config.slowSql.global.zk.path=/config/log/pradar/sql/slowLimit
+
+
+    #是否开启规则校验
+
+    config.rule.enable=false
+
+
+    #SQL采集推送
+
+    agent.sql.analysis.url = http://agent.sql.adaptor.host:10040/agent
+
+
+    #链路拓扑图单个trace查询最大条数(默认500)
+
+    config.link.trace.query.limit=500
+
+
+    amdb.url.ip=pradar.host.amdb
+
+    amdb.port=10032
+
+    amdb.api.troData.path=/amdb/db/api/troData/queryTroData
+
+
+    #默认租户default对应的tenantAppKey
+
+    config.tenant.defaultTenantAppKey=ed45ef6b-bf94-48fa-b0c0-15e0285365d2
+
+
+    #查询入口规则配置-0216
+
+    amdb.api.apiUrl.path=/amdb/db/api/troData/queryApisList
+
+    nacos.server.addr=nacos-headless:8848
+
+
+
+    kafka.sdk.switch=true 
+
+    kafka.sdk.bootstrap=kafka-svc:9092
