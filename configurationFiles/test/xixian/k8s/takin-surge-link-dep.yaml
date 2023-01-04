@@ -29,20 +29,6 @@ spec:
         - name: config-volum
           mountPath: /data/apps/takin-surge-link/deploy.properties
           subPath: deploy.properties
-      - name: takin-surge
-        image: harbor.dcos.xixian.unicom.local/skyeye-platform/stresstest/takin-surge:2.0.0
-        imagePullPolicy: Always
-        resources:
-          requests:
-            memory: 1G
-          limits:
-            memory: 1G
-        command: ["/bin/sh","-c","java -classpath takin-surge.jar -Dswitcher.supplier=true  io.shulie.surge.data.deploy.pradar.PradarKafkaBootstrap   --properties /data/apps/takin-surge-link/deploy.properties"]
-      #挂载Volume
-        volumeMounts:
-        - name: config-volum
-          mountPath: /data/apps/takin-surge-link/deploy.properties
-          subPath: deploy.properties
       #声明Volume
       volumes:
       - name: config-volum
