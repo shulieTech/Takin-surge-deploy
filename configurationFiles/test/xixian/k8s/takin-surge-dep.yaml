@@ -13,7 +13,7 @@ spec:
       labels:
         app: takin-surge-link
     spec:
-      hostname: takin-surge-link
+      hostname: takin-surge
       containers:
       - name: takin-surge
         image: harbor.dcos.xixian.unicom.local/skyeye-platform/stresstest/takin-surge:2.0.0
