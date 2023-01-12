@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: takin-surge-link
+  name: takin-surge
   namespace: shulie-takin
 spec:
   replicas: 1

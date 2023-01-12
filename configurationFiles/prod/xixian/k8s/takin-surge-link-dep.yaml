@@ -14,7 +14,6 @@ spec:
         app: takin-surge-link
     spec:
       hostname: takin-surge-link
-      nodeName: 192.168.16.9
       containers:
       - name: takin-surge-link
         image: harbor.dcos.xixian.unicom.local/skyeye-platform-xx-pbc/stresstest/takin-surge:2.0.0
