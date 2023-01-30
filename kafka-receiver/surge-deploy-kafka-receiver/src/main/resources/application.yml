@@ -1,6 +1,10 @@
 server:
   port: 83
 spring:
+  redis:
+    host: 192.168.1.129
+    port: 6379
+    password: pamirs@2020
   datasource:
     web:
       username: root

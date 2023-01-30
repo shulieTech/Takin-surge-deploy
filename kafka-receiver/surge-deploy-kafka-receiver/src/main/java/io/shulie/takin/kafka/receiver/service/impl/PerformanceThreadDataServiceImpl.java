@@ -5,7 +5,6 @@ import cn.hutool.core.collection.ListUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.shulie.tesla.sequence.impl.DefaultSequence;
 import io.shulie.takin.kafka.receiver.constant.web.SceneManageStatusEnum;
 import io.shulie.takin.kafka.receiver.dto.web.PerformanceBaseDataReq;
@@ -15,7 +14,6 @@ import io.shulie.takin.kafka.receiver.entity.*;
 import io.shulie.takin.kafka.receiver.dao.web.PerformanceThreadDataMapper;
 import io.shulie.takin.kafka.receiver.service.*;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import io.shulie.takin.kafka.receiver.util.InfluxDatabaseWriter;
 import io.shulie.takin.utils.json.JsonHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -30,7 +28,6 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -51,7 +48,6 @@ public class PerformanceThreadDataServiceImpl extends ServiceImpl<PerformanceThr
 
     @Value("${performance.base.agent.frequency: 100}")
     private String performanceBaseAgentFrequency;
-
     @Resource
     private ISceneManageService iSceneManageService;
     @Resource
@@ -63,7 +59,7 @@ public class PerformanceThreadDataServiceImpl extends ServiceImpl<PerformanceThr
     @Resource
     private DefaultSequence threadOrderLineSequence;
     @Resource
-    private InfluxDatabaseWriter influxDatabaseWriter;
+    private IPerformanceBaseDataService iPerformanceBaseDataService;
     @Resource
     private IPerformanceThreadStackDataService iPerformanceThreadStackDataService;
 
@@ -96,43 +92,40 @@ public class PerformanceThreadDataServiceImpl extends ServiceImpl<PerformanceThr
     private void influxWriterBase(PerformanceBaseDataReq param, Long baseId, TenantCommonExt dealHeader) {
         long start = System.currentTimeMillis();
         // 计算合计cpu利用率
-        double cpuUseRate = 0.00;
+        BigDecimal cpuUseRate = new BigDecimal("0.00");
         for (PerformanceThreadDataVO dataParam : param.getThreadDataList()) {
-            BigDecimal b1 = BigDecimal.valueOf((cpuUseRate));
+            BigDecimal b1 = cpuUseRate;
             BigDecimal b2 = BigDecimal.valueOf(dataParam.getThreadCpuUsage() == null ? 0.00 : dataParam.getThreadCpuUsage());
-            cpuUseRate = b1.add(b2).doubleValue();
+            cpuUseRate = b1.add(b2);
         }
-        Map<String, Object> fields = Maps.newHashMap();
-        fields.put("total_memory", param.getTotalMemory());
-        fields.put("perm_memory", param.getPermMemory());
-        fields.put("young_memory", param.getYoungMemory());
-        fields.put("old_memory", param.getOldMemory());
-        fields.put("young_gc_count", param.getYoungGcCount());
-        fields.put("full_gc_count", param.getFullGcCount());
-        fields.put("young_gc_cost", param.getYoungGcCost());
-        fields.put("full_gc_cost", param.getFullGcCost());
-        fields.put("cpu_use_rate", cpuUseRate);
-        // 新增buffer
-        fields.put("total_buffer_pool_memory", param.getTotalBufferPoolMemory());
-        // 新增非堆
-        fields.put("total_no_heap_memory", param.getTotalNonHeapMemory());
-        fields.put("thread_count", param.getThreadDataList().size());
-        // 保存原始时间戳，后续作为组装base_id的唯一值
-        fields.put("timestamp", param.getTimestamp() != null ? param.getTimestamp() : "null");
-        // base_id 先存进去
-        fields.put("base_id", baseId);
-        Map<String, String> tags = Maps.newHashMap();
-        tags.put("agent_id", StringUtils.isNotBlank(param.getAgentId()) ? param.getAgentId() : "null");
-        tags.put("app_name", StringUtils.isNotBlank(param.getAppName()) ? param.getAppName() : "null");
-        tags.put("app_ip", StringUtils.isNotBlank(param.getAppIp()) ? param.getAppIp() : "null");
-        tags.put("process_id", param.getProcessId() != null ? String.valueOf(param.getProcessId()) : "null");
-        tags.put("process_name", StringUtils.isNotBlank(param.getProcessName()) ? param.getProcessName() : "null");
-        // 租户信息tag
-        tags.put("tenant_id", dealHeader.getTenantId() + "");
-        tags.put("tenant_app_key", dealHeader.getTenantAppKey());
-        tags.put("env_code", dealHeader.getEnvCode());
+        PerformanceBaseData performanceBaseData = new PerformanceBaseData();
+        performanceBaseData.setTime(System.currentTimeMillis());
+        performanceBaseData.setTimestamp(param.getTimestamp() != null ? param.getTimestamp() : 0);
+        performanceBaseData.setTotalMemory(param.getTotalMemory());
+        performanceBaseData.setPermMemory(param.getPermMemory());
+        performanceBaseData.setYoungMemory(param.getYoungMemory());
+        performanceBaseData.setOldMemory(param.getOldMemory());
+        performanceBaseData.setYoungGcCount(param.getYoungGcCount());
+        performanceBaseData.setFullGcCount(param.getFullGcCount());
+        performanceBaseData.setYoungGcCost(param.getYoungGcCost());
+        performanceBaseData.setFullGcCost(param.getFullGcCost());
+        performanceBaseData.setCpuUseRate(cpuUseRate);
+        performanceBaseData.setTotalBufferPoolMemory(param.getTotalBufferPoolMemory());
+        performanceBaseData.setTotalNoHeapMemory(param.getTotalNonHeapMemory());
+        performanceBaseData.setThreadCount(param.getThreadDataList().size());
+        performanceBaseData.setBaseId(baseId);
+        performanceBaseData.setAgentId(StringUtils.isNotBlank(param.getAgentId()) ? param.getAgentId() : "null");
+        performanceBaseData.setAppName(StringUtils.isNotBlank(param.getAppName()) ? param.getAppName() : "null");
+        performanceBaseData.setAppIp(StringUtils.isNotBlank(param.getAppIp()) ? param.getAppIp() : "null");
+        performanceBaseData.setProcessId(param.getProcessId() != null ? String.valueOf(param.getProcessId()) : "null");
+        performanceBaseData.setProcessName(StringUtils.isNotBlank(param.getProcessName()) ? param.getProcessName() : "null");
+        performanceBaseData.setEnvCode(dealHeader.getEnvCode());
+        performanceBaseData.setTenantAppKey(dealHeader.getTenantAppKey());
+        performanceBaseData.setTenantId(dealHeader.getTenantId());
+        performanceBaseData.setCreateDate(LocalDateTime.now());
+
         try {
-            influxDatabaseWriter.insert("t_performance_base_data", tags, fields, param.getTimestamp());
+            iPerformanceBaseDataService.save(performanceBaseData);
         } catch (Exception e) {
             e.printStackTrace();
         }

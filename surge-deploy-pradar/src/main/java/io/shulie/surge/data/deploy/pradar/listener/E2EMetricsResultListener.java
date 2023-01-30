@@ -21,7 +21,9 @@ import com.google.inject.name.Named;
 import io.shulie.surge.data.common.aggregation.DefaultAggregator;
 import io.shulie.surge.data.common.aggregation.metrics.CallStat;
 import io.shulie.surge.data.common.aggregation.metrics.Metric;
+import io.shulie.surge.data.common.utils.FormatUtils;
 import io.shulie.surge.data.deploy.pradar.common.PradarRtConstant;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 import io.shulie.surge.data.sink.influxdb.InfluxDBSupport;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -36,11 +38,7 @@ public class E2EMetricsResultListener implements DefaultAggregator.ResultListene
     private static Logger logger = LoggerFactory.getLogger(E2EMetricsResultListener.class);
 
     @Inject
-    private InfluxDBSupport influxDbSupport;
-
-    @Inject
-    @Named("config.influxdb.database.metircs")
-    private String metricsDataBase;
+    private ClickHouseShardSupport clickHouseShardSupport;
 
     @Override
     public String metricId() {
@@ -54,16 +52,16 @@ public class E2EMetricsResultListener implements DefaultAggregator.ResultListene
             String[] tags = metric.getPrefixes();
             //nodeId, parsedAppName, parsedServiceName, parsedMethod, rpcType, clusterTest
 
-            Map<String, String> influxdbTags = Maps.newHashMap();
-            influxdbTags.put("nodeId", tags[0]);
-            influxdbTags.put("parsedAppName", tags[1]);
-            influxdbTags.put("parsedServiceName", tags[2]);
-            influxdbTags.put("parsedMethod", tags[3]);
-            influxdbTags.put("rpcType", tags[4]);
-            influxdbTags.put("clusterTest", tags[5]);
-            influxdbTags.put("exceptionType", tags[6]);
-            // 总次数/成功次数/totalRt/错误次数/totalQps
             Map<String, Object> fields = Maps.newHashMap();
+            fields.put("nodeId", tags[0]);
+            fields.put("parsedAppName", tags[1]);
+            fields.put("parsedServiceName", tags[2]);
+            fields.put("parsedMethod", tags[3]);
+            fields.put("rpcType", tags[4]);
+            fields.put("clusterTest", tags[5]);
+            fields.put("exceptionType", tags[6]);
+            // 总次数/成功次数/totalRt/错误次数/totalQps
+
             fields.put("totalCount", callStat.get(0));
             fields.put("successCount", callStat.get(1));
             fields.put("totalRt", callStat.get(2));
@@ -77,10 +75,13 @@ public class E2EMetricsResultListener implements DefaultAggregator.ResultListene
             } else {
                 fields.put("rt", callStat.get(2) / (double) callStat.get(0));
             }
-            // 写入influxDB
-            influxDbSupport.write(metricsDataBase, metricsId, influxdbTags, fields, slotKey * 1000);
+            fields.put("log_time", FormatUtils.toDateTimeSecondString(slotKey * 1000));
+            fields.put("time", System.currentTimeMillis());
+            // 写入clickHouse
+            String tableName = clickHouseShardSupport.isCluster() ? metricsId : metricsId + "_all";
+            clickHouseShardSupport.insert(fields, tags[1], tableName);
         } catch (Throwable e) {
-            logger.error("write fail influxdb " + ExceptionUtils.getStackTrace(e));
+            logger.error("write fail clickHouse " + ExceptionUtils.getStackTrace(e));
         }
         return true;
     }

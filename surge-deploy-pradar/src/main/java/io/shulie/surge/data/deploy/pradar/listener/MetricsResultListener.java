@@ -22,6 +22,8 @@ import com.google.inject.name.Named;
 import io.shulie.surge.data.common.aggregation.DefaultAggregator;
 import io.shulie.surge.data.common.aggregation.metrics.CallStat;
 import io.shulie.surge.data.common.aggregation.metrics.Metric;
+import io.shulie.surge.data.common.utils.FormatUtils;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 import io.shulie.surge.data.sink.influxdb.InfluxDBSupport;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -41,11 +43,7 @@ public class MetricsResultListener implements DefaultAggregator.ResultListener {
     private static Logger logger = LoggerFactory.getLogger(MetricsResultListener.class);
 
     @Inject
-    private InfluxDBSupport influxDbSupport;
-
-    @Inject
-    @Named("config.influxdb.database.metircs")
-    private String metricsDataBase;
+    private ClickHouseShardSupport clickHouseShardSupport;
 
     @Override
     public String metricId() {
@@ -58,18 +56,18 @@ public class MetricsResultListener implements DefaultAggregator.ResultListener {
             String metricsId = metric.getMetricId();
             String[] tags = metric.getPrefixes();
 
-            Map<String, String> influxdbTags = Maps.newHashMap();
-            influxdbTags.put("appName", tags[0]);
-            influxdbTags.put("event", tags[1]);
-            influxdbTags.put("type", tags[2]);
-            influxdbTags.put("ptFlag", tags[3]);
-            influxdbTags.put("callEvent", formatString(tags[4]));
-            influxdbTags.put("callType", formatString(tags[5]));
-            influxdbTags.put("entryFlag", tags[6]);
-            influxdbTags.put("agentId", tags[7]);
+            Map<String, Object> fields = Maps.newHashMap();
+            fields.put("appName", tags[0]);
+            fields.put("event", tags[1]);
+            fields.put("type", tags[2]);
+            fields.put("ptFlag", tags[3]);
+            fields.put("callEvent", formatString(tags[4]));
+            fields.put("callType", formatString(tags[5]));
+            fields.put("entryFlag", tags[6]);
+            fields.put("agentId", tags[7]);
 
             // 总次数/成功次数/totalRt/错误次数/hitCount/totalQps/totalTps/total
-            Map<String, Object> fields = Maps.newHashMap();
+
             fields.put("totalCount", callStat.get(0));
             fields.put("successCount", callStat.get(1));
             fields.put("totalRt", callStat.get(2));
@@ -78,7 +76,7 @@ public class MetricsResultListener implements DefaultAggregator.ResultListener {
             fields.put("totalQps", formatDouble(callStat.get(5)));
             fields.put("totalTps", formatDouble(callStat.get(6)));
             fields.put("total", callStat.get(7));
-
+            fields.put("log_time", FormatUtils.toDateTimeSecondString(slotKey * 1000));
             fields.put("qps", callStat.get(5) / (double) callStat.get(7));
             fields.put("tps", callStat.get(6) / (double) callStat.get(7));
             if (callStat.get(0) == 0) {
@@ -88,9 +86,11 @@ public class MetricsResultListener implements DefaultAggregator.ResultListener {
                 fields.put("rt", callStat.get(2) / (double) callStat.get(0));
             }
             fields.put("traceId", callStat.getTraceId());
-            influxDbSupport.write(metricsDataBase, metricsId, influxdbTags, fields, slotKey * 1000);
+            fields.put("time", System.currentTimeMillis());
+            String tableName = clickHouseShardSupport.isCluster() ? metricsId : metricsId + "_all";
+            clickHouseShardSupport.insert(fields, tags[0], tableName);
         } catch (Throwable e) {
-            logger.error("write fail influxdb " + ExceptionUtils.getStackTrace(e));
+            logger.error("write fail clickHouse " + ExceptionUtils.getStackTrace(e));
         }
         return true;
     }

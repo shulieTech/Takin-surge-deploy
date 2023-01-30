@@ -15,6 +15,7 @@
 
 package io.shulie.surge.data.sink.clickhouse;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
@@ -227,5 +228,29 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
             throw new RuntimeException("clickhouse url is null");
         }
         return urls.stream().map(var -> var.substring(var.indexOf("//") + 2, var.lastIndexOf(":"))).collect(Collectors.toSet());
+    }
+
+    public void insert(Map<String, Object> map, String key, String tableName) {
+        if (org.springframework.util.CollectionUtils.isEmpty(map)){
+            logger.warn("入参为空，不能插入数据");
+            return;
+        }
+        if (StringUtils.isBlank(tableName)){
+            logger.warn("表名为空，不能插入数据");
+            return;
+        }
+        String cols = Joiner.on(',').join(map.keySet());
+        List<String> params = new ArrayList<>();
+        for (String field : map.keySet()) {
+            params.add("?");
+        }
+        String param = Joiner.on(',').join(params);
+        String sql = "insert into " + tableName + " (" + cols + ") values(" + param + ") ";
+        logger.info("原本写入influxdb，当前插入clickhouse，sql为:" + sql);
+        List<Object[]> batchs = Lists.newArrayList();
+        batchs.add(map.values().toArray());
+        Map<String, List<Object[]>> objMap = Maps.newHashMap();
+        objMap.put(key, batchs);
+        this.batchUpdate(sql, objMap);
     }
 }

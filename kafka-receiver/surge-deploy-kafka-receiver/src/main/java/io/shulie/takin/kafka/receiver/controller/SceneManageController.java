@@ -3,7 +3,7 @@ package io.shulie.takin.kafka.receiver.controller;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Controller;
 
 /**
  * <p>
@@ -11,11 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
  * </p>
  *
  * @author zhaoyong
- * @since 2022-12-09
+ * @since 2023-01-13
  */
-@RestController
-@RequestMapping("/sceneManage")
+@Controller
+@RequestMapping("/scene-manage")
 public class SceneManageController {
 
 }
-
