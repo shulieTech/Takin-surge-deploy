@@ -23,5 +23,5 @@ spec:
             memory: 1G
           limits:
             memory: 1G
-        command: ["java","-Xmx1020m -Xms1020m","-Duser.timezone=Asia/Shanghai","-Dkafka.sdk.properties.path=/data/apps/kafka-receiver/config/kafka.properties","-jar","/data/apps/kafka-receiver/takin-kafka-receiver.jar","--properties /data/apps/kafka-receiver/config/application.yml" ]
+        command: ["/bin/sh","-c","java -Xmx1020m -Xms1020m -Duser.timezone=Asia/Shanghai -Dkafka.sdk.properties.path=/data/apps/kafka-receiver/config/kafka.properties -jar /data/apps/kafka-receiver/takin-kafka-receiver.jar --properties /data/apps/kafka-receiver/config/application.yml" ]
 
