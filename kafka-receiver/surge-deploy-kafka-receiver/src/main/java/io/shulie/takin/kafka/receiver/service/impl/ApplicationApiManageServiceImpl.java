@@ -2,27 +2,23 @@ package io.shulie.takin.kafka.receiver.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Lists;
+import io.shulie.takin.kafka.receiver.dao.web.ApplicationApiManageMapper;
 import io.shulie.takin.kafka.receiver.dto.web.TenantCommonExt;
 import io.shulie.takin.kafka.receiver.entity.ApplicationApiManage;
-import io.shulie.takin.kafka.receiver.dao.web.ApplicationApiManageMapper;
 import io.shulie.takin.kafka.receiver.entity.ApplicationMnt;
 import io.shulie.takin.kafka.receiver.service.IApplicationApiManageService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.shulie.takin.kafka.receiver.service.IApplicationMntService;
-import io.shulie.takin.kafka.receiver.service.WebKafkaReceiver;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.AntPathMatcher;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -102,7 +98,7 @@ public class ApplicationApiManageServiceImpl extends ServiceImpl<ApplicationApiM
         // 把旧的记录删除了，新的再添加
         this.deleteByAppName(appName, dealHeader);
         if (CollectionUtils.isNotEmpty(batch)) {
-            this.saveBatch(batch);
+            batch.forEach(this::save);
         }
     }
 

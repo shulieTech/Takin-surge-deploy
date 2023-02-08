@@ -54,7 +54,7 @@ public class EagleLoader {
             if (CollectionUtils.isNotEmpty(linkConfigList)) {
                 linkConfigList.stream().forEach(linkConfig -> {
                     Object linkId = linkConfig.get("link_id");
-                    String countSql = String.format(QUERY_LINK_EDGE_COUNT, linkConfig);
+                    String countSql = String.format(QUERY_LINK_EDGE_COUNT, linkId);
                     Integer count = mysqlSupport.queryForObject(countSql, Integer.class);
                     if (count > pageSize) {
                         logger.warn("当前{}对应的边已超1000,请检查！！！", linkId);
@@ -65,7 +65,7 @@ public class EagleLoader {
                         edgeList.stream().forEach(edge -> {
                             String edgeId = String.valueOf(edge.get("edge_id"));
                             // value设置为空
-                            this.cache.put(edgeId, "");
+                            this.cache.put(edgeId, "1");
                         });
                     }
                 });

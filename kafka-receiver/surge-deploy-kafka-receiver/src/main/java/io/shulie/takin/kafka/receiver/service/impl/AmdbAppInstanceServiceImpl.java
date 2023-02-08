@@ -160,7 +160,9 @@ public class AmdbAppInstanceServiceImpl extends ServiceImpl<AmdbAppInstanceMappe
                 amdbAppInstanceStatus.setAgentErrorMsg(instanceStatus.getAgentErrorMsg());
                 amdbAppInstanceStatus.setGmtModify(LocalDateTime.now());
             });
-            iAmdbAppInstanceStatusService.updateBatchById(amdbAppInstanceStatuses);
+            amdbAppInstanceStatuses.forEach(amdbAppInstanceStatus -> {
+                iAmdbAppInstanceStatusService.updateById(amdbAppInstanceStatus);
+            });
         } else {
             iAmdbAppInstanceStatusService.save(instanceStatus);
         }
@@ -350,7 +352,7 @@ public class AmdbAppInstanceServiceImpl extends ServiceImpl<AmdbAppInstanceMappe
             appInstances.forEach(amdbAppInstance -> {
                 amdbAppInstance.setGmtModify(LocalDateTime.now());
             });
-            this.updateBatchById(appInstances);
+            appInstances.forEach(this::updateById);
         }
 
         QueryWrapper<AmdbAppInstanceStatus> appInstanceStatusQueryWrapper = new QueryWrapper<>();
@@ -362,8 +364,10 @@ public class AmdbAppInstanceServiceImpl extends ServiceImpl<AmdbAppInstanceMappe
         if (CollectionUtil.isNotEmpty(appInstanceStatuses)) {
             appInstanceStatuses.forEach(appInstanceStatus -> {
                 appInstanceStatus.setGmtModify(LocalDateTime.now());
+                iAmdbAppInstanceStatusService.updateById(appInstanceStatus);
             });
-            iAmdbAppInstanceStatusService.updateBatchById(appInstanceStatuses);
+
+
         }
 
         QueryWrapper<AmdbAgentConfig> agentConfigQueryWrapper = new QueryWrapper<>();
@@ -374,7 +378,7 @@ public class AmdbAppInstanceServiceImpl extends ServiceImpl<AmdbAppInstanceMappe
             agentConfigs.forEach(config -> {
                 config.setGmtCreate(LocalDateTime.now());
             });
-            iAmdbAgentConfigService.updateBatchById(agentConfigs);
+            agentConfigs.forEach(amdbAgentConfig -> iAmdbAgentConfigService.updateById(amdbAgentConfig));
         }
     }
 
@@ -390,7 +394,8 @@ public class AmdbAppInstanceServiceImpl extends ServiceImpl<AmdbAppInstanceMappe
             list.forEach(amdbAppInstance -> {
                 amdbAppInstance.setFlag(FlagUtil.setFlag(amdbAppInstance.getFlag(), 1, false));
             });
-            this.updateBatchById(list);
+            list.forEach(this::updateById);
+
         }
 
         QueryWrapper<AmdbAgentConfig> agentConfigQueryWrapper = new QueryWrapper<>();
@@ -461,7 +466,7 @@ public class AmdbAppInstanceServiceImpl extends ServiceImpl<AmdbAppInstanceMappe
         List<AmdbAgentConfig> agentConfigs = buildAgentConfig(instanceModel);
 
         if (agentConfigs != null && !agentConfigs.isEmpty()) {
-            iAmdbAgentConfigService.saveBatch(agentConfigs);
+            agentConfigs.forEach(amdbAgentConfig -> iAmdbAgentConfigService.save(amdbAgentConfig));
         }
     }
 

@@ -1,9 +1,8 @@
 package io.shulie.takin.kafka.receiver.dao.amdb;
 
-import io.shulie.takin.kafka.receiver.entity.AmdbApp;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import io.shulie.takin.kafka.receiver.entity.AmdbApp;
 import org.apache.ibatis.annotations.Mapper;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * <p>

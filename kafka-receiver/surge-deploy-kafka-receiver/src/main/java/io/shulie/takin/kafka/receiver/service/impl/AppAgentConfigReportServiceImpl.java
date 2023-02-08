@@ -124,9 +124,8 @@ public class AppAgentConfigReportServiceImpl extends ServiceImpl<AppAgentConfigR
                 });
             });
         });
-
-        this.saveBatch(saveList);
-        this.updateBatchById(updateList);
+        saveList.forEach(this::save);
+        updateList.forEach(this::updateById);
     }
 
     private List<AppAgentConfigReport> listByAppId(Long applicationId, TenantCommonExt dealHeader) {

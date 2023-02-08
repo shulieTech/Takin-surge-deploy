@@ -105,7 +105,7 @@ public class PradarAggregationConfiguration extends AbstractPradarConfiguration 
     public void doAfterInit(DataRuntime dataRuntime) {
         try {
             Injector injector = dataRuntime.getInstance(Injector.class);
-            influxDbSupport = injector.getInstance(InfluxDBSupport.class);
+//            influxDbSupport = injector.getInstance(InfluxDBSupport.class);
             clickHouseShardSupport = injector.getInstance(ClickHouseShardSupport.class);
             mysqlSupport = injector.getInstance(MysqlSupport.class);
             Scheduler scheduler = new Scheduler(receivers.size());

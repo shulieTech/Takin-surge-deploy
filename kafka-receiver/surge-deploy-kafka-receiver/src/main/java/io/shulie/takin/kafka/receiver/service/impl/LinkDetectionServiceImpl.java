@@ -1,9 +1,9 @@
 package io.shulie.takin.kafka.receiver.service.impl;
 
-import io.shulie.takin.kafka.receiver.entity.LinkDetection;
-import io.shulie.takin.kafka.receiver.dao.web.LinkDetectionMapper;
-import io.shulie.takin.kafka.receiver.service.ILinkDetectionService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.shulie.takin.kafka.receiver.dao.web.LinkDetectionMapper;
+import io.shulie.takin.kafka.receiver.entity.LinkDetection;
+import io.shulie.takin.kafka.receiver.service.ILinkDetectionService;
 import org.springframework.stereotype.Service;
 
 /**

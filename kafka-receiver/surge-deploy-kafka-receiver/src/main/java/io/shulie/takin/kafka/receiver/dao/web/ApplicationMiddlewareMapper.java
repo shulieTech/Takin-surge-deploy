@@ -1,7 +1,7 @@
 package io.shulie.takin.kafka.receiver.dao.web;
 
-import io.shulie.takin.kafka.receiver.entity.ApplicationMiddleware;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import io.shulie.takin.kafka.receiver.entity.ApplicationMiddleware;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

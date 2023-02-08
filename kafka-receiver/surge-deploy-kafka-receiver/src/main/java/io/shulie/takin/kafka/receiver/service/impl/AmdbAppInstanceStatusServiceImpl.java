@@ -89,7 +89,7 @@ public class AmdbAppInstanceStatusServiceImpl extends ServiceImpl<AmdbAppInstanc
             appInstanceStatuses.forEach(amdbAppInstanceStatus -> {
                 amdbAppInstanceStatus.setGmtModify(LocalDateTime.now());
             });
-            this.updateBatchById(appInstanceStatuses);
+            appInstanceStatuses.forEach(this::updateById);
         }
     }
 

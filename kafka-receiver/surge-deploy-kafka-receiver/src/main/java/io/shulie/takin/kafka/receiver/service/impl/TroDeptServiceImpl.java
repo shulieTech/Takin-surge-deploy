@@ -1,9 +1,9 @@
 package io.shulie.takin.kafka.receiver.service.impl;
 
-import io.shulie.takin.kafka.receiver.entity.TroDept;
-import io.shulie.takin.kafka.receiver.dao.web.TroDeptMapper;
-import io.shulie.takin.kafka.receiver.service.ITroDeptService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.shulie.takin.kafka.receiver.dao.web.TroDeptMapper;
+import io.shulie.takin.kafka.receiver.entity.TroDept;
+import io.shulie.takin.kafka.receiver.service.ITroDeptService;
 import org.springframework.stereotype.Service;
 
 /**

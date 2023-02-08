@@ -1,9 +1,9 @@
 package io.shulie.takin.kafka.receiver.service.impl;
 
-import io.shulie.takin.kafka.receiver.entity.TenantInfo;
-import io.shulie.takin.kafka.receiver.dao.web.TenantInfoMapper;
-import io.shulie.takin.kafka.receiver.service.ITenantInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.shulie.takin.kafka.receiver.dao.web.TenantInfoMapper;
+import io.shulie.takin.kafka.receiver.entity.TenantInfo;
+import io.shulie.takin.kafka.receiver.service.ITenantInfoService;
 import org.springframework.stereotype.Service;
 
 /**

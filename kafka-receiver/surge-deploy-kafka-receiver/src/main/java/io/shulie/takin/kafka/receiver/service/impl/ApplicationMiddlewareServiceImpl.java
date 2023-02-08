@@ -75,8 +75,7 @@ public class ApplicationMiddlewareServiceImpl extends ServiceImpl<ApplicationMid
             log.info("应用中间件上报 --> 插入上报中间件");
             List<ApplicationMiddleware> createApplicationMiddlewareParamList =
                     this.listCreateApplicationMiddlewareParam(middlewareList, application, dealHeader);
-            this.saveBatch(createApplicationMiddlewareParamList);
-
+            createApplicationMiddlewareParamList.forEach(this::save);
         } catch (Exception e) {
             log.error("处理应用中间件数据出现异常", e);
         }

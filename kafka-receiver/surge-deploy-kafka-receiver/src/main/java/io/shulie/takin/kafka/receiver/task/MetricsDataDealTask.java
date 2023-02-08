@@ -1,15 +1,26 @@
 package io.shulie.takin.kafka.receiver.task;
 
+import com.alibaba.fastjson.JSONObject;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
+
 import cn.hutool.core.date.DateUnit;
-import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.google.common.collect.Lists;
-import io.shulie.takin.kafka.receiver.constant.web.*;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
+import io.shulie.takin.kafka.receiver.constant.web.CollectorConstants;
+import io.shulie.takin.kafka.receiver.constant.web.NodeTypeEnum;
+import io.shulie.takin.kafka.receiver.constant.web.PressureSceneEnum;
+import io.shulie.takin.kafka.receiver.constant.web.TimeUnitEnum;
+import io.shulie.takin.kafka.receiver.dto.clickhouse.ClickhouseQueryRequest;
 import io.shulie.takin.kafka.receiver.dto.web.PtConfigExt;
 import io.shulie.takin.kafka.receiver.dto.web.RtDataOutput;
 import io.shulie.takin.kafka.receiver.dto.web.ScriptNode;
 import io.shulie.takin.kafka.receiver.entity.*;
-import io.shulie.takin.kafka.receiver.service.*;
+import io.shulie.takin.kafka.receiver.service.ClickhouseQueryService;
+import io.shulie.takin.kafka.receiver.service.IEnginePressureService;
+import io.shulie.takin.kafka.receiver.service.IReportService;
+import io.shulie.takin.kafka.receiver.service.ISceneManageService;
 import io.shulie.takin.kafka.receiver.util.CollectorUtil;
 import io.shulie.takin.kafka.receiver.util.DataUtils;
 import io.shulie.takin.kafka.receiver.util.JmxUtil;
@@ -22,65 +33,42 @@ import io.shulie.takin.utils.json.JsonHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.InitializingBean;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.RedisStringCommands;
-import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.RedisCallback;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ScanOptions;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.data.redis.core.types.Expiration;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-public class MetricsDataDealTask implements InitializingBean {
+public class MetricsDataDealTask {
 
     @Resource
     private IReportService iReportService;
-    @Resource
-    private IEngineMetricsAllService iEngineMetricsAllService;
-    @Resource
-    private IEnginePressureService iEnginePressureService;
-    @Resource
-    private IEnginePressureAllService iEnginePressureAllService;
     @Resource
     private ISceneManageService iSceneManageService;
     @Value("${report.metric.isSaveLastPoint:true}")
     private boolean isSaveLastPoint;
     @Resource
-    protected RedisTemplate<String, Object> redisTemplate;
+    private RedissonClient redissonClient;
+    @Resource
+    private ClickhouseQueryService clickhouseQueryService;
+    @Resource
+    private ClickHouseShardSupport clickHouseShardSupport;
 
     private final MessageSendService kafkaMessageInstance = new KafkaSendServiceFactory().getKafkaMessageInstance();
     private static final String topicUrl = "engine/pressure/data";
-    private DefaultRedisScript<Void> unlockRedisScript;
-    private static final String UNLOCK_SCRIPT = "if redis.call('exists',KEYS[1]) == 1 then\n" +
-            "   redis.call('del',KEYS[1])\n" +
-            "else\n" +
-            "end";
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-
-        unlockRedisScript = new DefaultRedisScript<>();
-        unlockRedisScript.setResultType(Void.class);
-        unlockRedisScript.setScriptText(UNLOCK_SCRIPT);
-    }
 
     /**
      * 每五秒执行一次
@@ -98,6 +86,7 @@ public class MetricsDataDealTask implements InitializingBean {
         if (CollectionUtils.isNotEmpty(results)) {
             all.addAll(results);
         }
+        List<Long> reportIds = all.stream().map(Report::getId).collect(Collectors.toList());
 
         //获取结束时间在30s之内的报告
         QueryWrapper<Report> reportQueryWrapper = new QueryWrapper<>();
@@ -108,14 +97,17 @@ public class MetricsDataDealTask implements InitializingBean {
         reportQueryWrapper.lambda().ge(Report::getEndTime, LocalDateTime.now().plusSeconds(-30));
         List<Report> list = iReportService.list(reportQueryWrapper);
         if (CollectionUtils.isNotEmpty(list)) {
-            all.addAll(list);
+            List<Report> reportList = list.stream().filter(o -> !reportIds.contains(o.getId())).collect(Collectors.toList());
+            if (CollectionUtils.isNotEmpty(reportList)){
+                all.addAll(list);
+            }
         }
         if (CollectionUtils.isEmpty(all)) {
             log.debug("没有需要统计的报告！");
             return;
         }
-        List<Long> reportIds = all.stream().map(Report::getId).collect(Collectors.toList());
-        log.info("找到需要统计的报告：" + JsonHelper.bean2Json(reportIds));
+        List<Long> allReportIds = all.stream().map(Report::getId).collect(Collectors.toList());
+        log.info("找到需要统计的报告：" + JsonHelper.bean2Json(allReportIds));
         all.stream().filter(Objects::nonNull).forEach(r -> combineMetricsData(r, false, null));
     }
 
@@ -123,11 +115,17 @@ public class MetricsDataDealTask implements InitializingBean {
     private Long getMetricsMinTimeWindow(Long jobId) {
         Long timeWindow = null;
         try {
-            QueryWrapper<EngineMetricsAll> queryWrapper = new QueryWrapper<>();
-            queryWrapper.lambda().eq(EngineMetricsAll::getJobId, jobId);
-            queryWrapper.lambda().orderByAsc(EngineMetricsAll::getTime);
-            queryWrapper.lambda().last("limit 1");
-            List<EngineMetricsAll> metrics = iEngineMetricsAllService.list(queryWrapper);
+            ClickhouseQueryRequest clickhouseQueryRequest = new ClickhouseQueryRequest();
+            clickhouseQueryRequest.setMeasurement("t_engine_metrics_all");
+            Map<String, String> fieldAndAlias = new HashMap<>();
+            fieldAndAlias.put("time", null);
+            clickhouseQueryRequest.setFieldAndAlias(fieldAndAlias);
+            Map<String, Object> whereFilter = new HashMap<>();
+            whereFilter.put("job_id", jobId.toString());
+            clickhouseQueryRequest.setWhereFilter(whereFilter);
+            clickhouseQueryRequest.setLimitRows(1L);
+            clickhouseQueryRequest.setOrderByStrategy(0);
+            List<EngineMetrics> metrics = clickhouseQueryService.queryObjectByConditions(clickhouseQueryRequest, EngineMetrics.class);
             if (CollectionUtils.isNotEmpty(metrics)) {
                 timeWindow = CollectorUtil.getTimeWindowTime(metrics.get(0).getTime());
             }
@@ -137,15 +135,23 @@ public class MetricsDataDealTask implements InitializingBean {
         return timeWindow;
     }
 
-    private List<EngineMetricsAll> queryMetrics(Long jobId, Long sceneId, Long timeWindow) {
+    private List<EngineMetrics> queryMetrics(Long jobId, Long sceneId, Long timeWindow) {
         try {
             //查询引擎上报数据时，通过时间窗向前5s来查询，(0,5]
             if (null != timeWindow) {
-                QueryWrapper<EngineMetricsAll> queryWrapper = new QueryWrapper<>();
-                queryWrapper.lambda().eq(EngineMetricsAll::getJobId, jobId);
-                queryWrapper.lambda().le(EngineMetricsAll::getTime, timeWindow);
-                queryWrapper.lambda().gt(EngineMetricsAll::getTime, timeWindow - TimeUnit.MILLISECONDS.convert(CollectorConstants.SEND_TIME, TimeUnit.SECONDS));
-                List<EngineMetricsAll> list = iEngineMetricsAllService.list(queryWrapper);
+                ClickhouseQueryRequest clickhouseQueryRequest = new ClickhouseQueryRequest();
+                clickhouseQueryRequest.setStartTime(timeWindow - TimeUnit.MILLISECONDS.convert(CollectorConstants.SEND_TIME, TimeUnit.SECONDS));
+                clickhouseQueryRequest.setStartTimeEqual(false);
+                clickhouseQueryRequest.setEndTime(timeWindow);
+                clickhouseQueryRequest.setEndTimeEqual(true);
+                clickhouseQueryRequest.setMeasurement("t_engine_metrics_all");
+
+                clickhouseQueryRequest.setFieldAndAlias(new HashMap<>());
+                Map<String, Object> whereFilter = new HashMap<>();
+                whereFilter.put("job_id", jobId.toString());
+                clickhouseQueryRequest.setWhereFilter(whereFilter);
+
+                List<EngineMetrics> list = clickhouseQueryService.queryObjectByConditions(clickhouseQueryRequest, EngineMetrics.class);
                 log.info("汇总查询日志：sceneId:{},查询结果数量:{}", sceneId, list == null ? "null" : list.size());
                 return list;
             } else {
@@ -166,20 +172,28 @@ public class MetricsDataDealTask implements InitializingBean {
     private Long getWorkingPressureMinTimeWindow(Long jobId) {
         Long timeWindow = null;
         try {
-            QueryWrapper<EnginePressureAll> queryWrapper = new QueryWrapper<>();
-            queryWrapper.lambda().eq(EnginePressureAll::getJobId, jobId);
-            queryWrapper.lambda().eq(EnginePressureAll::getStatus, 0);
-            queryWrapper.lambda().orderByAsc(EnginePressureAll::getTime);
-            queryWrapper.lambda().last("limit 1");
-            List<EnginePressureAll> enginePressureAlls = iEnginePressureAllService.list(queryWrapper);
-            if (CollectionUtils.isNotEmpty(enginePressureAlls)) {
-                timeWindow = enginePressureAlls.get(0).getTime();
+            ClickhouseQueryRequest clickhouseQueryRequest = new ClickhouseQueryRequest();
+            clickhouseQueryRequest.setMeasurement("t_engine_pressure_all");
+            Map<String, String> fieldAndAlias = new HashMap<>();
+            fieldAndAlias.put("time", null);
+            clickhouseQueryRequest.setFieldAndAlias(fieldAndAlias);
+            Map<String, Object> whereFilter = new HashMap<>();
+            whereFilter.put("job_id", jobId.toString());
+            whereFilter.put("status", 0);
+            clickhouseQueryRequest.setWhereFilter(whereFilter);
+            clickhouseQueryRequest.setLimitRows(1L);
+            clickhouseQueryRequest.setOrderByStrategy(0);
+            List<EnginePressure> enginePressures = clickhouseQueryService.queryObjectByConditions(clickhouseQueryRequest, EnginePressure.class);
+            if (CollectionUtils.isNotEmpty(enginePressures)) {
+                timeWindow = enginePressures.get(0).getTime();
             }
+
         } catch (Throwable e) {
             log.error("查询失败", e);
         }
         return timeWindow;
     }
+
 
     /**
      * 获取当前统计的最大时间的下一个窗口窗口
@@ -187,14 +201,21 @@ public class MetricsDataDealTask implements InitializingBean {
     private Long getPressureMaxTimeNextTimeWindow(Long jobId) {
         Long timeWindow = null;
         try {
-            QueryWrapper<EnginePressureAll> queryWrapper = new QueryWrapper<>();
-            queryWrapper.lambda().eq(EnginePressureAll::getJobId, jobId);
-            queryWrapper.lambda().eq(EnginePressureAll::getStatus, 1);
-            queryWrapper.lambda().orderByDesc(EnginePressureAll::getTime);
-            queryWrapper.lambda().last("limit 1");
-            List<EnginePressureAll> enginePressureAlls = iEnginePressureAllService.list(queryWrapper);
-            if (CollectionUtils.isNotEmpty(enginePressureAlls)) {
-                timeWindow = CollectorUtil.getNextTimeWindow(enginePressureAlls.get(0).getTime());
+            ClickhouseQueryRequest clickhouseQueryRequest = new ClickhouseQueryRequest();
+            clickhouseQueryRequest.setMeasurement("t_engine_pressure_all");
+            Map<String, String> fieldAndAlias = new HashMap<>();
+            fieldAndAlias.put("time", null);
+            clickhouseQueryRequest.setFieldAndAlias(fieldAndAlias);
+            Map<String, Object> whereFilter = new HashMap<>();
+            whereFilter.put("job_id", jobId.toString());
+            whereFilter.put("status", 1);
+            clickhouseQueryRequest.setWhereFilter(whereFilter);
+            clickhouseQueryRequest.setLimitRows(1L);
+            clickhouseQueryRequest.setOrderByStrategy(1);
+            List<EnginePressure> enginePressures = clickhouseQueryService.queryObjectByConditions(clickhouseQueryRequest, EnginePressure.class);
+
+            if (CollectionUtils.isNotEmpty(enginePressures)) {
+                timeWindow = CollectorUtil.getNextTimeWindow(enginePressures.get(0).getTime());
             }
         } catch (Throwable e) {
             log.error("查询失败", e);
@@ -231,7 +252,7 @@ public class MetricsDataDealTask implements InitializingBean {
             return timeWindow;
         }
         //timeWindow如果为空，则获取全部metrics数据，如果不为空则获取该时间窗口的数据
-        List<EngineMetricsAll> metricsList = queryMetrics(jobId, sceneId, timeWindow);
+        List<EngineMetrics> metricsList = queryMetrics(jobId, sceneId, timeWindow);
         if (CollectionUtils.isEmpty(metricsList)) {
             log.info("{}, timeWindow={} ， metrics 是空集合!", logPre, showTime(timeWindow));
             return timeWindow;
@@ -253,7 +274,7 @@ public class MetricsDataDealTask implements InitializingBean {
         }
 
         List<String> transactions = metricsList.stream().filter(Objects::nonNull)
-                .map(EngineMetricsAll::getTransaction)
+                .map(EngineMetrics::getTransaction)
                 .filter(StringUtils::isNotBlank)
                 .distinct()
                 .collect(Collectors.toList());
@@ -284,16 +305,50 @@ public class MetricsDataDealTask implements InitializingBean {
         }
         if (isUpdate) {
             results.forEach(enginePressure -> {
-                QueryWrapper<EnginePressure> updateQueryWrapper = new QueryWrapper<>();
-                updateQueryWrapper.lambda().eq(EnginePressure::getJobId, enginePressure.getJobId());
-                updateQueryWrapper.lambda().eq(EnginePressure::getTime, enginePressure.getTime());
-                updateQueryWrapper.lambda().eq(EnginePressure::getTestName, enginePressure.getTransaction());
-                iEnginePressureService.saveOrUpdate(enginePressure, updateQueryWrapper);
+                try {
+                    String delSql = "delete from t_engine_pressure where time= ? and job_id = ? and test_name= ?";
+                    List<Object[]> batchs = Lists.newArrayList();
+                    batchs.add(new Object[]{enginePressure.getTime(), enginePressure.getJobId(), enginePressure.getTransaction()});
+                    Map<String, List<Object[]>> objMap = Maps.newHashMap();
+                    objMap.put(enginePressure.getJobId(), batchs);
+                    clickHouseShardSupport.syncBatchUpdate(delSql, objMap);
+                } catch (Exception e) {
+                    log.error("删除EnginePressure数据出现异常", e);
+                }
             });
+        }
+
+        //构建sql
+        EnginePressure pressure = results.get(0);
+        Map<String, Object> engineMap = this.getEngineMap(pressure);
+        String cols = Joiner.on(',').join(engineMap.keySet());
+        List<String> params = new ArrayList<>();
+        for (String field : engineMap.keySet()) {
+            params.add("?");
+        }
+        String param = Joiner.on(',').join(params);
+        Map<String, List<Object[]>> objMap = Maps.newHashMap();
+        String tableName = clickHouseShardSupport.isCluster() ? "t_engine_pressure" : "t_engine_pressure_all";
+        String sql = "insert into " + tableName + " (" + cols + ") values(" + param + ") ";
+
+        //构建批量参数
+        List<Object[]> batchs = Lists.newArrayList();
+        results.forEach(enginePressure -> {
+            Map<String, Object> map = this.getEngineMap(enginePressure);
+            batchs.add(map.values().toArray());
+        });
+        objMap.put(pressure.getJobId(), batchs);
+        log.info("汇总pressure数据，本次共{}条",batchs.size());
+        clickHouseShardSupport.syncBatchUpdate(sql, objMap);
+
+        //补充数据不再发送kafka
+        if (isUpdate) {
             return null;
         }
-        iEnginePressureService.saveBatch(results);
-
+        //发送前处理数据，不需要发送sa明细数据
+        results.forEach(enginePressure -> {
+            enginePressure.setSaPercent(null);
+        });
         kafkaMessageInstance.send(topicUrl, new HashMap<>(), JsonHelper.bean2Json(results), new MessageSendCallBack() {
             @Override
             public void success() {
@@ -311,6 +366,42 @@ public class MetricsDataDealTask implements InitializingBean {
         log.info("{} finished!timeWindow={}, endTime={}", logPre, showTime(timeWindow), showTime(endTime));
         return timeWindow;
     }
+
+    private Map<String, Object> getEngineMap(EnginePressure enginePressure){
+        Map<String, Object> result = new HashMap<>();
+        result.put("time", enginePressure.getTime());
+        result.put("transaction", enginePressure.getTransaction());
+        result.put("avg_rt", enginePressure.getAvgRt());
+        result.put("avg_tps", enginePressure.getAvgTps());
+        result.put("test_name", enginePressure.getTestName());
+        result.put("count", enginePressure.getCount());
+        result.put("create_time", enginePressure.getCreateTime());
+        result.put("data_num", enginePressure.getDataNum());
+        result.put("data_rate", enginePressure.getDataRate());
+        result.put("fail_count", enginePressure.getFailCount());
+        result.put("sent_bytes", enginePressure.getSentBytes());
+        result.put("received_bytes", enginePressure.getReceivedBytes());
+        result.put("sum_rt", enginePressure.getSumRt());
+        result.put("sa", enginePressure.getSa());
+        result.put("sa_count", enginePressure.getSaCount());
+        result.put("max_rt", enginePressure.getMaxRt());
+        result.put("min_rt", enginePressure.getMinRt());
+        result.put("active_threads", enginePressure.getActiveThreads());
+        result.put("sa_percent", enginePressure.getSaPercent());
+        result.put("status", enginePressure.getStatus());
+        result.put("success_rate", enginePressure.getSuccessRate());
+        result.put("job_id", enginePressure.getJobId());
+        result.put("createDate", enginePressure.getCreateDate());
+        //去掉值为null的数据
+        Map<String, Object> copy = new HashMap<>();
+        result.forEach((k,v) -> {
+            if (v != null) {
+                copy.put(k, v);
+            }
+        });
+        return copy;
+    }
+
 
     /**
      * 统计各个节点的数据
@@ -410,6 +501,7 @@ public class MetricsDataDealTask implements InitializingBean {
         double avgRt = NumberUtil.getRate(sumRt, count);
 
         EnginePressure output = new EnginePressure();
+        output.setJobId(childPressures.get(0).getJobId());
         output.setTime(time);
         output.setTransaction(node.getXpathMd5());
         output.setCount(count);
@@ -436,7 +528,7 @@ public class MetricsDataDealTask implements InitializingBean {
     /**
      * 单个时间窗口数据，根据transaction过滤
      */
-    private List<EngineMetricsAll> filterByTransaction(List<EngineMetricsAll> metricsList, String transaction) {
+    private List<EngineMetrics> filterByTransaction(List<EngineMetrics> metricsList, String transaction) {
         if (CollectionUtils.isEmpty(metricsList)) {
             return metricsList;
         }
@@ -448,33 +540,34 @@ public class MetricsDataDealTask implements InitializingBean {
     /**
      * 实时数据统计
      */
-    private EnginePressure toPressureOutput(List<EngineMetricsAll> metricsList, Integer podNum, long time) {
+    private EnginePressure toPressureOutput(List<EngineMetrics> metricsList, Integer podNum, long time) {
         if (CollectionUtils.isEmpty(metricsList)) {
             return null;
         }
         String transaction = metricsList.get(0).getTransaction();
         String testName = metricsList.get(0).getTestName();
+        String jobId = metricsList.get(0).getJobId();
 
-        int count = NumberUtil.sum(metricsList, EngineMetricsAll::getCount);
-        int failCount = NumberUtil.sum(metricsList, EngineMetricsAll::getFailCount);
-        int saCount = NumberUtil.sum(metricsList, EngineMetricsAll::getSaCount);
+        int count = NumberUtil.sum(metricsList, EngineMetrics::getCount);
+        int failCount = NumberUtil.sum(metricsList, EngineMetrics::getFailCount);
+        int saCount = NumberUtil.sum(metricsList, EngineMetrics::getSaCount);
         double sa = NumberUtil.getPercentRate(saCount, count);
         double successRate = NumberUtil.getPercentRate(count - failCount, count);
-        long sendBytes = NumberUtil.sumLong(metricsList, EngineMetricsAll::getSentBytes);
-        long receivedBytes = NumberUtil.sumLong(metricsList, EngineMetricsAll::getReceivedBytes);
-        double sumRt = metricsList.stream().filter(Objects::nonNull).map(EngineMetricsAll::getSumRt).mapToDouble(BigDecimal::doubleValue).sum();
+        long sendBytes = NumberUtil.sumLong(metricsList, EngineMetrics::getSentBytes);
+        long receivedBytes = NumberUtil.sumLong(metricsList, EngineMetrics::getReceivedBytes);
+        double sumRt = metricsList.stream().filter(Objects::nonNull).map(EngineMetrics::getSumRt).mapToDouble(BigDecimal::doubleValue).sum();
         double avgRt = NumberUtil.getRate(sumRt, count);
-        BigDecimal maxRt = NumberUtil.maxBigDecimal(metricsList, EngineMetricsAll::getMaxRt);
-        BigDecimal minRt = NumberUtil.minBigDecimal(metricsList, EngineMetricsAll::getMinRt);
-        int activeThreads = NumberUtil.sum(metricsList, EngineMetricsAll::getActiveThreads);
+        BigDecimal maxRt = NumberUtil.maxBigDecimal(metricsList, EngineMetrics::getMaxRt);
+        BigDecimal minRt = NumberUtil.minBigDecimal(metricsList, EngineMetrics::getMinRt);
+        int activeThreads = NumberUtil.sum(metricsList, EngineMetrics::getActiveThreads);
         double avgTps = NumberUtil.getRate(count, CollectorConstants.SEND_TIME);
         List<String> percentDataList = metricsList.stream().filter(Objects::nonNull)
-                .map(EngineMetricsAll::getPercentData)
+                .map(EngineMetrics::getPercentData)
                 .filter(StringUtils::isNotBlank)
                 .collect(Collectors.toList());
         String percentSa = calculateSaPercent(percentDataList);
         Set<String> podNos = metricsList.stream().filter(Objects::nonNull)
-                .map(EngineMetricsAll::getPodNo)
+                .map(EngineMetrics::getPodNo)
                 .filter(StringUtils::isNotBlank)
                 .collect(Collectors.toSet());
 
@@ -482,6 +575,7 @@ public class MetricsDataDealTask implements InitializingBean {
         double dataRate = NumberUtil.getPercentRate(dataNum, podNum, 100d);
         int status = dataNum < podNum ? 0 : 1;
         EnginePressure p = new EnginePressure();
+        p.setJobId(jobId);
         p.setTime(time);
         p.setTransaction(transaction);
         p.setCount(count);
@@ -611,20 +705,30 @@ public class MetricsDataDealTask implements InitializingBean {
         Runnable runnable = () -> {
             Long sceneId = r.getSceneId();
             String lockKey = String.format("pushData:%s:%s:%s", sceneId, r.getId(), r.getTenantId());
-            if (!lock(lockKey, "1")) {
-                return;
-            }
+            RLock lock = redissonClient.getLock(this.getLockPrefix(lockKey));
 
             try {
-                QueryWrapper<EngineMetricsAll> engineMetricsAllQueryWrapper = new QueryWrapper<>();
-                engineMetricsAllQueryWrapper.lambda().eq(EngineMetricsAll::getJobId, r.getJobId());
-                engineMetricsAllQueryWrapper.lambda().last("limit 1");
-                List<EngineMetricsAll> engineMetricsAlls = iEngineMetricsAllService.list(engineMetricsAllQueryWrapper);
-                if (CollectionUtils.isEmpty(engineMetricsAlls)) {
+                if (!lock.tryLock(10, 60 * 1000, TimeUnit.MILLISECONDS)) {
+                    log.info("获取锁:{}失败，本次先不计算", lockKey);
+                    return;
+                }
+                log.info("开始统计数据:" + System.currentTimeMillis());
+
+                ClickhouseQueryRequest clickhouseQueryRequest = new ClickhouseQueryRequest();
+                clickhouseQueryRequest.setMeasurement("t_engine_metrics_all");
+                Map<String, String> field = new HashMap<>();
+                field.put("job_id", "jobId");
+                clickhouseQueryRequest.setFieldAndAlias(field);
+                Map<String, Object> whereFilter = new HashMap<>();
+                whereFilter.put("job_id" , r.getJobId().toString());
+                clickhouseQueryRequest.setWhereFilter(whereFilter);
+                clickhouseQueryRequest.setLimitRows(1);
+                List<EngineMetrics> EngineMetricss = clickhouseQueryService.queryObjectByConditions(clickhouseQueryRequest, EngineMetrics.class);
+                if (CollectionUtils.isEmpty(EngineMetricss)) {
                     log.info("没有找到当前jobId:{}的Metrics数据", r.getJobId());
                     return;
                 }
-
+                log.info("查询压测场景:" + System.currentTimeMillis());
                 List<ScriptNode> nodes = JsonHelper.json2List(r.getScriptNodeTree(), ScriptNode.class);
                 SceneManage sceneManage = iSceneManageService.getById(sceneId);
                 if (null == sceneManage) {
@@ -658,6 +762,7 @@ public class MetricsDataDealTask implements InitializingBean {
                 Long timeWindow = null;
                 do {
                     //不用递归，而是采用do...while...的方式是防止需要处理的时间段太长引起stackOverFlow错误
+                    log.info("处理metrics数据:" + System.currentTimeMillis());
                     timeWindow = reduceMetrics(r, podNum, breakTime, timeWindow, nodes, false);
                     if (null == timeWindow) {
                         timeWindow = nowTimeWindow;
@@ -666,25 +771,18 @@ public class MetricsDataDealTask implements InitializingBean {
                     timeWindow = CollectorUtil.getNextTimeWindow(timeWindow);
                 } while (timeWindow <= breakTime);
 
-                if (!dataCalibration && null != r.getEndTime() && timeWindow >= r.getEndTime().toInstant(ZoneOffset.of("+8")).toEpochMilli()) {
-                    // 更新压测场景状态  压测引擎运行中,压测引擎停止压测 ---->压测引擎停止压测
-                    QueryWrapper<SceneManage> sceneManageQueryWrapper = new QueryWrapper<>();
-                    sceneManageQueryWrapper.lambda().eq(SceneManage::getId, sceneId);
-                    sceneManageQueryWrapper.lambda().in(SceneManage::getStatus, Arrays.asList(SceneManageStatusEnum.ENGINE_RUNNING.getValue(), SceneManageStatusEnum.STOP.getValue()));
-                    sceneManage.setUpdateTime(LocalDateTime.now());
-                    sceneManage.setStatus(SceneManageStatusEnum.STOP.getValue());
-                    iSceneManageService.update(sceneManage, sceneManageQueryWrapper);
-                }
-                if (!dataCalibration) {
-                    finishPushData(r, podNum, timeWindow, endTime, nodes);
-                }
+                log.info("结尾数据处理:" + System.currentTimeMillis());
+                finishPushData(r, podNum, timeWindow, endTime, nodes);
+                log.info("数据处理完成:" + System.currentTimeMillis());
             } catch (Throwable t) {
                 log.error("pushData2 error!", t);
             } finally {
                 if (Objects.nonNull(finalAction)) {
                     finalAction.run();
                 }
-                unlock(lockKey, "0");
+                log.info("开始释放锁:" + System.currentTimeMillis());
+                lock.unlock();
+                log.info("释放锁完成:" + System.currentTimeMillis());
             }
         };
         Executors.newCachedThreadPool().execute(runnable);
@@ -702,20 +800,8 @@ public class MetricsDataDealTask implements InitializingBean {
         return TimeUnit.SECONDS.convert(time, tue.getUnit());
     }
 
-    public Boolean lock(String key, String value) {
-        return redisTemplate.execute((RedisCallback<Boolean>) connection -> {
-            Boolean bl = connection.set(getLockPrefix(key).getBytes(), value.getBytes(), Expiration.seconds(60),
-                    RedisStringCommands.SetOption.SET_IF_ABSENT);
-            return null != bl && bl;
-        });
-    }
-
-    public void unlock(String key, String value) {
-        redisTemplate.execute(unlockRedisScript, Lists.newArrayList(getLockPrefix(key)), value);
-    }
-
     private String getLockPrefix(String key) {
-        return String.format("COLLECTOR LOCK:%s", key);
+        return String.format("COLLECTOR:LOCK:%s", key);
     }
 
 

@@ -1,9 +1,9 @@
 package io.shulie.takin.kafka.receiver.service.impl;
 
-import io.shulie.takin.kafka.receiver.entity.PressureExampleEvent;
-import io.shulie.takin.kafka.receiver.dao.cloud.PressureExampleEventMapper;
-import io.shulie.takin.kafka.receiver.service.IPressureExampleEventService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.shulie.takin.kafka.receiver.dao.cloud.PressureExampleEventMapper;
+import io.shulie.takin.kafka.receiver.entity.PressureExampleEvent;
+import io.shulie.takin.kafka.receiver.service.IPressureExampleEventService;
 import org.springframework.stereotype.Service;
 
 /**

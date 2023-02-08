@@ -15,16 +15,19 @@ spring:
       username: root
       password: shulie@2020
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://192.168.1.129:3306/trodb_cloud_shunfeng?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+      url: jdbc:mysql://192.168.1.129:3306/crank?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=Asia/Shanghai
     amdb:
       username: root
       password: shulie@2020
       driver-class-name: com.mysql.cj.jdbc.Driver
       url: jdbc:mysql://192.168.1.129:3306/amdb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=Asia/Shanghai
-  influxdb:
-    url: http://192.168.1.129:8086
-    user: pradar
-    password: pradar
+config:
+  clickhouse:
+    url: jdbc:clickhouse://192.168.1.129:8123,192.168.1.129:8123/default
+    userName: default
+    password: rU4zGjA/
+    enableRound: true
+    batchCount: 100
 performance:
   base:
     agent:

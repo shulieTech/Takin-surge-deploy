@@ -158,6 +158,18 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         }
     }
 
+    /**
+     * 同步批量更新
+     * @param sql
+     * @param shardBatchArgs
+     */
+    public synchronized void syncBatchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
+        Map<String, List<Object[]>> shardBatchArgsMap = shardBatchArgs(shardBatchArgs);
+        for (Map.Entry<String, List<Object[]>> entry : shardBatchArgsMap.entrySet()) {
+            this.shardJdbcTemplate(entry.getKey()).batchUpdate(sql, Lists.newArrayList(entry.getValue()));
+        }
+    }
+
     private JdbcTemplate shardJdbcTemplate(String key) {
         return shardJdbcTemplateMap.get(key);
     }
@@ -246,7 +258,6 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         }
         String param = Joiner.on(',').join(params);
         String sql = "insert into " + tableName + " (" + cols + ") values(" + param + ") ";
-        logger.info("原本写入influxdb，当前插入clickhouse，sql为:" + sql);
         List<Object[]> batchs = Lists.newArrayList();
         batchs.add(map.values().toArray());
         Map<String, List<Object[]>> objMap = Maps.newHashMap();

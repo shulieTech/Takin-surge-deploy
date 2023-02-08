@@ -88,6 +88,7 @@ public class EnginePressureAll implements Serializable {
     @TableField("job_id")
     private String jobId;
 
+    @TableField("createDate")
     private LocalDateTime createDate;
 
 }

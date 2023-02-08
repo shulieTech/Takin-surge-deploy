@@ -4,16 +4,17 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.collection.ListUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Lists;
 import com.shulie.tesla.sequence.impl.DefaultSequence;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 import io.shulie.takin.kafka.receiver.constant.web.SceneManageStatusEnum;
+import io.shulie.takin.kafka.receiver.dao.web.PerformanceThreadDataMapper;
 import io.shulie.takin.kafka.receiver.dto.web.PerformanceBaseDataReq;
 import io.shulie.takin.kafka.receiver.dto.web.PerformanceThreadDataVO;
 import io.shulie.takin.kafka.receiver.dto.web.TenantCommonExt;
 import io.shulie.takin.kafka.receiver.entity.*;
-import io.shulie.takin.kafka.receiver.dao.web.PerformanceThreadDataMapper;
 import io.shulie.takin.kafka.receiver.service.*;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.shulie.takin.utils.json.JsonHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -25,9 +26,7 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -59,7 +58,7 @@ public class PerformanceThreadDataServiceImpl extends ServiceImpl<PerformanceThr
     @Resource
     private DefaultSequence threadOrderLineSequence;
     @Resource
-    private IPerformanceBaseDataService iPerformanceBaseDataService;
+    private ClickHouseShardSupport clickHouseShardSupport;
     @Resource
     private IPerformanceThreadStackDataService iPerformanceThreadStackDataService;
 
@@ -98,36 +97,44 @@ public class PerformanceThreadDataServiceImpl extends ServiceImpl<PerformanceThr
             BigDecimal b2 = BigDecimal.valueOf(dataParam.getThreadCpuUsage() == null ? 0.00 : dataParam.getThreadCpuUsage());
             cpuUseRate = b1.add(b2);
         }
-        PerformanceBaseData performanceBaseData = new PerformanceBaseData();
-        performanceBaseData.setTime(System.currentTimeMillis());
-        performanceBaseData.setTimestamp(param.getTimestamp() != null ? param.getTimestamp() : 0);
-        performanceBaseData.setTotalMemory(param.getTotalMemory());
-        performanceBaseData.setPermMemory(param.getPermMemory());
-        performanceBaseData.setYoungMemory(param.getYoungMemory());
-        performanceBaseData.setOldMemory(param.getOldMemory());
-        performanceBaseData.setYoungGcCount(param.getYoungGcCount());
-        performanceBaseData.setFullGcCount(param.getFullGcCount());
-        performanceBaseData.setYoungGcCost(param.getYoungGcCost());
-        performanceBaseData.setFullGcCost(param.getFullGcCost());
-        performanceBaseData.setCpuUseRate(cpuUseRate);
-        performanceBaseData.setTotalBufferPoolMemory(param.getTotalBufferPoolMemory());
-        performanceBaseData.setTotalNoHeapMemory(param.getTotalNonHeapMemory());
-        performanceBaseData.setThreadCount(param.getThreadDataList().size());
-        performanceBaseData.setBaseId(baseId);
-        performanceBaseData.setAgentId(StringUtils.isNotBlank(param.getAgentId()) ? param.getAgentId() : "null");
-        performanceBaseData.setAppName(StringUtils.isNotBlank(param.getAppName()) ? param.getAppName() : "null");
-        performanceBaseData.setAppIp(StringUtils.isNotBlank(param.getAppIp()) ? param.getAppIp() : "null");
-        performanceBaseData.setProcessId(param.getProcessId() != null ? String.valueOf(param.getProcessId()) : "null");
-        performanceBaseData.setProcessName(StringUtils.isNotBlank(param.getProcessName()) ? param.getProcessName() : "null");
-        performanceBaseData.setEnvCode(dealHeader.getEnvCode());
-        performanceBaseData.setTenantAppKey(dealHeader.getTenantAppKey());
-        performanceBaseData.setTenantId(dealHeader.getTenantId());
-        performanceBaseData.setCreateDate(LocalDateTime.now());
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("time", System.currentTimeMillis());
+        map.put("timestamp", param.getTimestamp() != null ? param.getTimestamp() : 0);
+        map.put("total_memory", param.getTotalMemory());
+        map.put("perm_memory", param.getPermMemory());
+        map.put("young_memory", param.getYoungMemory());
+        map.put("old_memory", param.getOldMemory());
+        map.put("young_gc_count", param.getYoungGcCount());
+        map.put("full_gc_count", param.getFullGcCount());
+        map.put("young_gc_cost", param.getYoungGcCost());
+        map.put("full_gc_cost", param.getFullGcCost());
+        map.put("cpu_use_rate", cpuUseRate);
+        map.put("total_buffer_pool_memory", param.getTotalBufferPoolMemory());
+        map.put("total_no_heap_memory", param.getTotalNonHeapMemory());
+        map.put("thread_count", CollectionUtil.isEmpty(param.getThreadDataList()) ? 0 : param.getThreadDataList().size());
+        map.put("base_id", baseId);
+        map.put("agent_id", StringUtils.isNotBlank(param.getAgentId()) ? param.getAgentId() : "null");
+        map.put("app_name", StringUtils.isNotBlank(param.getAppName()) ? param.getAppName() : "null");
+        map.put("app_ip", StringUtils.isNotBlank(param.getAppIp()) ? param.getAppIp() : "null");
+        map.put("process_id", param.getProcessId() != null ? String.valueOf(param.getProcessId()) : "null");
+        map.put("process_name", StringUtils.isNotBlank(param.getProcessName()) ? param.getProcessName() : "null");
+        map.put("env_code", dealHeader.getEnvCode());
+        map.put("tenant_app_key", dealHeader.getTenantAppKey());
+        map.put("tenant_id", dealHeader.getTenantId());
+        map.put("createDate", LocalDateTime.now());
 
         try {
-            iPerformanceBaseDataService.save(performanceBaseData);
+            Map<String, Object> copyMap = new HashMap<>();
+            map.forEach((k,v) -> {
+                if (v != null) {
+                    copyMap.put(k, v);
+                }
+            });
+            String tableName = clickHouseShardSupport.isCluster() ? "t_performance_base_data" : "t_performance_base_data_all";
+            clickHouseShardSupport.insert(copyMap, param.getAppIp(), tableName);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("t_performance_base_data数据插入异常", e);
         }
         log.debug("influxWriterBase运行时间：{}", System.currentTimeMillis() - start);
 

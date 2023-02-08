@@ -1,9 +1,9 @@
 package io.shulie.takin.kafka.receiver.service.impl;
 
-import io.shulie.takin.kafka.receiver.entity.ApplicationPluginUpgrade;
-import io.shulie.takin.kafka.receiver.dao.web.ApplicationPluginUpgradeMapper;
-import io.shulie.takin.kafka.receiver.service.IApplicationPluginUpgradeService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.shulie.takin.kafka.receiver.dao.web.ApplicationPluginUpgradeMapper;
+import io.shulie.takin.kafka.receiver.entity.ApplicationPluginUpgrade;
+import io.shulie.takin.kafka.receiver.service.IApplicationPluginUpgradeService;
 import org.springframework.stereotype.Service;
 
 /**

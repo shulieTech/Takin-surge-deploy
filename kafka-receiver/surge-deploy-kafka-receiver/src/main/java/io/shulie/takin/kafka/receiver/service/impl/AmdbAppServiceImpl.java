@@ -1,9 +1,9 @@
 package io.shulie.takin.kafka.receiver.service.impl;
 
-import io.shulie.takin.kafka.receiver.entity.AmdbApp;
-import io.shulie.takin.kafka.receiver.dao.amdb.AmdbAppMapper;
-import io.shulie.takin.kafka.receiver.service.IAmdbAppService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.shulie.takin.kafka.receiver.dao.amdb.AmdbAppMapper;
+import io.shulie.takin.kafka.receiver.entity.AmdbApp;
+import io.shulie.takin.kafka.receiver.service.IAmdbAppService;
 import org.springframework.stereotype.Service;
 
 /**

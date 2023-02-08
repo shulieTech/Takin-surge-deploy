@@ -10,6 +10,8 @@ import io.shulie.takin.sdk.kafka.impl.KafkaSendServiceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -18,17 +20,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Component
-public class AmdbKafkaReceiver implements InitializingBean {
+public class AmdbKafkaReceiver implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(AmdbKafkaReceiver.class);
-
     @Resource
     private IAmdbAppInstanceService iAmdbAppInstanceService;
     @Resource
     private IAmdbAppInstanceStatusService iAmdbAppInstanceStatusService;
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void run(ApplicationArguments args) throws Exception {
         ScheduledExecutorService kafkaReceivePool = Executors.newScheduledThreadPool(4, new NamedThreadFactory("amdb_kafka_receive", true));
 
         log.info("amdb开始kafka监听");

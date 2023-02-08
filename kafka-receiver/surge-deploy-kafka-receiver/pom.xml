@@ -35,14 +35,9 @@
         <mapstruct.version>1.4.2.Final</mapstruct.version>
         <license.version>1.0.0-lic</license.version>
         <takin.common.version>common-2.0.2-SNAPSHOT</takin.common.version>
-        <!--        <hutool.version>5.</hutool.version>-->
+        <redisson.version>3.15.6</redisson.version>
     </properties>
 
-<!--    <parent>-->
-<!--        <artifactId>surge-deploy</artifactId>-->
-<!--        <groupId>io.shulie.surge.data</groupId>-->
-<!--        <version>1.0</version>-->
-<!--    </parent>-->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -51,24 +46,41 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>surge-deploy-pradar-link</artifactId>
+            <version>1.0.2.7</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>log-protocol</artifactId>
+                    <groupId>io.shulie.pradar</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>fastjson</artifactId>
+                    <groupId>com.alibaba</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>zookeeper</artifactId>
+                    <groupId>org.apache.zookeeper</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>${redisson.version}</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.takin</groupId>
             <artifactId>takin-common-utils</artifactId>
             <version>${takin.common.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.influxdb</groupId>
-            <artifactId>influxdb-java</artifactId>
-            <version>2.22</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.squareup.okhttp</groupId>
-                    <artifactId>okhttp</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.shulie</groupId>
@@ -130,14 +142,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-redis</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.mortbay.jetty</groupId>
             <artifactId>jetty-util</artifactId>
             <version>6.1.26.hwx</version>
@@ -189,7 +193,6 @@
             <artifactId>mybatis-plus-generator</artifactId>
             <version>${mybatis.plus.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.velocity</groupId>
             <artifactId>velocity-engine-core</artifactId>
@@ -201,6 +204,11 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <version>${boot.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.nacos</groupId>
+            <artifactId>nacos-client</artifactId>
+            <version>2.0.4</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/junit/junit -->
@@ -223,6 +231,14 @@
     </dependencies>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- 指定该Main Class为全局的唯一入口 -->
+                    <mainClass>io.shulie.takin.kafka.receiver.Application</mainClass>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

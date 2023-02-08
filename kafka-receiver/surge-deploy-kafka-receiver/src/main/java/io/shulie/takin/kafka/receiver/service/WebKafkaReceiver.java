@@ -19,6 +19,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -29,7 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Component
-public class WebKafkaReceiver implements InitializingBean {
+public class WebKafkaReceiver implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(WebKafkaReceiver.class);
 
@@ -116,7 +118,7 @@ public class WebKafkaReceiver implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void run(ApplicationArguments args) throws Exception {
         ScheduledExecutorService kafkaReceivePool = Executors.newScheduledThreadPool(10, new NamedThreadFactory("web_kafka_receive", true));
 
         log.info("web开始kafka消息监听");
@@ -252,6 +254,7 @@ public class WebKafkaReceiver implements InitializingBean {
             messageReceiveService.receive(ListUtil.of("stress-test-application-center-app-info"), new MessageReceiveCallBack() {
                 @Override
                 public void success(MessageEntity messageEntity) {
+                    log.info("接收到新增应用消息" + JSON.toJSONString(messageEntity.getBody()));
                     iApplicationMntService.dealAddApplicationMessage(JSON.toJSONString(messageEntity.getBody()), dealHeader(messageEntity.getHeaders()));
                 }
 

@@ -125,6 +125,7 @@ public class Report implements Serializable {
     private Long createUid;
 
     @ApiModelProperty(value = "1-解锁 9-锁定")
+    @TableField("`lock`")
     private Integer lock;
 
     @ApiModelProperty(value = "脚本id")
@@ -148,6 +149,7 @@ public class Report implements Serializable {
     private String scriptNodeTree;
 
     @ApiModelProperty(value = "数据签名")
+    @TableField("`sign`")
     private String sign;
 
     @ApiModelProperty(value = "任务Id")

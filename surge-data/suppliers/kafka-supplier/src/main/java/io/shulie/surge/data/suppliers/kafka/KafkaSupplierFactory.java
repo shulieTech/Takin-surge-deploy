@@ -29,7 +29,8 @@ public class KafkaSupplierFactory implements GenericFactory<KafkaSupplier, Kafka
 
     @Override
     public KafkaSupplier create(KafkaSupplierSpec syncSpec) {
-        KafkaSupplier supplier = new KafkaSupplier(syncSpec.getBootstrap(), syncSpec.getTopic());
+        KafkaSupplier supplier = new KafkaSupplier(syncSpec.getBootstrap(), syncSpec.getTopic(), syncSpec.getKafkaAuthFlag(),
+                syncSpec.getSecurityProtocol(), syncSpec.getSaslMechanism(), syncSpec.getSaslJaasConfig());
         runtime.inject(supplier);
         LifecycleObserver<Supplier> logSupplierConfigSynchronize = new KafkaSupplierObserver();
         runtime.inject(logSupplierConfigSynchronize);

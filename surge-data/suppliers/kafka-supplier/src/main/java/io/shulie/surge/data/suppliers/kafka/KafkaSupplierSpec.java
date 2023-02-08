@@ -22,13 +22,22 @@ public class KafkaSupplierSpec implements GenericFactorySpec<KafkaSupplier> {
 
     private String bootstrap;
     private String topic;
+    private String kafkaAuthFlag;
+    private String securityProtocol;
+    private String saslMechanism;
+    private String saslJaasConfig;
 
     public KafkaSupplierSpec() {
     }
 
-    public KafkaSupplierSpec(String bootstrap, String topic) {
+    public KafkaSupplierSpec(String bootstrap, String topic, String kafkaAuthFlag, String securityProtocol,
+                             String saslMechanism, String saslJaasConfig) {
         this.bootstrap = bootstrap;
         this.topic = topic;
+        this.kafkaAuthFlag = kafkaAuthFlag;
+        this.securityProtocol = securityProtocol;
+        this.saslMechanism = saslMechanism;
+        this.saslJaasConfig = saslJaasConfig;
     }
 
     @Override
@@ -48,5 +57,21 @@ public class KafkaSupplierSpec implements GenericFactorySpec<KafkaSupplier> {
 
     public String getTopic() {
         return topic;
+    }
+
+    public String getKafkaAuthFlag() {
+        return kafkaAuthFlag;
+    }
+
+    public String getSecurityProtocol() {
+        return securityProtocol;
+    }
+
+    public String getSaslMechanism() {
+        return saslMechanism;
+    }
+
+    public String getSaslJaasConfig() {
+        return saslJaasConfig;
     }
 }

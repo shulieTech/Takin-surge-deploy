@@ -1,9 +1,9 @@
 package io.shulie.takin.kafka.receiver.service.impl;
 
-import io.shulie.takin.kafka.receiver.entity.SceneManage;
-import io.shulie.takin.kafka.receiver.dao.web.SceneManageMapper;
-import io.shulie.takin.kafka.receiver.service.ISceneManageService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.shulie.takin.kafka.receiver.dao.web.SceneManageMapper;
+import io.shulie.takin.kafka.receiver.entity.SceneManage;
+import io.shulie.takin.kafka.receiver.service.ISceneManageService;
 import org.springframework.stereotype.Service;
 
 /**

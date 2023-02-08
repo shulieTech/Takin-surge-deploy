@@ -1,7 +1,7 @@
 package io.shulie.takin.kafka.receiver.dao.cloud;
 
-import io.shulie.takin.kafka.receiver.entity.SlaEvent;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import io.shulie.takin.kafka.receiver.entity.SlaEvent;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

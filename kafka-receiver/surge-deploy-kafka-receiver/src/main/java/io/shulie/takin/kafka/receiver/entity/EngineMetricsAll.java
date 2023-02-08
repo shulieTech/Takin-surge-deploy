@@ -1,16 +1,14 @@
 package io.shulie.takin.kafka.receiver.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.swagger.annotations.ApiModel;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 /**
  * <p>
@@ -22,18 +20,18 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-@TableName("default.t_engine_metrics_all")
+@TableName("t_engine_metrics_all")
 @ApiModel(value = "EngineMetricsAll对象", description = "t_engine_metrics_all")
 public class EngineMetricsAll implements Serializable {
 
 
-    @TableId(value = "time", type = IdType.AUTO)
-    private Integer time;
+    @TableField(value = "time")
+    private Long time;
 
-    @TableId(value = "transaction", type = IdType.AUTO)
+    @TableField(value = "transaction")
     private String transaction;
 
-    @TableId(value = "test_name", type = IdType.AUTO)
+    @TableField(value = "test_name")
     private String testName;
 
     private Integer count;
@@ -61,7 +59,7 @@ public class EngineMetricsAll implements Serializable {
     @TableField("min_rt")
     private BigDecimal minRt;
 
-    private Integer timestamp;
+    private Long timestamp;
 
     @TableField("active_threads")
     private Integer activeThreads;
@@ -69,12 +67,13 @@ public class EngineMetricsAll implements Serializable {
     @TableField("percent_data")
     private String percentData;
 
-    @TableId(value = "pod_no", type = IdType.AUTO)
+    @TableField(value = "pod_no")
     private String podNo;
 
     @TableField("job_id")
     private String jobId;
 
+    @TableField("createDate")
     private LocalDateTime createDate;
 
 

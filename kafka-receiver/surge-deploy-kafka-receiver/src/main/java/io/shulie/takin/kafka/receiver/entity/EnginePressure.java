@@ -1,14 +1,14 @@
 package io.shulie.takin.kafka.receiver.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.io.Serializable;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * <p>
@@ -20,7 +20,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-@TableName("default.t_engine_pressure")
+@TableName("t_engine_pressure")
 @ApiModel(value = "EnginePressure对象", description = "t_engine_pressure")
 public class EnginePressure implements Serializable {
 
@@ -87,7 +87,7 @@ public class EnginePressure implements Serializable {
     @TableField("job_id")
     private String jobId;
 
+    @TableField("createDate")
     private LocalDateTime createDate;
-
 
 }

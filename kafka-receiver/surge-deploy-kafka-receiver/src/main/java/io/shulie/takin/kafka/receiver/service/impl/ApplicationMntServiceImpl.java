@@ -1,6 +1,11 @@
 package io.shulie.takin.kafka.receiver.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.nacos.api.PropertyKeyConst;
+import com.alibaba.nacos.api.config.ConfigFactory;
+import com.alibaba.nacos.api.config.ConfigService;
+import com.alibaba.nacos.api.exception.NacosException;
+import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.shulie.takin.kafka.receiver.constant.web.AppSwitchEnum;
 import io.shulie.takin.kafka.receiver.dto.web.ApplicationVo;
@@ -19,7 +24,10 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * <p>
@@ -45,8 +53,18 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
     @Resource
     private IApplicationPluginsConfigService iApplicationPluginsConfigService;
 
+    private ConfigService configService;
     @Value("${node.num:1}")
     private String nodeNum;
+
+    @Value("${nacos.server: 192.168.1.99:8848}")
+    private String nacosServer;
+    @Value("${nacos.namespace:}")
+    private String nacosNamespace;
+    @Value("${nacos.username:}")
+    private String nacosUsername;
+    @Value("${nacos.passwoed:}")
+    private String nacosPassword;
 
     private Snowflake snowflake;
 
@@ -105,6 +123,24 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         addApplicationToLinkDetection(applicationMnt);
         //应用自动上报需要设置插件管理的redis影子key默认值
         addPluginsConfig(applicationMnt);
+
+        Map<String, Object> configs = new HashMap<>();
+        configs.put("datasource", null);
+        configs.put("job", null);
+        configs.put("mq", null);
+        configs.put("whitelist", null);
+        configs.put("hbase", null);
+        configs.put("redis", null);
+        configs.put("es", null);
+        configs.put("mock", null);
+        configs.put("trace_rule", new HashMap<>());
+        configs.put("dynamic_config", new HashMap<>());
+
+        try {
+            configService.publishConfig(param.getApplicationName(), "APP", new Gson().toJson(configs));
+        } catch (NacosException e) {
+            log.error("新增应用，推送nacos出现异常",e);
+        }
     }
 
     @Override
@@ -170,6 +206,7 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
     private void addApplication(ApplicationMnt tApplicationMnt, TenantCommonExt headers) {
         tApplicationMnt.setApplicationId(snowflake.next());
         tApplicationMnt.setCacheExpTime(tApplicationMnt.getCacheExpTime() == null ? 0L : tApplicationMnt.getCacheExpTime());
+        tApplicationMnt.setUserId(headers.getUserId());
         tApplicationMnt.setDeptId(headers.getDeptId());
         tApplicationMnt.setTenantId(headers.getTenantId());
         tApplicationMnt.setEnvCode(headers.getEnvCode());
@@ -205,5 +242,18 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
     @Override
     public void afterPropertiesSet() throws Exception {
         snowflake = new Snowflake(Integer.parseInt(nodeNum));
+
+        Properties properties = new Properties();
+        properties.put(PropertyKeyConst.SERVER_ADDR, nacosServer);
+        if (StringUtils.isNotBlank(nacosNamespace)) {
+            properties.put(PropertyKeyConst.NAMESPACE, nacosNamespace);
+        }
+        if (StringUtils.isNotBlank(nacosUsername)) {
+            properties.put(PropertyKeyConst.USERNAME, nacosUsername);
+        }
+        if (StringUtils.isNotBlank(nacosPassword)) {
+            properties.put(PropertyKeyConst.PASSWORD, nacosPassword);
+        }
+        configService = ConfigFactory.createConfigService(properties);
     }
 }
