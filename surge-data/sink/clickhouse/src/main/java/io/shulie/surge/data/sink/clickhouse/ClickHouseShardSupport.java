@@ -15,6 +15,7 @@
 
 package io.shulie.surge.data.sink.clickhouse;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
@@ -157,6 +158,18 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         }
     }
 
+    /**
+     * 同步批量更新
+     * @param sql
+     * @param shardBatchArgs
+     */
+    public synchronized void syncBatchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
+        Map<String, List<Object[]>> shardBatchArgsMap = shardBatchArgs(shardBatchArgs);
+        for (Map.Entry<String, List<Object[]>> entry : shardBatchArgsMap.entrySet()) {
+            this.shardJdbcTemplate(entry.getKey()).batchUpdate(sql, Lists.newArrayList(entry.getValue()));
+        }
+    }
+
     private JdbcTemplate shardJdbcTemplate(String key) {
         return shardJdbcTemplateMap.get(key);
     }
@@ -227,5 +240,28 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
             throw new RuntimeException("clickhouse url is null");
         }
         return urls.stream().map(var -> var.substring(var.indexOf("//") + 2, var.lastIndexOf(":"))).collect(Collectors.toSet());
+    }
+
+    public void insert(Map<String, Object> map, String key, String tableName) {
+        if (org.springframework.util.CollectionUtils.isEmpty(map)){
+            logger.warn("入参为空，不能插入数据");
+            return;
+        }
+        if (StringUtils.isBlank(tableName)){
+            logger.warn("表名为空，不能插入数据");
+            return;
+        }
+        String cols = Joiner.on(',').join(map.keySet());
+        List<String> params = new ArrayList<>();
+        for (String field : map.keySet()) {
+            params.add("?");
+        }
+        String param = Joiner.on(',').join(params);
+        String sql = "insert into " + tableName + " (" + cols + ") values(" + param + ") ";
+        List<Object[]> batchs = Lists.newArrayList();
+        batchs.add(map.values().toArray());
+        Map<String, List<Object[]>> objMap = Maps.newHashMap();
+        objMap.put(key, batchs);
+        this.batchUpdate(sql, objMap);
     }
 }

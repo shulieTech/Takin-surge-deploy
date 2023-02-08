@@ -8,6 +8,7 @@ import io.shulie.surge.data.common.aggregation.metrics.CallStat;
 import io.shulie.surge.data.common.aggregation.metrics.Metric;
 import io.shulie.surge.data.deploy.pradar.model.AmdbAppModel;
 import io.shulie.surge.data.deploy.pradar.model.AmdbAppRelationModel;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 import io.shulie.surge.data.sink.influxdb.InfluxDBSupport;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -24,18 +25,18 @@ import java.util.stream.Collectors;
 public class AppRelationTraceCommitAction implements Aggregation.CommitAction<Metric, CallStat> {
     private static Logger logger = LoggerFactory.getLogger(AppRelationTraceCommitAction.class);
 
-    private InfluxDBSupport influxDbSupport;
     private MysqlSupport mysqlSupport;
     private String appInsertSql;
     private String appRelationInsertSql;
+    private ClickHouseShardSupport clickHouseShardSupport;
 
     public AppRelationTraceCommitAction(String appInsertSql,
-                                    String appRelationInsertSql,
-                                    InfluxDBSupport influxDbSupport,
-                                    MysqlSupport mysqlSupport) {
+                                        String appRelationInsertSql,
+                                        ClickHouseShardSupport clickHouseShardSupport,
+                                        MysqlSupport mysqlSupport) {
         this.appInsertSql = appInsertSql;
         this.appRelationInsertSql = appRelationInsertSql;
-        this.influxDbSupport = influxDbSupport;
+        this.clickHouseShardSupport = clickHouseShardSupport;
         this.mysqlSupport = mysqlSupport;
     }
 
@@ -52,9 +53,6 @@ public class AppRelationTraceCommitAction implements Aggregation.CommitAction<Me
                 String metricsId = metric.getMetricId();
                 String[] tags = metric.getPrefixes();
 
-                Map<String, String> influxdbTags = Maps.newHashMap();
-                influxdbTags.put("fromAppName", tags[0]);
-                influxdbTags.put("toAppName", tags[1]);
                 // 总次数/成功次数/totalRt/错误次数/totalQps
                 Map<String, Object> fields = Maps.newHashMap();
                 fields.put("totalCount", callStat.get(0));
@@ -62,8 +60,12 @@ public class AppRelationTraceCommitAction implements Aggregation.CommitAction<Me
                 fields.put("totalRt", callStat.get(2));
                 fields.put("errorCount", callStat.get(3));
                 fields.put("totalQps", callStat.get(4));
-                // 写入influxDB
-                influxDbSupport.write("pradar", metricsId, influxdbTags, fields, slotKey * 1000);
+                fields.put("fromAppName", tags[0]);
+                fields.put("toAppName", tags[1]);
+                fields.put("time", System.currentTimeMillis());
+                String tableName = clickHouseShardSupport.isCluster() ? metricsId : metricsId + "_all";
+                // 写入clickhouse
+                clickHouseShardSupport.insert(fields, tags[0], tableName);
 
                 AmdbAppModel fromApp = new AmdbAppModel(tags[0], tags[2]);
                 AmdbAppModel toApp = new AmdbAppModel(tags[1], tags[3]);
@@ -77,7 +79,7 @@ public class AppRelationTraceCommitAction implements Aggregation.CommitAction<Me
             mysqlSupport.batchUpdate(appInsertSql, appSet.stream().map(AmdbAppModel::getValues).collect(Collectors.toList()));
             mysqlSupport.batchUpdate(appRelationInsertSql, appRelationSet.stream().map(AmdbAppRelationModel::getValues).collect(Collectors.toList()));
         } catch (Throwable e) {
-            logger.error("write fail influxdb " + ExceptionUtils.getStackTrace(e));
+            logger.error("write fail clickhouse " + ExceptionUtils.getStackTrace(e));
         }
     }
 }

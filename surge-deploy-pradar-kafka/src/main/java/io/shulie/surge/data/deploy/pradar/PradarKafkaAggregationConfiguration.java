@@ -7,6 +7,7 @@ import io.shulie.surge.data.deploy.pradar.config.PradarModule;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.remote.impl.RemoteNacosModule;
 import io.shulie.surge.data.runtime.module.NacosClientModule;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseShardModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
 
@@ -53,7 +54,7 @@ public class PradarKafkaAggregationConfiguration extends PradarAggregationConfig
         securityProtocol = bootstrap.getProperties().getProperty("security.protocol", "SASL_PLAINTEXT");
         saslMechanism = bootstrap.getProperties().getProperty("sasl.mechanism", "PLAIN");
         saslJaasConfig = bootstrap.getProperties().getProperty("sasl.jaas.config", "");
-        bootstrap.install(new PradarModule(0), new InfluxDBModule(), new MysqlModule(), new NacosClientModule(), new RemoteNacosModule());
+        bootstrap.install(new PradarModule(0), new ClickHouseShardModule(), new MysqlModule(), new NacosClientModule(), new RemoteNacosModule());
     }
 
     /**

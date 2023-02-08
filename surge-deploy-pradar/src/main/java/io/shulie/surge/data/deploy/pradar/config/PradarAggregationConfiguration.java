@@ -27,6 +27,7 @@ import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.runtime.common.remote.impl.RemoteZkModule;
 import io.shulie.surge.data.runtime.module.ZooKeeperClientModule;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBSupport;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
@@ -58,6 +59,7 @@ public class PradarAggregationConfiguration extends AbstractPradarConfiguration 
 
     private InfluxDBSupport influxDbSupport;
     private MysqlSupport mysqlSupport;
+    private ClickHouseShardSupport clickHouseShardSupport;
 
     private String metricsDataBase = "pradar";
 
@@ -103,7 +105,8 @@ public class PradarAggregationConfiguration extends AbstractPradarConfiguration 
     public void doAfterInit(DataRuntime dataRuntime) {
         try {
             Injector injector = dataRuntime.getInstance(Injector.class);
-            influxDbSupport = injector.getInstance(InfluxDBSupport.class);
+//            influxDbSupport = injector.getInstance(InfluxDBSupport.class);
+            clickHouseShardSupport = injector.getInstance(ClickHouseShardSupport.class);
             mysqlSupport = injector.getInstance(MysqlSupport.class);
             Scheduler scheduler = new Scheduler(receivers.size());
             if (receivers.contains("metrics")) {
@@ -188,7 +191,7 @@ public class PradarAggregationConfiguration extends AbstractPradarConfiguration 
         scheduler = new Scheduler(1);
         Aggregation aggregation = new Aggregation(PradarRtConstant.REDUCE_TRACE_SECONDS_INTERVAL,
                 PradarRtConstant.REDUCE_TRACE_SECONDS_LOWER_LIMIT);
-        aggregation.start(scheduler, new E2EMetricsCommitAction(influxDbSupport, metricsDataBase));
+        aggregation.start(scheduler, new E2EMetricsCommitAction(clickHouseShardSupport));
         return aggregation;
     }
 
@@ -200,7 +203,7 @@ public class PradarAggregationConfiguration extends AbstractPradarConfiguration 
     private Aggregation initTraceMetricsAggregation(Scheduler scheduler) {
         Aggregation aggregation = new Aggregation(PradarRtConstant.REDUCE_TRACE_SECONDS_INTERVAL,
                 PradarRtConstant.REDUCE_TRACE_SECONDS_LOWER_LIMIT);
-        aggregation.start(scheduler, new TraceMetricsCommitAction(influxDbSupport));
+        aggregation.start(scheduler, new TraceMetricsCommitAction(clickHouseShardSupport));
         return aggregation;
 
     }
@@ -213,7 +216,7 @@ public class PradarAggregationConfiguration extends AbstractPradarConfiguration 
     private Aggregation initAppRelationAggregation(Scheduler scheduler) {
         Aggregation aggregation = new Aggregation(PradarRtConstant.REDUCE_TRACE_SECONDS_INTERVAL, PradarRtConstant.REDUCE_TRACE_SECONDS_LOWER_LIMIT);
         aggregation.start(scheduler, new AppRelationTraceCommitAction(this.appInsertSql,
-                this.appRelationInsertSql, influxDbSupport, mysqlSupport));
+                this.appRelationInsertSql, clickHouseShardSupport, mysqlSupport));
         return aggregation;
 
     }
@@ -226,7 +229,7 @@ public class PradarAggregationConfiguration extends AbstractPradarConfiguration 
     private Aggregation initMetricsAggregation(Scheduler scheduler) {
         Aggregation aggregation = new Aggregation(PradarRtConstant.REDUCE_TRACE_SECONDS_INTERVAL,
                 PradarRtConstant.REDUCE_TRACE_SECONDS_LOWER_LIMIT);
-        aggregation.start(scheduler, new MetricsCommitAction(influxDbSupport));
+        aggregation.start(scheduler, new MetricsCommitAction(clickHouseShardSupport));
         return aggregation;
     }
 
