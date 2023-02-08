@@ -1,0 +1,32 @@
+server:
+  port: 83
+spring:
+  redis:
+    host: redis-svc
+    port: 6379
+    password: RUwbLd*q0^6
+  datasource:
+    web:
+      username: stresstest
+      password: ca$hc0Wa
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://10.125.131.12:4416/trodb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true
+    cloud:
+      username: stresstest
+      password: ca$hc0Wa
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://10.125.131.12:4416/crank?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true
+    amdb:
+      username: stresstest
+      password: ca$hc0Wa
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://10.125.131.12:4416/amdb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=GMT%2B8
+config:
+  clickhouse:
+    url: jdbc:clickhouse://10.125.131.12:48126,10.125.131.12:48124,10.125.131.12:48125/aiops_shard_m
+    userName: stresstest
+    password: ca$hc0Wa
+performance:
+  base:
+    agent:
+      frequency: 1
