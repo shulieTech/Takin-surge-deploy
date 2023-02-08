@@ -287,4 +287,16 @@
         </plugins>
     </build>
 
+    <distributionManagement>
+        <repository>
+            <id>releases</id>
+            <name>releases</name>
+            <url>http://ccp.tianti.tg.unicom.local/artifactory/tyhxyf-maven-releases-local</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>snapshots</name>
+            <url>http://ccp.tianti.tg.unicom.local/artifactory/tyhxyf-maven-snapshots-local</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>
