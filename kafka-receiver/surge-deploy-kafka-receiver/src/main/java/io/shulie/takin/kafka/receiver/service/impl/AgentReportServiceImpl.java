@@ -39,7 +39,8 @@ public class AgentReportServiceImpl extends ServiceImpl<AgentReportMapper, Agent
     private IApplicationMntService iApplicationMntService;
     @Resource
     private IApplicationPluginUpgradeService iApplicationPluginUpgradeService;
-
+    @Resource
+    private AgentReportMapper agentReportMapper;
     @Override
     public void dealMessage(String message, TenantCommonExt dealHeader) {
         AgentHeartbeatRequest commandRequest = JSONObject.parseObject(message, AgentHeartbeatRequest.class);
@@ -115,7 +116,7 @@ public class AgentReportServiceImpl extends ServiceImpl<AgentReportMapper, Agent
 
     private void saveHeartbeatData(AgentReport agentReport) {
 
-        this.save(agentReport);
+        agentReportMapper.insertOrUpdate(agentReport);
     }
 
 }
