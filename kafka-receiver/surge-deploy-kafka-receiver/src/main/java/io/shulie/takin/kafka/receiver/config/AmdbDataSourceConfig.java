@@ -52,8 +52,8 @@ public class AmdbDataSourceConfig {
         MybatisSqlSessionFactoryBean bean = new MybatisSqlSessionFactoryBean();
         bean.setDataSource(dataSource);
         // 设置Mybatis全局配置路径
-        bean.setMapperLocations(
-                new PathMatchingResourcePatternResolver().getResources("classpath*:amdb/mapper/*.xml"));
+//        bean.setMapperLocations(
+//                new PathMatchingResourcePatternResolver().getResources("classpath*:amdb/mapper/*.xml"));
         return bean.getObject();
     }
 

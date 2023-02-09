@@ -49,8 +49,8 @@ public class CloudDataSourceConfig {
         MybatisSqlSessionFactoryBean bean = new MybatisSqlSessionFactoryBean();
         bean.setDataSource(dataSource);
         // 设置Mybatis全局配置路径
-        bean.setMapperLocations(
-                new PathMatchingResourcePatternResolver().getResources("classpath*:cloud/mapper/*.xml"));
+//        bean.setMapperLocations(
+//                new PathMatchingResourcePatternResolver().getResources("classpath*:cloud/mapper/*.xml"));
         return bean.getObject();
     }
 
