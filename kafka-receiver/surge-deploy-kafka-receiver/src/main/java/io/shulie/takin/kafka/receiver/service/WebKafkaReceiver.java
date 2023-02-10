@@ -120,6 +120,7 @@ public class WebKafkaReceiver implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) throws Exception {
         ScheduledExecutorService kafkaReceivePool = Executors.newScheduledThreadPool(10, new NamedThreadFactory("web_kafka_receive", true));
+        ScheduledExecutorService kafkaDealPool = Executors.newScheduledThreadPool(10, new NamedThreadFactory("web_kafka_deal", true));
 
         log.info("web开始kafka消息监听");
         kafkaReceivePool.execute(() -> {
@@ -255,7 +256,9 @@ public class WebKafkaReceiver implements ApplicationRunner {
                 @Override
                 public void success(MessageEntity messageEntity) {
                     log.info("接收到新增应用消息" + JSON.toJSONString(messageEntity.getBody()));
-                    iApplicationMntService.dealAddApplicationMessage(JSON.toJSONString(messageEntity.getBody()), dealHeader(messageEntity.getHeaders()));
+                    kafkaDealPool.execute(() -> {
+                        iApplicationMntService.dealAddApplicationMessage(JSON.toJSONString(messageEntity.getBody()), dealHeader(messageEntity.getHeaders()));
+                    });
                 }
 
                 @Override
