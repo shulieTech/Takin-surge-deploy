@@ -1,4 +1,5 @@
 package io.shulie.takin.kafka.receiver.service.impl;
+import java.time.LocalDateTime;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -52,6 +53,9 @@ public class AgentReportServiceImpl extends ServiceImpl<AgentReportMapper, Agent
 
         AgentReport agentReport = new AgentReport();
         agentReport.setApplicationId(application.getApplicationId());
+        agentReport.setApplicationName(application.getApplicationName());
+        agentReport.setTenantId(dealHeader.getTenantId());
+        agentReport.setEnvCode(dealHeader.getEnvCode());
         BeanUtils.copyProperties(commandRequest, agentReport);
 
         // 获取节点当前状态
