@@ -63,7 +63,7 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
     private String nacosNamespace;
     @Value("${nacos.username:}")
     private String nacosUsername;
-    @Value("${nacos.passwoed:}")
+    @Value("${nacos.password:}")
     private String nacosPassword;
 
     private Snowflake snowflake;

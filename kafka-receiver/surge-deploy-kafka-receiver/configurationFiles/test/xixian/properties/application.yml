@@ -26,6 +26,11 @@ config:
     url: jdbc:clickhouse://10.125.131.12:48126,10.125.131.12:48124,10.125.131.12:48125/aiops_shard_m
     userName: stresstest
     password: ca$hc0Wa
+nacos:
+  server: 10.125.131.12:18848
+  namespace: stresstest
+  username: stresstest
+  password: ca$hc0Wa
 performance:
   base:
     agent:

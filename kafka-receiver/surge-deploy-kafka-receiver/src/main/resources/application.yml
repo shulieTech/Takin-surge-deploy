@@ -28,6 +28,11 @@ config:
     password: rU4zGjA/
     enableRound: true
     batchCount: 100
+nacos:
+  server: 10.125.131.12:18848
+  namespace: stresstest
+  username: stresstest
+  password: ca$hc0Wa
 performance:
   base:
     agent:
