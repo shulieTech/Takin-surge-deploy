@@ -160,13 +160,34 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
 
     /**
      * 同步批量更新
+     *
      * @param sql
      * @param shardBatchArgs
      */
     public synchronized void syncBatchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
+        int max = Math.max(urls.size(), 3);
         Map<String, List<Object[]>> shardBatchArgsMap = shardBatchArgs(shardBatchArgs);
         for (Map.Entry<String, List<Object[]>> entry : shardBatchArgsMap.entrySet()) {
-            this.shardJdbcTemplate(entry.getKey()).batchUpdate(sql, Lists.newArrayList(entry.getValue()));
+            int count = 0;
+            String shardJdbcUrl = entry.getKey();
+            while (count < max) {
+                try {
+                    this.shardJdbcTemplate(shardJdbcUrl).batchUpdate(sql, Lists.newArrayList(entry.getValue()));
+                    break;
+                } catch (Throwable e) {
+                    logger.warn("执行clickhouse批量更新异常,当前执行次数:{}", count, e);
+                    shardJdbcUrl = urls.get(count % urls.size());
+                    count++;
+                    if (count >= max) {
+                        logger.error("执行clickhouse批量更新异常,超过最大重试次数:{}", count, e);
+                    }
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(10L);
+                    } catch (InterruptedException interruptedException) {
+                        interruptedException.printStackTrace();
+                    }
+                }
+            }
         }
     }
 
@@ -243,11 +264,11 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
     }
 
     public void insert(Map<String, Object> map, String key, String tableName) {
-        if (org.springframework.util.CollectionUtils.isEmpty(map)){
+        if (org.springframework.util.CollectionUtils.isEmpty(map)) {
             logger.warn("入参为空，不能插入数据");
             return;
         }
-        if (StringUtils.isBlank(tableName)){
+        if (StringUtils.isBlank(tableName)) {
             logger.warn("表名为空，不能插入数据");
             return;
         }
