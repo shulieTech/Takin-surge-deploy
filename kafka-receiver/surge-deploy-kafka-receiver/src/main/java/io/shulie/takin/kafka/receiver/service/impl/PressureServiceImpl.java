@@ -87,7 +87,7 @@ public class PressureServiceImpl extends ServiceImpl<PressureMapper, Pressure> i
                 metricsInfos.size(), timestamp, (System.currentTimeMillis() - timestamp));
         // 回调数据
         iPressureExampleService.onHeartbeat(pressureExampleId);
-        // 写入InfluxDB
+        // 写入Clickhouse
         collectorToClickhouse(pressureId, filterData);
     }
 
@@ -109,7 +109,7 @@ public class PressureServiceImpl extends ServiceImpl<PressureMapper, Pressure> i
             }
         });
         List<EngineMetrics> engineMetricsList = metricsInfoList.stream().map(metrics -> {
-            //处理时间戳-纳秒转成毫秒，防止插入influxdb报错
+            //处理时间戳-纳秒转成毫秒，防止插入clickhouse报错
             if (Objects.nonNull(metrics.getTimestamp()) && metrics.getTimestamp() > MAX_ACCEPT_TIMESTAMP) {
                 metrics.setTime(metrics.getTimestamp() / 1000000);
                 metrics.setTimestamp(metrics.getTimestamp() / 1000000);
@@ -156,6 +156,7 @@ public class PressureServiceImpl extends ServiceImpl<PressureMapper, Pressure> i
             batchs.add(map.values().toArray());
         });
         objMap.put(engineMetrics.getJobId(), batchs);
+        log.info("写入clickhouse sql为:{}, 参数为:{}", sql, JsonHelper.bean2Json(objMap));
         clickHouseShardSupport.syncBatchUpdate(sql, objMap);
 
         try {
