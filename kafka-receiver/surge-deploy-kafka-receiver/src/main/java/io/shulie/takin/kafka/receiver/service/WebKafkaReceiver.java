@@ -119,7 +119,7 @@ public class WebKafkaReceiver implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        ScheduledExecutorService kafkaReceivePool = Executors.newScheduledThreadPool(12, new NamedThreadFactory("web_kafka_receive", true));
+        ScheduledExecutorService kafkaReceivePool = Executors.newScheduledThreadPool(10, new NamedThreadFactory("web_kafka_receive", true));
 
         log.info("web开始kafka消息监听");
         kafkaReceivePool.execute(() -> {
