@@ -61,42 +61,42 @@ public class MBGTest {
         // 获取项目路径
         String projectPath = System.getProperty("user.dir");
         // 全局配置
-//        GlobalConfig gc = GeneratorBuilder.globalConfigBuilder()
-//                .fileOverride().openDir(false)
-//                .outputDir(projectPath + "/src/main/java")
-//                .author("zhaoyong")
-//                .enableSwagger()
-//                .commentDate("yyyy-MM-dd").build();
-//
-//
-//        // 数据源配置
-////        DataSourceConfig dsc = new DataSourceConfig.Builder("jdbc:clickhouse://192.168.1.129:8123", "default", "rU4zGjA/")
-////                .dbQuery(new ClickHouseQuery()).schema("default").build();
-//        DataSourceConfig dsc = new DataSourceConfig.Builder("jdbc:mysql://192.168.1.129:3306/trodb_combine_225","root", "shulie@2020")
-//                .dbQuery(new MySqlQuery()).build();
-//
-//
-//        // 包配置
-//        PackageConfig pc = GeneratorBuilder.packageConfigBuilder().parent("io.shulie.takin.kafka.receiver").build();
-//
-//        // 策略配置
-//        StrategyConfig strategy = GeneratorBuilder.strategyConfigBuilder()
-//                .addInclude("t_scene_manage")
-//                .addTablePrefix("t_")
-//                .controllerBuilder().enableHyphenStyle()
-//                .entityBuilder()
-//                .naming(NamingStrategy.underline_to_camel)
-//                .columnNaming(NamingStrategy.underline_to_camel)
-//                .versionColumnName("version").logicDeleteColumnName("isDelete")
-//                .enableLombok()
-//                .build();
-//
-//        TemplateConfig templateConfig = GeneratorBuilder.templateConfigBuilder().build();
-//
-//        // 代码生成器
-//        AutoGenerator mpg = new AutoGenerator(dsc).global(gc).strategy(strategy).template(templateConfig).packageInfo(pc);
-//
-//        mpg.execute(new FreemarkerTemplateEngine());
+        GlobalConfig gc = GeneratorBuilder.globalConfigBuilder()
+                .fileOverride().openDir(false)
+                .outputDir(projectPath + "/src/main/java")
+                .author("zhaoyong")
+                .enableSwagger()
+                .commentDate("yyyy-MM-dd").build();
+
+
+        // 数据源配置
+//        DataSourceConfig dsc = new DataSourceConfig.Builder("jdbc:clickhouse://192.168.1.129:8123", "default", "rU4zGjA/")
+//                .dbQuery(new ClickHouseQuery()).schema("default").build();
+        DataSourceConfig dsc = new DataSourceConfig.Builder("jdbc:mysql://192.168.1.129:3306/trodb_combine_225","root", "shulie@2020")
+                .dbQuery(new MySqlQuery()).build();
+
+
+        // 包配置
+        PackageConfig pc = GeneratorBuilder.packageConfigBuilder().parent("io.shulie.takin.kafka.receiver").build();
+
+        // 策略配置
+        StrategyConfig strategy = GeneratorBuilder.strategyConfigBuilder()
+                .addInclude("t_application_ds_warn")
+                .addTablePrefix("t_")
+                .controllerBuilder().enableHyphenStyle()
+                .entityBuilder()
+                .naming(NamingStrategy.underline_to_camel)
+                .columnNaming(NamingStrategy.underline_to_camel)
+                .versionColumnName("version").logicDeleteColumnName("isDelete")
+                .enableLombok()
+                .build();
+
+        TemplateConfig templateConfig = GeneratorBuilder.templateConfigBuilder().build();
+
+        // 代码生成器
+        AutoGenerator mpg = new AutoGenerator(dsc).global(gc).strategy(strategy).template(templateConfig).packageInfo(pc);
+
+        mpg.execute(new FreemarkerTemplateEngine());
     }
 
 }

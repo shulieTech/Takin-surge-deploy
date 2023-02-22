@@ -55,6 +55,8 @@ public class WebKafkaReceiver implements ApplicationRunner {
     private ITroDeptService iTroDeptService;
     @Resource
     private IPerformanceThreadDataService iPerformanceThreadDataService;
+    @Resource
+    private IApplicationDsWarnService iApplicationDsWarnService;
 
     private Map<String, TenantInfo> tenantAppKeyMap = new HashMap<>();
     private Map<String, TroDept> deptMap = new HashMap<>();
@@ -119,7 +121,7 @@ public class WebKafkaReceiver implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        ScheduledExecutorService kafkaReceivePool = Executors.newScheduledThreadPool(10, new NamedThreadFactory("web_kafka_receive", true));
+        ScheduledExecutorService kafkaReceivePool = Executors.newScheduledThreadPool(11, new NamedThreadFactory("web_kafka_receive", true));
         ScheduledExecutorService kafkaDealPool = Executors.newScheduledThreadPool(10, new NamedThreadFactory("web_kafka_deal", true));
 
         log.info("web开始kafka消息监听");
@@ -274,6 +276,24 @@ public class WebKafkaReceiver implements ApplicationRunner {
                 @Override
                 public void success(MessageEntity messageEntity) {
                     iAgentReportService.dealMessage(JSON.toJSONString(messageEntity.getBody()), dealHeader(messageEntity.getHeaders()));
+                }
+
+                @Override
+                public void fail(String errorMessage) {
+                    log.error("agent应用接口，接收kafka消息失败:{}", errorMessage);
+                }
+            });
+        });
+
+        kafkaReceivePool.execute(() -> {
+            MessageReceiveService messageReceiveService = new KafkaSendServiceFactory().getKafkaMessageReceiveInstance();
+            messageReceiveService.receive(ListUtil.of("stress-test-api-link-ds-config-check"), new MessageReceiveCallBack() {
+                @Override
+                public void success(MessageEntity messageEntity) {
+                    if (CollectionUtil.isNotEmpty(messageEntity.getBody()) && messageEntity.getBody().get("content") != null) {
+                        iApplicationDsWarnService.dealMessage(messageEntity.getBody().get("content").toString(), dealHeader(messageEntity.getHeaders()));
+                    }
+
                 }
 
                 @Override

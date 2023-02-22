@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.shulie.takin.kafka.receiver.dao.web.ApplicationDsWarnMapper">
+
+    <insert id="insertOrUpdate" parameterType="io.shulie.takin.kafka.receiver.entity.ApplicationDsWarn">
+        INSERT INTO t_application_ds_warn (app_name, agent_id, check_interval, status, check_time, check_url,
+                                    check_user, error_msg, host_ip, tenant_id, env_code)
+            VALUE (#{appName}, #{agentId}, #{checkInterval}, #{status}, #{checkTime},
+            #{checkUrl}, #{checkUser}, #{errorMsg}, #{hostIp}, #{tenantId},#{envCode})
+        ON DUPLICATE KEY
+        UPDATE check_interval = #{checkInterval},
+            status = #{status},
+            check_time = #{checkTime},
+            error_msg = #{errorMsg},
+            host_ip = #{hostIp},
+            update_time = now()
+    </insert>
+</mapper>
