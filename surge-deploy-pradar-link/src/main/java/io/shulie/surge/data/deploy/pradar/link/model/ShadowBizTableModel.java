@@ -29,6 +29,10 @@ public class ShadowBizTableModel extends LinkPublicModel {
     // 唯一键(md5(appName,dataSource,tableUser,tableUser))
     private String uniqueKey;
 
+    private int canRead;
+
+    private int canWrite;
+
     public static String getCols() {
         return "(app_name,data_source,biz_database,table_user,table_name,unique_key,gmt_create,gmt_modify,user_app_key,env_code)";
     }
@@ -84,6 +88,22 @@ public class ShadowBizTableModel extends LinkPublicModel {
 
     public void setTableName(String tableName) {
         this.tableName = tableName;
+    }
+
+    public int getCanRead() {
+        return canRead;
+    }
+
+    public void setCanRead(int canRead) {
+        this.canRead = canRead;
+    }
+
+    public int getCanWrite() {
+        return canWrite;
+    }
+
+    public void setCanWrite(int canWrite) {
+        this.canWrite = canWrite;
     }
 
     public String getUniqueKey() {

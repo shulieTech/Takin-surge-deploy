@@ -15,6 +15,7 @@
 
 package io.shulie.surge.data.deploy.pradar.link.processor;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -75,7 +76,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
 
     // 查询 数据库、缓存、搜索、文件 等类型的 且 attachment不为空 的业务trace
     private static final String QUERY_SQL =
-            "select appName,rpcType,parsedMethod,parsedMiddlewareName as middlewareName,flagMessage,userAppKey,envCode "
+            "select appName,rpcType,parsedMethod,parsedMiddlewareName as middlewareName,flagMessage,userAppKey,envCode,callbackMsg "
                     + "from t_trace_all where rpcType in ('" + ANALYSIS_RPC_TYPE + "') and startDate >= '%s' "
                     + "and appName = '%s' and userAppKey = '%s' and envCode = '%s' "
                     + "and clusterTest = '0' and flagMessage is not null and flagMessage != ''";
@@ -179,6 +180,10 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
                 }
                 if (CollectionUtils.isNotEmpty(bizTableModel)) {
                     bizTableModel.forEach(model -> {
+                        if (StringUtils.isNotBlank(traceModel.getCallbackMsg())){
+                            model.setCanRead(traceModel.getCallbackMsg().trim().startsWith("select") ? 1 : 0);
+                            model.setCanWrite(traceModel.getCallbackMsg().trim().startsWith("select") ? 0 : 1);
+                        }
                         model.setUserAppKey(userAppKey);
                         model.setEnvCode(envCode);
                     });
@@ -213,11 +218,20 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     private void uniqueSaveBizTable(List<ShadowBizTableModel> bizTableModelList) {
         if (CollectionUtils.isNotEmpty(bizTableModelList)) {
             Set<String> uniqueKeySet = new HashSet<>();
+            Set<String> canReadSet = new HashSet<>();
+            Set<String> canWriteSet = new HashSet<>();
             bizTableModelList = bizTableModelList.stream().filter(model -> {
                 String uniqueKey = model.generateUniqueIndex();
                 boolean isUnique = uniqueKeySet.add(uniqueKey);
+                String md5 = Md5Utils.md5(uniqueKey);
                 if (isUnique) {
-                    model.setUniqueKey(Md5Utils.md5(uniqueKey));
+                    model.setUniqueKey(md5);
+                }
+                if (model.getCanRead() == 1){
+                    canReadSet.add(md5);
+                }
+                if (model.getCanWrite() == 1){
+                    canWriteSet.add(md5);
                 }
                 return isUnique;
             }).collect(Collectors.toList());
@@ -226,7 +240,27 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
             if (logger.isDebugEnabled()) {
                 logger.debug("ShadowDatabaseProcessor save is ok. bizTableSize：[{}]", bizTableModelList.size());
             }
+            if (CollectionUtils.isNotEmpty(canReadSet)){
+                ArrayList<String> params = new ArrayList<>(canReadSet);
+                String updateShadowBizTableReadSql = "update t_amdb_app_shadowbiztable set can_read = 1 where unique_key in ( %s )";
+                String sql = String.format(updateShadowBizTableReadSql, this.getParams(params));
+                mysqlSupport.update(sql, params.toArray());
+            }
+            if (CollectionUtils.isNotEmpty(canWriteSet)){
+                ArrayList<String> params = new ArrayList<>(canWriteSet);
+                String updateShadowBizTableWriteSql = "update t_amdb_app_shadowbiztable set can_write = 1 where unique_key in ( %s )";
+                String sql = String.format(updateShadowBizTableWriteSql, this.getParams(params));
+                mysqlSupport.update(sql, params.toArray());
+            }
         }
+    }
+
+    private String getParams(List<String> list){
+        List<String> params = new ArrayList<>();
+        for (String s : list){
+            params.add("?");
+        }
+        return Joiner.on(',').join(params);
     }
 
     // 查询对应应用的trace日志
