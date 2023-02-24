@@ -1,0 +1,37 @@
+server:
+  port: 83
+spring:
+  redis:
+    cluster:
+      nodes: 10.172.135.14:32501,10.172.135.13:32501,10.172.135.15:32503,10.172.135.20:32505,10.172.135.22:32513,10.172.135.21:32506
+    password: ca$hc0Wa
+  datasource:
+    web:
+      username: stresstest
+      password: bVmwt77qzT@$qn
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://10.172.54.140:8658/trodb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true
+    cloud:
+      username: stresstest
+      password: bVmwt77qzT@$qn
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://10.172.54.140:8658/crank?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true
+    amdb:
+      username: stresstest
+      password: bVmwt77qzT@$qn
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://10.172.54.140:8658/amdb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=GMT%2B8
+config:
+  clickhouse:
+    url: jdbc:clickhouse://10.172.54.122:48123,10.172.54.123:48123,10.172.54.124:48123,10.172.54.125:48123/aiops_shard_m
+    userName: stresstest
+    password: stresstest@Tianyan2022
+nacos:
+  server: 10.172.54.137:28848
+  namespace: stresstest
+  username: stresstest
+  password: ca$hc0Wa
+performance:
+  base:
+    agent:
+      frequency: 1

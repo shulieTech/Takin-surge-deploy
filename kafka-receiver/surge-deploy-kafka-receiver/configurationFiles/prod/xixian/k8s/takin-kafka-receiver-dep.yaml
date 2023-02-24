@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: takin-kafka-receiver
+  namespace: shulie-takin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: takin-kafka-receiver
+  template:
+    metadata:
+      labels:
+        app: takin-kafka-receiver
+    spec:
+      hostname: takin-kafka-receiver
+      containers:
+      - name: takin-kafka-receiver
+        image: harbor.dcos.xixian.unicom.local/skyeye-platform-xx-pbc/stresstest/takin-kafka-receiver:2.0.0
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: 2G
+          limits:
+            memory: 2G
+        command: ["/bin/sh","-c","java -Xmx2000m -Xms2000m -Duser.timezone=Asia/Shanghai -Dkafka.sdk.properties.path=/data/apps/kafka-receiver/config/kafka.properties -jar /data/apps/kafka-receiver/takin-kafka-receiver.jar --properties /data/apps/kafka-receiver/config/application.yml" ]
+
