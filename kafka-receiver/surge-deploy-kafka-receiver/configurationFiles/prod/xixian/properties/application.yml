@@ -5,6 +5,13 @@ spring:
     cluster:
       nodes: 10.172.135.14:32501,10.172.135.13:32501,10.172.135.15:32503,10.172.135.20:32505,10.172.135.22:32513,10.172.135.21:32506
     password: ca$hc0Wa
+    timeout: 10000
+    jedis:
+      pool:
+        max-idle: 8
+        min-idle: 10
+        max-active: 100
+        max-wait: -1
   datasource:
     web:
       username: stresstest
