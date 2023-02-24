@@ -267,6 +267,9 @@ public class EntranceProcessor extends AbstractProcessor {
                 entranceMap.put("envCode", key.split("#")[1]);
 
                 String oriServiceName = StringUtil.formatString(entranceMap.get("serviceName"));
+                if (oriServiceName.endsWith("/")){
+                    oriServiceName = oriServiceName.substring(0, oriServiceName.length() -1);
+                }
                 String oriMethodName = StringUtil.formatString(entranceMap.get("methodName"));
                 if (oriServiceName.length() > SERVICE_LENGTH_FIELD) {
                     logger.warn("detect illegal service:{}", entranceMap);

@@ -8,6 +8,7 @@ import io.shulie.surge.data.common.utils.TimeUtils;
 import io.shulie.surge.data.deploy.pradar.common.ResponseCodeEnum;
 import io.shulie.surge.data.deploy.pradar.model.EngineDateModel;
 import io.shulie.surge.data.deploy.pradar.model.ResponseDataModel;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 import io.shulie.surge.data.sink.influxdb.InfluxDBSupport;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -22,6 +23,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * @author Sunsy
@@ -34,7 +36,7 @@ public class EngineDataWriteServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(EngineDataWriteServlet.class);
 
     @Inject
-    private InfluxDBSupport influxDbSupport;
+    private ClickHouseShardSupport clickHouseShardSupport;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -62,6 +64,7 @@ public class EngineDataWriteServlet extends HttpServlet {
                 if (StringUtils.isNotBlank(engineDateModel.getMeasurement()) && CollectionUtils.isNotEmpty(tags) && CollectionUtils.isNotEmpty(fields) && tags.size() == fields.size()) {
                     //遍历写入每一条数据
                     for (int i = 0; i <= tags.size() - 1; i++) {
+                        Map<String, Object> objectMap = fields.get(i);
                         Map<String, String> tagMap = tags.get(i);
 
                         if (!tagMap.containsKey("eventTime")) {
@@ -89,7 +92,9 @@ public class EngineDataWriteServlet extends HttpServlet {
                         tagMap.put("timeWindow5", String.valueOf(TimeUtils.getTimeWindow(eventTime, 1).getTime().getTime()));
                         tagMap.put("timeWindow10", String.valueOf(TimeUtils.getTimeWindow(eventTime, 2).getTime().getTime()));
                         tagMap.put("timeWindow30", String.valueOf(TimeUtils.getTimeWindow(eventTime, 3).getTime().getTime()));
-                        influxDbSupport.write(engineDateModel.getDatabase(), engineDateModel.getMeasurement(), tagMap, fields.get(i), eventTime);
+                        objectMap.putAll(tagMap);
+                        String tableName = clickHouseShardSupport.isCluster() ? engineDateModel.getMeasurement() : engineDateModel.getMeasurement() + "_all";
+                        clickHouseShardSupport.insert(objectMap, UUID.randomUUID().toString(), tableName);
                     }
                 } else {
                     responseDataModel.setResponseCode(ResponseCodeEnum.CODE_9996.getCode());

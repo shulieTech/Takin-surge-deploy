@@ -15,6 +15,7 @@
 
 package io.shulie.surge.data.sink.clickhouse;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
@@ -157,6 +158,39 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         }
     }
 
+    /**
+     * 同步批量更新
+     *
+     * @param sql
+     * @param shardBatchArgs
+     */
+    public synchronized void syncBatchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
+        int max = Math.max(urls.size(), 3);
+        Map<String, List<Object[]>> shardBatchArgsMap = shardBatchArgs(shardBatchArgs);
+        for (Map.Entry<String, List<Object[]>> entry : shardBatchArgsMap.entrySet()) {
+            int count = 0;
+            String shardJdbcUrl = entry.getKey();
+            while (count < max) {
+                try {
+                    this.shardJdbcTemplate(shardJdbcUrl).batchUpdate(sql, Lists.newArrayList(entry.getValue()));
+                    break;
+                } catch (Throwable e) {
+                    logger.warn("执行clickhouse批量更新异常,当前执行次数:{}", count, e);
+                    shardJdbcUrl = urls.get(count % urls.size());
+                    count++;
+                    if (count >= max) {
+                        logger.error("执行clickhouse批量更新异常,超过最大重试次数:{}", count, e);
+                    }
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(10L);
+                    } catch (InterruptedException interruptedException) {
+                        interruptedException.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
     private JdbcTemplate shardJdbcTemplate(String key) {
         return shardJdbcTemplateMap.get(key);
     }
@@ -227,5 +261,28 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
             throw new RuntimeException("clickhouse url is null");
         }
         return urls.stream().map(var -> var.substring(var.indexOf("//") + 2, var.lastIndexOf(":"))).collect(Collectors.toSet());
+    }
+
+    public void insert(Map<String, Object> map, String key, String tableName) {
+        if (org.springframework.util.CollectionUtils.isEmpty(map)) {
+            logger.warn("入参为空，不能插入数据");
+            return;
+        }
+        if (StringUtils.isBlank(tableName)) {
+            logger.warn("表名为空，不能插入数据");
+            return;
+        }
+        String cols = Joiner.on(',').join(map.keySet());
+        List<String> params = new ArrayList<>();
+        for (String field : map.keySet()) {
+            params.add("?");
+        }
+        String param = Joiner.on(',').join(params);
+        String sql = "insert into " + tableName + " (" + cols + ") values(" + param + ") ";
+        List<Object[]> batchs = Lists.newArrayList();
+        batchs.add(map.values().toArray());
+        Map<String, List<Object[]>> objMap = Maps.newHashMap();
+        objMap.put(key, batchs);
+        this.batchUpdate(sql, objMap);
     }
 }

@@ -71,18 +71,22 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
             public void run() {
                 try {
                     while (true) {
-                        ConsumerRecords<String, byte[]> records = consumer.poll(pollTimeout);
-                        Iterator<ConsumerRecord<String, byte[]>> iterator = records.iterator();
-                        while (iterator.hasNext()) {
-                            ConsumerRecord<String, byte[]> record = iterator.next();
-                            String messageKey = record.key();
-                            byte[] value = record.value();
-                            ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("kryo");
-                            try {
-                                execute(NumberUtils.toLong(messageKey), objectSerializer.deserialize(value));
-                            } catch (Exception e) {
-                                logger.error("Execute aggregation error.", e);
+                        try {
+                            ConsumerRecords<String, byte[]> records = consumer.poll(pollTimeout);
+                            Iterator<ConsumerRecord<String, byte[]>> iterator = records.iterator();
+                            while (iterator.hasNext()) {
+                                ConsumerRecord<String, byte[]> record = iterator.next();
+                                String messageKey = record.key();
+                                byte[] value = record.value();
+                                ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("kryo");
+                                try {
+                                    execute(NumberUtils.toLong(messageKey), objectSerializer.deserialize(value));
+                                } catch (Exception e) {
+                                    logger.error("Execute aggregation error.", e);
+                                }
                             }
+                        } catch (Exception e){
+                            logger.error("拉取数据异常:" + e.getMessage());
                         }
                     }
                 } finally {

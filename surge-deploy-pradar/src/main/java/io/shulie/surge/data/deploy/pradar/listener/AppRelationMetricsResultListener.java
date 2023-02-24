@@ -21,8 +21,10 @@ import com.google.inject.name.Named;
 import io.shulie.surge.data.common.aggregation.DefaultAggregator;
 import io.shulie.surge.data.common.aggregation.metrics.CallStat;
 import io.shulie.surge.data.common.aggregation.metrics.Metric;
+import io.shulie.surge.data.common.utils.FormatUtils;
 import io.shulie.surge.data.deploy.pradar.common.HttpUtil;
 import io.shulie.surge.data.deploy.pradar.common.PradarRtConstant;
+import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 import io.shulie.surge.data.sink.influxdb.InfluxDBSupport;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -39,11 +41,7 @@ public class AppRelationMetricsResultListener implements DefaultAggregator.Resul
     private static Logger logger = LoggerFactory.getLogger(AppRelationMetricsResultListener.class);
 
     @Inject
-    private InfluxDBSupport influxDbSupport;
-
-    @Inject
-    @Named("config.influxdb.database.metircs")
-    private String metricsDataBase;
+    private ClickHouseShardSupport clickHouseShardSupport;
 
     @Inject
     @Named("instance.appRelationInfoSave.url")
@@ -60,11 +58,10 @@ public class AppRelationMetricsResultListener implements DefaultAggregator.Resul
             String metricsId = metric.getMetricId();
             String[] tags = metric.getPrefixes();
 
-            Map<String, String> influxdbTags = Maps.newHashMap();
-            influxdbTags.put("fromAppName", tags[0]);
-            influxdbTags.put("toAppName", tags[1]);
-            // 总次数/成功次数/totalRt/错误次数/totalQps
             Map<String, Object> fields = Maps.newHashMap();
+            fields.put("fromAppName", tags[0]);
+            fields.put("toAppName", tags[1]);
+            // 总次数/成功次数/totalRt/错误次数/totalQps
             fields.put("totalCount", callStat.get(0));
             fields.put("successCount", callStat.get(1));
             fields.put("totalRt", callStat.get(2));
@@ -78,8 +75,12 @@ public class AppRelationMetricsResultListener implements DefaultAggregator.Resul
             } else {
                 fields.put("rt", callStat.get(2) / (double) callStat.get(0));
             }
-            // 写入influxDB
-            influxDbSupport.write(metricsDataBase, metricsId, influxdbTags, fields, slotKey * 1000);
+            fields.put("log_time", FormatUtils.toDateTimeSecondString(slotKey * 1000));
+            fields.put("time", System.currentTimeMillis());
+            // 写入clickHouse
+            String tableName = clickHouseShardSupport.isCluster() ? metricsId : metricsId + "_all";
+            clickHouseShardSupport.insert(fields, tags[0], tableName);
+
             // 写入应用
             String fromAppName = tags[0];
             String toAppName = tags[1];
@@ -90,7 +91,7 @@ public class AppRelationMetricsResultListener implements DefaultAggregator.Resul
             // 写入应用关系
             saveAppRelation(fromAppName, toAppName);
         } catch (Throwable e) {
-            logger.error("write fail influxdb " + ExceptionUtils.getStackTrace(e));
+            logger.error("write fail clickHouse " + ExceptionUtils.getStackTrace(e));
         }
         return true;
     }

@@ -46,6 +46,7 @@
         <module>surge-deploy-pradar-link</module>
         <module>surge-deploy-pradar-storm</module>
         <module>surge-deploy-pradar-kafka</module>
+<!--        <module>surge-deploy-kafka-receiver</module>-->
     </modules>
 
     <dependencyManagement>
