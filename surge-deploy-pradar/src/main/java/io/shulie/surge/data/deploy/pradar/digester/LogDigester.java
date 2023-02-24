@@ -86,6 +86,9 @@ public class LogDigester implements DataDigester<RpcBased> {
         }
     }).build();
 
+
+    private static final Cache<String, Byte> pressureTraceIds = CacheBuilder.newBuilder().maximumSize(1000000).expireAfterWrite(1, TimeUnit.MINUTES).build();
+
     private transient AtomicBoolean isRunning = new AtomicBoolean(false);
 
     private ClickhouseFacade clickhouseFacade = ClickhouseFacade.Factory.getInstace();
@@ -152,7 +155,14 @@ public class LogDigester implements DataDigester<RpcBased> {
 
             // TODO 此修改支持mysql和clickhouse写入,代码不是很友好，后续剥离出来
             if (CommonStat.isUseCk(dataSourceType)) {
-
+                //对引擎trace数据进行去重
+                if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE && rpcBased.getTraceId() != null){
+                    Byte ifPresent = pressureTraceIds.getIfPresent(rpcBased.getTraceId());
+                    if (ifPresent != null){
+                        return;
+                    }
+                    pressureTraceIds.put(rpcBased.getTraceId(), (byte)1);
+                }
                 clickHouseShardSupport.batchUpdate(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, objMap);
             } else {
                 mysqlSupport.batchUpdate(sql, batchs);

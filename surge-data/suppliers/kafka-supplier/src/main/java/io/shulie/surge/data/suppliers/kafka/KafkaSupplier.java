@@ -23,9 +23,11 @@ import io.shulie.surge.data.runtime.common.ObjectSerializerFactory;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.supplier.DefaultSupplier;
 import io.shulie.surge.data.runtime.supplier.Supplier;
+import io.shulie.takin.sdk.kafka.DataType;
 import io.shulie.takin.sdk.kafka.entity.MessageEntity;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -118,12 +120,23 @@ public final class KafkaSupplier extends DefaultSupplier {
                                 if (messageEntity != null) {
                                     Map<String, Object> header = messageEntity.getHeaders();
                                     String message = null;
-                                    if (MapUtils.isNotEmpty(messageEntity.getBody()) && messageEntity.getBody().containsKey("content")) {
+                                    if (MapUtils.isNotEmpty(messageEntity.getBody()) && messageEntity.getBody().containsKey("content")
+                                            && messageEntity.getBody().get("content") != null) {
                                         message = ObjectUtils.toString(messageEntity.getBody().get("content"));
+                                    }
+                                    if (StringUtils.isBlank(message)) {
+                                        continue;
                                     }
                                     header.put("dataVersion", header.get("version"));
                                     header.put("receiveHttpTime", System.currentTimeMillis());
-                                    queue.publish(header, message);
+                                    Object dataType = header.get("dataType");
+                                    if (dataType != null && DataType.PRESSURE_ENGINE_TRACE_LOG == (byte) dataType) {
+                                        header.put("dataType", DataType.TRACE_LOG);
+                                        queue.publish(header, queue.splitLog(message, DataType.TRACE_LOG));
+                                    } else {
+                                        queue.publish(header, message);
+                                    }
+
                                 }
                             }
                         } catch (Exception e) {
