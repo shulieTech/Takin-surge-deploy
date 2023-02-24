@@ -2,11 +2,15 @@ package io.shulie.takin.kafka.receiver.service;
 
 import cn.hutool.core.collection.ListUtil;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import io.shulie.takin.kafka.receiver.dto.cloud.MetricsInfo;
+import io.shulie.takin.kafka.receiver.util.Md5Utils;
 import io.shulie.takin.sdk.kafka.MessageReceiveCallBack;
 import io.shulie.takin.sdk.kafka.MessageReceiveService;
 import io.shulie.takin.sdk.kafka.entity.MessageEntity;
 import io.shulie.takin.sdk.kafka.impl.KafkaSendServiceFactory;
+import io.shulie.takin.utils.json.JsonHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -17,6 +21,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class CloudKafkaReceiver implements ApplicationRunner {
@@ -25,6 +30,7 @@ public class CloudKafkaReceiver implements ApplicationRunner {
 
     @Resource
     private IPressureService iPressureService;
+    private static final Cache<String, Byte> metricsMd5s = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -36,6 +42,14 @@ public class CloudKafkaReceiver implements ApplicationRunner {
             messageReceiveService.receive(topics, new MessageReceiveCallBack() {
                 @Override
                 public void success(MessageEntity messageEntity) {
+                    String json = JsonHelper.bean2Json(messageEntity);
+                    String md5 = Md5Utils.md5(json);
+                    if (metricsMd5s.getIfPresent(md5) != null){
+                        log.warn("发现metricsMd5出现重复，略过当前数据:"+ json);
+                        return;
+                    }
+                    metricsMd5s.put(md5, (byte)1);
+
                     Object data = messageEntity.getBody().get("data");
                     Object jobId = messageEntity.getBody().get("jobId");
                     String dataString = JSONObject.toJSONString(data);

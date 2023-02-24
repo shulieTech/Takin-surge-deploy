@@ -1,12 +1,10 @@
 package io.shulie.takin.kafka.receiver.task;
 
-import com.alibaba.fastjson.JSONObject;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
-
 import cn.hutool.core.date.DateUnit;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 import io.shulie.takin.kafka.receiver.constant.web.CollectorConstants;
 import io.shulie.takin.kafka.receiver.constant.web.NodeTypeEnum;
@@ -16,9 +14,11 @@ import io.shulie.takin.kafka.receiver.dto.clickhouse.ClickhouseQueryRequest;
 import io.shulie.takin.kafka.receiver.dto.web.PtConfigExt;
 import io.shulie.takin.kafka.receiver.dto.web.RtDataOutput;
 import io.shulie.takin.kafka.receiver.dto.web.ScriptNode;
-import io.shulie.takin.kafka.receiver.entity.*;
+import io.shulie.takin.kafka.receiver.entity.EngineMetrics;
+import io.shulie.takin.kafka.receiver.entity.EnginePressure;
+import io.shulie.takin.kafka.receiver.entity.Report;
+import io.shulie.takin.kafka.receiver.entity.SceneManage;
 import io.shulie.takin.kafka.receiver.service.ClickhouseQueryService;
-import io.shulie.takin.kafka.receiver.service.IEnginePressureService;
 import io.shulie.takin.kafka.receiver.service.IReportService;
 import io.shulie.takin.kafka.receiver.service.ISceneManageService;
 import io.shulie.takin.kafka.receiver.util.CollectorUtil;
@@ -35,7 +35,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -98,7 +97,7 @@ public class MetricsDataDealTask {
         List<Report> list = iReportService.list(reportQueryWrapper);
         if (CollectionUtils.isNotEmpty(list)) {
             List<Report> reportList = list.stream().filter(o -> !reportIds.contains(o.getId())).collect(Collectors.toList());
-            if (CollectionUtils.isNotEmpty(reportList)){
+            if (CollectionUtils.isNotEmpty(reportList)) {
                 all.addAll(list);
             }
         }
@@ -338,7 +337,7 @@ public class MetricsDataDealTask {
             batchs.add(map.values().toArray());
         });
         objMap.put(pressure.getJobId(), batchs);
-        log.info("汇总pressure数据，本次共{}条",batchs.size());
+        log.info("汇总pressure数据，本次共{}条", batchs.size());
         clickHouseShardSupport.syncBatchUpdate(sql, objMap);
 
         //补充数据不再发送kafka
@@ -367,7 +366,7 @@ public class MetricsDataDealTask {
         return timeWindow;
     }
 
-    private Map<String, Object> getEngineMap(EnginePressure enginePressure){
+    private Map<String, Object> getEngineMap(EnginePressure enginePressure) {
         Map<String, Object> result = new HashMap<>();
         result.put("time", enginePressure.getTime());
         result.put("transaction", enginePressure.getTransaction());
@@ -394,7 +393,7 @@ public class MetricsDataDealTask {
         result.put("createDate", enginePressure.getCreateDate());
         //去掉值为null的数据
         Map<String, Object> copy = new HashMap<>();
-        result.forEach((k,v) -> {
+        result.forEach((k, v) -> {
             if (v != null) {
                 copy.put(k, v);
             }
@@ -720,7 +719,7 @@ public class MetricsDataDealTask {
                 field.put("job_id", "jobId");
                 clickhouseQueryRequest.setFieldAndAlias(field);
                 Map<String, Object> whereFilter = new HashMap<>();
-                whereFilter.put("job_id" , r.getJobId().toString());
+                whereFilter.put("job_id", r.getJobId().toString());
                 clickhouseQueryRequest.setWhereFilter(whereFilter);
                 clickhouseQueryRequest.setLimitRows(1);
                 List<EngineMetrics> EngineMetricss = clickhouseQueryService.queryObjectByConditions(clickhouseQueryRequest, EngineMetrics.class);
@@ -803,6 +802,5 @@ public class MetricsDataDealTask {
     private String getLockPrefix(String key) {
         return String.format("COLLECTOR:LOCK:%s", key);
     }
-
 
 }
