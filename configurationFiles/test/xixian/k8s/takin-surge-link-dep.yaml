@@ -23,4 +23,4 @@ spec:
             memory: 1G
           limits:
             memory: 1G
-        command: ["/bin/sh","-c","java -Xmx1020m -Xms1020m -classpath takin-surge.jar -Dswitcher.link.task=true  -Dswitcher.aggregation=true  io.shulie.surge.data.deploy.pradar.PradarKafkaBootstrap --properties /data/apps/takin-surge/deploy.properties"]
+        command: ["/bin/sh","-c","java -Xmx1020m -Xms1020m -classpath takin-surge.jar -Dswitcher.link.task=true  -Dswitcher.aggregation=true  io.shulie.surge.data.deploy.pradar.PradarKafkaBootstrap --properties /data/apps/takin-surge/deploy.properties","-javaagent","/data/apps/takin-surge/pinpoint-agent-2.0.3-tianyan/pinpoint-bootstrap.jar", "-Dpinpoint.agentId=${HOSTNAME:0-16}","-Dpinpoint.applicationName=pressure_surge_link_xixian_test","Dpinpoint.licence=1d07fa023d02d60d"]
