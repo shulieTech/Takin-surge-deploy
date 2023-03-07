@@ -78,7 +78,7 @@ public class TraceMetricsCommitAction implements Aggregation.CommitAction<Metric
                     //放入真实的sql语句
                     fields.put("sqlStatement", callStat.getSqlStatement());
                     fields.put("log_time", FormatUtils.toDateTimeSecondString(slotKey * 1000));
-                    fields.put("time", System.currentTimeMillis());
+                    fields.put("time", slotKey * 1000);
                     //华为云saas环境发现存在measurement名称非法的问题(\u001d\u001ctrace_metrics),推测是反序列化问题导致的
                     if (!metricsId.equals(PradarRtConstant.METRICS_ID_TRACE)) {
                         logger.warn("measurement is illegal:{}", metricsId);
