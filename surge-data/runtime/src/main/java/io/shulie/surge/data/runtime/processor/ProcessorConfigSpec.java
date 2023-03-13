@@ -24,9 +24,9 @@ public abstract class ProcessorConfigSpec<T extends DefaultProcessor> implements
     //执行器数量
     private int executeSize = Runtime.getRuntime().availableProcessors() * 2;
     //ringbuffer长度
-    private int ringBufferSize = 32768;
+    private int ringBufferSize = 131072;
     //ringbuffer保留率
-    private float ringBufferRemainRate = 0.2f;
+    private float ringBufferRemainRate = 0.1f;
     //执行器名称
     private String name;
 
