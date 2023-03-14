@@ -112,12 +112,15 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      */
     @Override
     public boolean canPublish(int size) {
-        if (ringBuffer.hasAvailableCapacity((int) (processorConfig.getRingBufferRemainRate() * processorConfig.getRingBufferSize()))) {
-            return true;
-        }
-        String logText = processorConfig.getName() + "ringbuffer remaining capacity:" + ringBuffer.remainingCapacity() + " total capacity:" + ringBuffer.getBufferSize();
-        logger.error(logText);
-        throw new RingBufferIllegalStateException(logText);
+//        return ringBuffer.remainingCapacity() > size + processorConfig.getRingBufferRemainRate() * processorConfig.getRingBufferSize();
+        return ringBuffer.hasAvailableCapacity((int) (processorConfig.getRingBufferRemainRate() * processorConfig.getRingBufferSize()));
+//        if (ringBuffer.hasAvailableCapacity((int) (processorConfig.getRingBufferRemainRate() * processorConfig.getRingBufferSize()))) {
+//            return true;
+//        }
+//        String logText = processorConfig.getName() + "ringbuffer remaining capacity:" + ringBuffer.remainingCapacity() + " total capacity:" + ringBuffer.getBufferSize();
+////        logger.error(logText);
+//        return false;
+//        throw new RingBufferIllegalStateException(logText);
     }
 
     /**
@@ -129,7 +132,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
     @Override
     public void publish(DigestContext<OUT> data) throws InterruptedException {
         canPublish(1);
-        if (data == null || removeDelay(null, data.getEventTime(), data.getProcessTime(), String.valueOf(data))) {
+        if (data == null) {
             return;
         }
         long seq = ringBuffer.next();
@@ -199,7 +202,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
             DigestContext<OUT> context = null;
             try {
                 context = dataParser.createContext(header, data);
-                if (context == null || removeDelay(header, context.getEventTime(), context.getProcessTime(), String.valueOf(data))) {
+                if (context == null) {
                     continue;
                 }
                 //检查延时日志
