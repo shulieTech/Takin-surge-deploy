@@ -9,7 +9,6 @@
 
 JAVA_OPTS=\
 "-Duser.timezone=Asia/Shanghai \
--agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
 -Xms3g \
 -Xmx3g"
 

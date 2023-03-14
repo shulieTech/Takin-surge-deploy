@@ -9,10 +9,11 @@
 
 JAVA_OPTS=\
 "-Duser.timezone=Asia/Shanghai \
--agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
 -Xms3g \
 -Xmx3g"
 
-java ${JAVA_OPTS} -Dkafka.sdk.properties.path=./config/kafka.properties \
--jar ./takin-kafka-receiver.jar \
---properties ./config/application.yml
+java ${JAVA_OPTS} -classpath takin-surge.jar \
+-Dswitcher.link.task=true \
+-Dswitcher.aggregation=true \
+io.shulie.surge.data.deploy.pradar.PradarKafkaBootstrap \
+--properties ./deploy.properties
