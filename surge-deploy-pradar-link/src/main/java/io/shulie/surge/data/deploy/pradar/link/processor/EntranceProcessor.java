@@ -98,10 +98,11 @@ public class EntranceProcessor extends AbstractProcessor {
 
     private Pair<String, String> getStartAndEndTime() {
         long now = System.currentTimeMillis();
+        //需要加上间隔时间，目前出口是间隔一分钟
         String startTime = DateFormatUtils.format(
-                now - DEFAULT_DELAY_TIME * 60 * 1000, "yyyy-MM-dd HH:mm:ss");
+                now - ((intervalTime.get() + 60) * 1000), "yyyy-MM-dd HH:mm:ss");
         String endTime = DateFormatUtils.format(
-                now - 5000, "yyyy-MM-dd HH:mm:ss");
+                now, "yyyy-MM-dd HH:mm:ss");
         return new Pair<>(startTime, endTime);
     }
 
