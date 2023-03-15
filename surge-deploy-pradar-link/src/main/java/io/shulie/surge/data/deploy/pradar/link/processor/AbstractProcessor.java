@@ -34,16 +34,19 @@ public abstract class AbstractProcessor implements Processor {
      */
     private long delayTime = System.currentTimeMillis();
 
-    public boolean isHandler(long intervalTime) {
+    /**
+     * 判断当前时间是否落在任务执行时间间隔内
+     * 从而说明当前任务需要执行
+     * @param intervalTime 数据时间跨度（秒）
+     * @param taskExecTimeInterval 任务执行时间间隔（秒）
+     * @return
+     */
+    public boolean isHandler(long intervalTime, long taskExecTimeInterval) {
         if (intervalTime == 0) {
             return true;
         }
         long currentTime = System.currentTimeMillis();
-        boolean flag = currentTime - delayTime > intervalTime * 1000;
-        if (flag) {
-            delayTime = currentTime;
-        }
-        return flag;
+        return currentTime % (intervalTime * 1000) < taskExecTimeInterval * 1000;
     }
 
     public String getDataSourceType() {

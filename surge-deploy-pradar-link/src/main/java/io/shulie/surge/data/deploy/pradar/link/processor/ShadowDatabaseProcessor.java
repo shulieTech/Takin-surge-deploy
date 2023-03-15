@@ -266,8 +266,6 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     // 查询对应应用的trace日志
     private List<TTrackClickhouseModel> queryTraceLog(InnerEntity innerEntity, TraceLogQueryScopeEnum timeScope) {
         Calendar startDate = Calendar.getInstance();
-        //加上间隔的时间，目前间隔为1分钟
-        startDate.add(Calendar.MINUTE, -1);
         switch (timeScope) {
             case WEEK:
                 startDate.add(Calendar.DATE, (int) (-1 * timeScope.getTime()));
@@ -290,7 +288,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     }
 
     private boolean executeDisabled() {
-        return !analysisShadowDatabaseDisable.get() || !isHandler(analysisShadowDatabaseInterval.get());
+        return !analysisShadowDatabaseDisable.get() || !isHandler(analysisShadowDatabaseInterval.get(), 60);
     }
 
     @Override
