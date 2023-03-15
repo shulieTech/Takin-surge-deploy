@@ -91,7 +91,7 @@ public class ExitProcessor extends AbstractProcessor {
         long now = System.currentTimeMillis();
         //需要加上间隔时间，目前出口是间隔一分钟
         String startTime = DateFormatUtils.format(
-                now - ((intervalTime.get() + 60) * 1000), "yyyy-MM-dd HH:mm:ss");
+                now - (intervalTime.get() * 1000), "yyyy-MM-dd HH:mm:ss");
         String endTime = DateFormatUtils.format(
                 now, "yyyy-MM-dd HH:mm:ss");
         return new Pair<>(startTime, endTime);
@@ -107,7 +107,7 @@ public class ExitProcessor extends AbstractProcessor {
         if (!exitProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         Pair<String, String> timePair = getStartAndEndTime();
@@ -132,7 +132,7 @@ public class ExitProcessor extends AbstractProcessor {
         if (!exitProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         if (taskId == -1) {
@@ -161,7 +161,7 @@ public class ExitProcessor extends AbstractProcessor {
         if (!exitProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         Pair<String, String> timePair = getStartAndEndTime();
@@ -190,7 +190,7 @@ public class ExitProcessor extends AbstractProcessor {
         if (!exitProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         Pair<String, String> timePair = getStartAndEndTime();

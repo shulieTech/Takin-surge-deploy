@@ -126,7 +126,7 @@ public class LinkProcessor extends AbstractProcessor {
         if (!linkProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();
@@ -155,7 +155,7 @@ public class LinkProcessor extends AbstractProcessor {
         if (!linkProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         if (taskId == -1) {
