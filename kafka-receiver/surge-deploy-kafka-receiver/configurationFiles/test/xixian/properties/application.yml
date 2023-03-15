@@ -30,9 +30,9 @@ spring:
       url: jdbc:mysql://10.125.131.12:4416/amdb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=GMT%2B8
 config:
   clickhouse:
-    url: jdbc:clickhouse://10.125.131.12:48126,10.125.131.12:48124,10.125.131.12:48125/aiops_shard_m
-    userName: stresstest
-    password: ca$hc0Wa
+    url: jdbc:clickhouse://10.161.55.19:48123,10.161.55.17:48123/default
+    userName: default
+    password: 6lYaUiFi
 nacos:
   server: 10.125.18.246:8848
   namespace: stresstest
