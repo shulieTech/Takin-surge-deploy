@@ -199,7 +199,7 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
         if (!unknowNodeProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();

@@ -78,7 +78,6 @@ public class ExitProcessor extends AbstractProcessor {
     String linkEntranceInsertSql = "";
     String linkEntranceDeleteSql = "";
 
-    private static int DEFAULT_DELAY_TIME = 2;
 
     public void init(String dataSourceType) {
         //设置数据源
@@ -90,10 +89,11 @@ public class ExitProcessor extends AbstractProcessor {
 
     private Pair<String, String> getStartAndEndTime() {
         long now = System.currentTimeMillis();
+        //需要加上间隔时间，目前出口是间隔一分钟
         String startTime = DateFormatUtils.format(
-                now - DEFAULT_DELAY_TIME * 60 * 1000, "yyyy-MM-dd HH:mm:ss");
+                now - (intervalTime.get() * 1000), "yyyy-MM-dd HH:mm:ss");
         String endTime = DateFormatUtils.format(
-                now - 5000, "yyyy-MM-dd HH:mm:ss");
+                now, "yyyy-MM-dd HH:mm:ss");
         return new Pair<>(startTime, endTime);
     }
 
@@ -107,7 +107,7 @@ public class ExitProcessor extends AbstractProcessor {
         if (!exitProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         Pair<String, String> timePair = getStartAndEndTime();
@@ -132,7 +132,7 @@ public class ExitProcessor extends AbstractProcessor {
         if (!exitProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         if (taskId == -1) {
@@ -161,7 +161,7 @@ public class ExitProcessor extends AbstractProcessor {
         if (!exitProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         Pair<String, String> timePair = getStartAndEndTime();
@@ -190,7 +190,7 @@ public class ExitProcessor extends AbstractProcessor {
         if (!exitProcessDisable.get()) {
             return;
         }
-        if (!isHandler(intervalTime.get())) {
+        if (!isHandler(intervalTime.get(), 60)) {
             return;
         }
         Pair<String, String> timePair = getStartAndEndTime();
