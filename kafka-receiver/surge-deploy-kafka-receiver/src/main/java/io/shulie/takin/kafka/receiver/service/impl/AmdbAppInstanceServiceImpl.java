@@ -393,9 +393,10 @@ public class AmdbAppInstanceServiceImpl extends ServiceImpl<AmdbAppInstanceMappe
         if (CollectionUtil.isNotEmpty(list)) {
             list.forEach(amdbAppInstance -> {
                 amdbAppInstance.setFlag(FlagUtil.setFlag(amdbAppInstance.getFlag(), 1, false));
+                amdbAppInstance.setGmtModify(LocalDateTime.now());
+                queryWrapper.lambda().eq(AmdbAppInstance::getId, amdbAppInstance.getId());
+                this.update(amdbAppInstance, queryWrapper);
             });
-            list.forEach(this::updateById);
-
         }
 
         QueryWrapper<AmdbAgentConfig> agentConfigQueryWrapper = new QueryWrapper<>();
