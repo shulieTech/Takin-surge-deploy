@@ -37,7 +37,7 @@ public class EagleLoader {
 
     private static final String QUERY_LINK_CONFIG = "select link_id from t_amdb_pradar_link_config";
 
-    private static final String QUERY_LINK_EDGE = "select edge_id from t_amdb_pradar_link_edge where link_id='%s' order by gmt_modify desc limit %d";
+    private static final String QUERY_LINK_EDGE = "select edge_id from t_amdb_pradar_link_edge where link_id='%s' order by id desc limit %d";
 
     private static final String QUERY_LINK_EDGE_COUNT = "select count(*) from t_amdb_pradar_link_edge where link_id='%s'";
 

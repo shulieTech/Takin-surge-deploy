@@ -30,7 +30,8 @@ public interface LinkSqlContants {
 
     String LINK_NODE_SELECT_SQL = "select id from t_amdb_pradar_link_node where app_name='UNKNOWN' and gmt_modify <= DATE_SUB(now(), INTERVAL 1 HOUR)";
 
-    String LINK_EDGE_SELECT_SQL = "select id from t_amdb_pradar_link_edge where to_app_id in (select app_id from t_amdb_pradar_link_node where app_name='UNKNOWN' and gmt_modify <= DATE_SUB(now(), INTERVAL 1 HOUR) and link_id='%s')";
+//    String LINK_EDGE_SELECT_SQL = "select id from t_amdb_pradar_link_edge where to_app_id in (select app_id from t_amdb_pradar_link_node where app_name='UNKNOWN' and gmt_modify <= DATE_SUB(now(), INTERVAL 1 HOUR) and link_id='%s')";
+    String LINK_EDGE_SELECT_SQL = "select t.id from t_amdb_pradar_link_edge as t LEFT JOIN  t_amdb_pradar_link_node as n ON t.to_app_id = n.app_id WHERE n.app_name='UNKNOWN' and n.gmt_modify <= DATE_SUB(now(), INTERVAL 1 HOUR) and  n.link_id='%s'";
 
     String LINK_EDGE_MQ_SELECT_SQL = "select * from t_amdb_pradar_link_edge where rpc_type=" + MiddlewareType.TYPE_MQ + " and link_id=";
 }
