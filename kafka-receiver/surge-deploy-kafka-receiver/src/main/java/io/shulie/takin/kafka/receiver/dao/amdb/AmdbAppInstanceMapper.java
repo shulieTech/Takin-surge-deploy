@@ -20,6 +20,6 @@ import java.util.Date;
 @Mapper
 public interface AmdbAppInstanceMapper extends BaseMapper<AmdbAppInstance> {
 
-    @Update("update t_amdb_app_instance set flag=(flag^1) where (flag&1)=1 and gmtModify < #{date}")
+    @Update("update t_amdb_app_instance set flag=(flag^1) where (flag&1)=1 and gmt_modify < #{date}")
     int initOnlineStatus(@Param("date") Date date);
 }
