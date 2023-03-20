@@ -63,6 +63,8 @@ public class AmdbAppInstanceServiceImpl extends ServiceImpl<AmdbAppInstanceMappe
     private IAmdbAppInstanceStatusService iAmdbAppInstanceStatusService;
     @Resource
     private IAmdbAgentConfigService iAmdbAgentConfigService;
+    @Resource
+    private AmdbAppInstanceMapper amdbAppInstanceMapper;
 
     @Override
     public void dealPradarClientMessage(Map entityBody) {
@@ -386,18 +388,7 @@ public class AmdbAppInstanceServiceImpl extends ServiceImpl<AmdbAppInstanceMappe
         Calendar instance = Calendar.getInstance();
         instance.add(Calendar.MINUTE, -3);
 
-        QueryWrapper<AmdbAppInstance> queryWrapper = new QueryWrapper<>();
-        queryWrapper.lambda().lt(AmdbAppInstance::getGmtModify, instance.getTime());
-        queryWrapper.comment("(flag&1)=1");
-        List<AmdbAppInstance> list = this.list(queryWrapper);
-        if (CollectionUtil.isNotEmpty(list)) {
-            list.forEach(amdbAppInstance -> {
-                amdbAppInstance.setFlag(FlagUtil.setFlag(amdbAppInstance.getFlag(), 1, false));
-                amdbAppInstance.setGmtModify(LocalDateTime.now());
-                queryWrapper.lambda().eq(AmdbAppInstance::getId, amdbAppInstance.getId());
-                this.update(amdbAppInstance, queryWrapper);
-            });
-        }
+        int onlineStatus = amdbAppInstanceMapper.initOnlineStatus(instance.getTime());
 
         QueryWrapper<AmdbAgentConfig> agentConfigQueryWrapper = new QueryWrapper<>();
         agentConfigQueryWrapper.lambda().lt(AmdbAgentConfig::getGmtCreate, instance.getTime());
@@ -406,7 +397,7 @@ public class AmdbAppInstanceServiceImpl extends ServiceImpl<AmdbAppInstanceMappe
             List<Long> ids = agentConfigs.stream().map(AmdbAgentConfig::getId).collect(Collectors.toList());
             iAmdbAgentConfigService.removeByIds(ids);
         }
-        if (CollectionUtil.isNotEmpty(list) || CollectionUtil.isNotEmpty(agentConfigs)) {
+        if (onlineStatus > 0 || CollectionUtil.isNotEmpty(agentConfigs)) {
             instancePathMap.clear();
         }
     }
