@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Calendar;
@@ -111,6 +112,7 @@ public class AmdbAppInstanceStatusServiceImpl extends ServiceImpl<AmdbAppInstanc
         updateOrInsertInstanceStatus(instanceStatusModel);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void updateOrInsertInstanceStatus(InstanceStatusModel instanceStatusModel) {
         QueryWrapper<AmdbAppInstanceStatus> appInstanceStatusQueryWrapper = new QueryWrapper<>();
         appInstanceStatusQueryWrapper.lambda().eq(AmdbAppInstanceStatus::getAppName, instanceStatusModel.getAppName());
@@ -230,17 +232,13 @@ public class AmdbAppInstanceStatusServiceImpl extends ServiceImpl<AmdbAppInstanc
     }
 
 
-    private void batchOffline() {
+    @Transactional(rollbackFor = Exception.class)
+    public void batchOffline() {
         Calendar instance = Calendar.getInstance();
         instance.add(Calendar.MINUTE, -3);
         QueryWrapper<AmdbAppInstanceStatus> queryWrapper = new QueryWrapper<>();
         queryWrapper.lambda().lt(AmdbAppInstanceStatus::getGmtModify, instance.getTime());
-        List<AmdbAppInstanceStatus> appInstanceStatuses = this.list(queryWrapper);
-        if (CollectionUtils.isNotEmpty(appInstanceStatuses)) {
-            List<Long> ids = appInstanceStatuses.stream().map(AmdbAppInstanceStatus::getId).collect(Collectors.toList());
-            this.removeByIds(ids);
-            instancePathMap.clear();
-        }
+        this.remove(queryWrapper);
     }
 
     @Override
