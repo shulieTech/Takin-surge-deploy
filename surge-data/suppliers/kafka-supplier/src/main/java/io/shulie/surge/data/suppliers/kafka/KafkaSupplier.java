@@ -141,6 +141,9 @@ public final class KafkaSupplier extends DefaultSupplier {
                                     if (dataType != null && DataType.PRESSURE_ENGINE_TRACE_LOG == (byte) dataType) {
                                         header.put("dataType", DataType.TRACE_LOG);
                                         queue.publish(header, queue.splitLog(message, DataType.TRACE_LOG));
+                                    } else if (dataType != null && (DataType.MONITOR_LOG == (byte) dataType
+                                            || DataType.TRACE_LOG == (byte) dataType)){
+                                        queue.publish(header, queue.splitLog(message, (byte) dataType));
                                     } else {
                                         queue.publish(header, message);
                                     }
