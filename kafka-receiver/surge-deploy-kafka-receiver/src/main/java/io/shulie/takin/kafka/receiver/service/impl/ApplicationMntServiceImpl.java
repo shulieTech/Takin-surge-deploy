@@ -8,6 +8,7 @@ import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.shulie.takin.kafka.receiver.constant.web.AppSwitchEnum;
+import io.shulie.takin.kafka.receiver.dao.web.ClusterNacosConfigurationMapper;
 import io.shulie.takin.kafka.receiver.dto.web.ApplicationVo;
 import io.shulie.takin.kafka.receiver.dto.web.TenantCommonExt;
 import io.shulie.takin.kafka.receiver.entity.*;
@@ -21,13 +22,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * <p>
@@ -52,19 +51,13 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
     private ILinkDetectionService iLinkDetectionService;
     @Resource
     private IApplicationPluginsConfigService iApplicationPluginsConfigService;
+    @Resource
+    private IClusterNacosConfigurationService iClusterNacosConfigurationService;
 
-    private ConfigService configService;
     @Value("${node.num:1}")
     private String nodeNum;
 
-    @Value("${nacos.server: 192.168.1.99:8848}")
-    private String nacosServer;
-    @Value("${nacos.namespace:}")
-    private String nacosNamespace;
-    @Value("${nacos.username:}")
-    private String nacosUsername;
-    @Value("${nacos.password:}")
-    private String nacosPassword;
+    private final Map<String, ConfigService> configServices = new HashMap<>();
 
     private Snowflake snowflake;
 
@@ -79,7 +72,7 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         }
 
         ConfigServer configServer = iConfigServerService.queryByKey(AGENT_HTTP_UPDATE_VERSION);
-        if (configServer != null && "false".equals(configServer.getValue())){
+        if (configServer != null && "false".equals(configServer.getValue())) {
             return;
         }
 
@@ -95,8 +88,9 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
     }
 
     @Override
+    @Transactional(rollbackFor = Throwable.class)
     public void dealAddApplicationMessage(String message, TenantCommonExt dealHeader) {
-        if (StringUtils.isBlank(message)){
+        if (StringUtils.isBlank(message)) {
             return;
         }
         ApplicationVo param = JSONObject.parseObject(message, ApplicationVo.class);
@@ -114,7 +108,7 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         ApplicationMnt applicationMnt = this.voToAppEntity(param);
 
         ApplicationMnt application = this.getApplicationByTenantIdAndName(applicationMnt.getApplicationName(), dealHeader);
-        if(application != null){
+        if (application != null) {
             return;
         }
 
@@ -137,9 +131,18 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         configs.put("dynamic_config", new HashMap<>());
 
         try {
-            configService.publishConfig(param.getApplicationName(), "APP", new Gson().toJson(configs));
+            ConfigService configService = configServices.get(param.getClusterName());
+            if (configService == null) {
+                throw new RuntimeException(param.getApplicationName() + "应用,ClusterName:" + param.getClusterName() + "没有对应的nacos服务");
+            }
+            boolean success = configService.publishConfig(param.getApplicationName(), "APP", new Gson().toJson(configs));
+            if (!success) {
+                log.error(param.getApplicationName() + "推送nacos失败");
+                throw new RuntimeException(param.getApplicationName() + "推送nacos失败");
+            }
         } catch (NacosException e) {
-            log.error("新增应用，推送nacos出现异常",e);
+            log.error("推送nacos出现异常", e);
+            throw new RuntimeException(param.getApplicationName() + "推送nacos出现异常" + e.getErrMsg());
         }
     }
 
@@ -156,7 +159,8 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         return null;
     }
 
-    private void addPluginsConfig(ApplicationMnt applicationMnt) {
+    @Transactional(rollbackFor = Throwable.class)
+    public void addPluginsConfig(ApplicationMnt applicationMnt) {
         ApplicationPluginsConfig applicationPluginsConfig = new ApplicationPluginsConfig();
         applicationPluginsConfig.setApplicationId(applicationMnt.getApplicationId());
         applicationPluginsConfig.setApplicationName(applicationMnt.getApplicationName());
@@ -175,7 +179,8 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         iApplicationPluginsConfigService.save(applicationPluginsConfig);
     }
 
-    private void addApplicationToLinkDetection(ApplicationMnt tApplicationMnt) {
+    @Transactional(rollbackFor = Throwable.class)
+    public void addApplicationToLinkDetection(ApplicationMnt tApplicationMnt) {
 
         LinkDetection linkDetection = new LinkDetection();
         linkDetection.setLinkDetectionId(snowflake.next());
@@ -187,7 +192,8 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         iLinkDetectionService.save(linkDetection);
     }
 
-    private void addApplicationToDataBuild(ApplicationMnt tApplicationMnt) {
+    @Transactional(rollbackFor = Throwable.class)
+    public void addApplicationToDataBuild(ApplicationMnt tApplicationMnt) {
         DataBuild dataBuild = new DataBuild();
         dataBuild.setDataBuildId(snowflake.next());
         dataBuild.setApplicationId(tApplicationMnt.getApplicationId());
@@ -203,7 +209,8 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         iDataBuildService.save(dataBuild);
     }
 
-    private void addApplication(ApplicationMnt tApplicationMnt, TenantCommonExt headers) {
+    @Transactional(rollbackFor = Throwable.class)
+    public void addApplication(ApplicationMnt tApplicationMnt, TenantCommonExt headers) {
         tApplicationMnt.setApplicationId(snowflake.next());
         tApplicationMnt.setCacheExpTime(tApplicationMnt.getCacheExpTime() == null ? 0L : tApplicationMnt.getCacheExpTime());
         tApplicationMnt.setUserId(headers.getUserId());
@@ -243,17 +250,35 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
     public void afterPropertiesSet() throws Exception {
         snowflake = new Snowflake(Integer.parseInt(nodeNum));
 
-        Properties properties = new Properties();
-        properties.put(PropertyKeyConst.SERVER_ADDR, nacosServer);
-        if (StringUtils.isNotBlank(nacosNamespace)) {
-            properties.put(PropertyKeyConst.NAMESPACE, nacosNamespace);
+        List<ClusterNacosConfiguration> nacosClusters = Optional.ofNullable(iClusterNacosConfigurationService.list())
+                .orElse(new ArrayList<>());
+
+        for (ClusterNacosConfiguration nacosCluster : nacosClusters) {
+            ConfigService nacosConfigService;
+
+            Properties properties = new Properties();
+            properties.put(PropertyKeyConst.SERVER_ADDR, nacosCluster.getNacosServerAddr());
+
+            if (nacosCluster.getNacosNamespace() != null) {
+                properties.put(PropertyKeyConst.NAMESPACE, nacosCluster.getNacosNamespace());
+            }
+
+            if (nacosCluster.getNacosUsername() != null) {
+                properties.put(PropertyKeyConst.USERNAME, nacosCluster.getNacosUsername());
+            }
+
+            if (nacosCluster.getNacosPassword() != null) {
+                properties.put(PropertyKeyConst.PASSWORD, nacosCluster.getNacosPassword());
+            }
+
+            try {
+                nacosConfigService = ConfigFactory.createConfigService(properties);
+            } catch (NacosException e) {
+                log.error("NACOS: Failed to connect to the nacos server! Address={}, {}", nacosCluster.getNacosServerAddr(), e.toString());
+                continue;
+            }
+
+            configServices.put(nacosCluster.getClusterName(), nacosConfigService);
         }
-        if (StringUtils.isNotBlank(nacosUsername)) {
-            properties.put(PropertyKeyConst.USERNAME, nacosUsername);
-        }
-        if (StringUtils.isNotBlank(nacosPassword)) {
-            properties.put(PropertyKeyConst.PASSWORD, nacosPassword);
-        }
-        configService = ConfigFactory.createConfigService(properties);
     }
 }

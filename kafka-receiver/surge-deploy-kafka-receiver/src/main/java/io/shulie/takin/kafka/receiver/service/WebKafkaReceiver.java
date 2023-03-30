@@ -259,7 +259,11 @@ public class WebKafkaReceiver implements ApplicationRunner {
                 public void success(MessageEntity messageEntity) {
                     log.info("接收到新增应用消息" + JSON.toJSONString(messageEntity.getBody()));
                     kafkaDealPool.execute(() -> {
-                        iApplicationMntService.dealAddApplicationMessage(JSON.toJSONString(messageEntity.getBody()), dealHeader(messageEntity.getHeaders()));
+                        try {
+                            iApplicationMntService.dealAddApplicationMessage(JSON.toJSONString(messageEntity.getBody()), dealHeader(messageEntity.getHeaders()));
+                        } catch (Throwable e) {
+                            log.error("处理新增应用消息出现异常", e);
+                        }
                     });
                 }
 
