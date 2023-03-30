@@ -160,6 +160,8 @@ public class AppConfigUtil {
                 String content = configService.getConfig(nacosId, group, 3000);
                 nacosConfigs = JSON.parseObject(content, Map.class);
                 value = nacosConfigs.get(dataId);
+            } else {
+                value = nacosConfigs.get(dataId);
             }
         }
         return value != null ? value.toString() : null;

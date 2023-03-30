@@ -36,7 +36,7 @@
         <log.assembler.version>2.0.4</log.assembler.version>
         <surge.deploy.pradar.link.version>1.0.2.7</surge.deploy.pradar.link.version>
         <spring.version>5.0.0.RELEASE</spring.version>
-        <nacos.version>2.0.4</nacos.version>
+        <nacos.version>2.2.0</nacos.version>
     </properties>
     <modules>
         <module>surge-data</module>
