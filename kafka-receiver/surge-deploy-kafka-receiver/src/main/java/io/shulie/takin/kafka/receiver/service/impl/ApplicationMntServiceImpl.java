@@ -8,6 +8,7 @@ import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.shulie.takin.kafka.receiver.constant.web.AppSwitchEnum;
+import io.shulie.takin.kafka.receiver.dao.web.ClusterNacosConfigurationMapper;
 import io.shulie.takin.kafka.receiver.dto.web.ApplicationVo;
 import io.shulie.takin.kafka.receiver.dto.web.TenantCommonExt;
 import io.shulie.takin.kafka.receiver.entity.*;
@@ -25,10 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * <p>
@@ -53,19 +51,13 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
     private ILinkDetectionService iLinkDetectionService;
     @Resource
     private IApplicationPluginsConfigService iApplicationPluginsConfigService;
+    @Resource
+    private IClusterNacosConfigurationService iClusterNacosConfigurationService;
 
-    private ConfigService configService;
     @Value("${node.num:1}")
     private String nodeNum;
 
-    @Value("${nacos.server: 192.168.1.99:8848}")
-    private String nacosServer;
-    @Value("${nacos.namespace:}")
-    private String nacosNamespace;
-    @Value("${nacos.username:}")
-    private String nacosUsername;
-    @Value("${nacos.password:}")
-    private String nacosPassword;
+    private final Map<String, ConfigService> configServices = new HashMap<>();
 
     private Snowflake snowflake;
 
@@ -139,6 +131,10 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         configs.put("dynamic_config", new HashMap<>());
 
         try {
+            ConfigService configService = configServices.get(param.getClusterName());
+            if (configService == null) {
+                throw new RuntimeException(param.getApplicationName() + "应用,ClusterName:" + param.getClusterName() + "没有对应的nacos服务");
+            }
             boolean success = configService.publishConfig(param.getApplicationName(), "APP", new Gson().toJson(configs));
             if (!success) {
                 log.error(param.getApplicationName() + "推送nacos失败");
@@ -254,17 +250,35 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
     public void afterPropertiesSet() throws Exception {
         snowflake = new Snowflake(Integer.parseInt(nodeNum));
 
-        Properties properties = new Properties();
-        properties.put(PropertyKeyConst.SERVER_ADDR, nacosServer);
-        if (StringUtils.isNotBlank(nacosNamespace)) {
-            properties.put(PropertyKeyConst.NAMESPACE, nacosNamespace);
+        List<ClusterNacosConfiguration> nacosClusters = Optional.ofNullable(iClusterNacosConfigurationService.list())
+                .orElse(new ArrayList<>());
+
+        for (ClusterNacosConfiguration nacosCluster : nacosClusters) {
+            ConfigService nacosConfigService;
+
+            Properties properties = new Properties();
+            properties.put(PropertyKeyConst.SERVER_ADDR, nacosCluster.getNacosServerAddr());
+
+            if (nacosCluster.getNacosNamespace() != null) {
+                properties.put(PropertyKeyConst.NAMESPACE, nacosCluster.getNacosNamespace());
+            }
+
+            if (nacosCluster.getNacosUsername() != null) {
+                properties.put(PropertyKeyConst.USERNAME, nacosCluster.getNacosUsername());
+            }
+
+            if (nacosCluster.getNacosPassword() != null) {
+                properties.put(PropertyKeyConst.PASSWORD, nacosCluster.getNacosPassword());
+            }
+
+            try {
+                nacosConfigService = ConfigFactory.createConfigService(properties);
+            } catch (NacosException e) {
+                log.error("NACOS: Failed to connect to the nacos server! Address={}, {}", nacosCluster.getNacosServerAddr(), e.toString());
+                continue;
+            }
+
+            configServices.put(nacosCluster.getClusterName(), nacosConfigService);
         }
-        if (StringUtils.isNotBlank(nacosUsername)) {
-            properties.put(PropertyKeyConst.USERNAME, nacosUsername);
-        }
-        if (StringUtils.isNotBlank(nacosPassword)) {
-            properties.put(PropertyKeyConst.PASSWORD, nacosPassword);
-        }
-        configService = ConfigFactory.createConfigService(properties);
     }
 }
