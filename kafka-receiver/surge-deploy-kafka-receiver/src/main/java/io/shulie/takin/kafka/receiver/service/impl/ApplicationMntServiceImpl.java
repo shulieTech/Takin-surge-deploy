@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
@@ -79,7 +80,7 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         }
 
         ConfigServer configServer = iConfigServerService.queryByKey(AGENT_HTTP_UPDATE_VERSION);
-        if (configServer != null && "false".equals(configServer.getValue())){
+        if (configServer != null && "false".equals(configServer.getValue())) {
             return;
         }
 
@@ -95,8 +96,9 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
     }
 
     @Override
+    @Transactional(rollbackFor = Throwable.class)
     public void dealAddApplicationMessage(String message, TenantCommonExt dealHeader) {
-        if (StringUtils.isBlank(message)){
+        if (StringUtils.isBlank(message)) {
             return;
         }
         ApplicationVo param = JSONObject.parseObject(message, ApplicationVo.class);
@@ -114,7 +116,7 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         ApplicationMnt applicationMnt = this.voToAppEntity(param);
 
         ApplicationMnt application = this.getApplicationByTenantIdAndName(applicationMnt.getApplicationName(), dealHeader);
-        if(application != null){
+        if (application != null) {
             return;
         }
 
@@ -137,9 +139,14 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         configs.put("dynamic_config", new HashMap<>());
 
         try {
-            configService.publishConfig(param.getApplicationName(), "APP", new Gson().toJson(configs));
+            boolean success = configService.publishConfig(param.getApplicationName(), "APP", new Gson().toJson(configs));
+            if (!success) {
+                log.error(param.getApplicationName() + "推送nacos失败");
+                throw new RuntimeException(param.getApplicationName() + "推送nacos失败");
+            }
         } catch (NacosException e) {
-            log.error("新增应用，推送nacos出现异常",e);
+            log.error("推送nacos出现异常", e);
+            throw new RuntimeException(param.getApplicationName() + "推送nacos出现异常" + e.getErrMsg());
         }
     }
 
@@ -156,7 +163,8 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         return null;
     }
 
-    private void addPluginsConfig(ApplicationMnt applicationMnt) {
+    @Transactional(rollbackFor = Throwable.class)
+    public void addPluginsConfig(ApplicationMnt applicationMnt) {
         ApplicationPluginsConfig applicationPluginsConfig = new ApplicationPluginsConfig();
         applicationPluginsConfig.setApplicationId(applicationMnt.getApplicationId());
         applicationPluginsConfig.setApplicationName(applicationMnt.getApplicationName());
@@ -175,7 +183,8 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         iApplicationPluginsConfigService.save(applicationPluginsConfig);
     }
 
-    private void addApplicationToLinkDetection(ApplicationMnt tApplicationMnt) {
+    @Transactional(rollbackFor = Throwable.class)
+    public void addApplicationToLinkDetection(ApplicationMnt tApplicationMnt) {
 
         LinkDetection linkDetection = new LinkDetection();
         linkDetection.setLinkDetectionId(snowflake.next());
@@ -187,7 +196,8 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         iLinkDetectionService.save(linkDetection);
     }
 
-    private void addApplicationToDataBuild(ApplicationMnt tApplicationMnt) {
+    @Transactional(rollbackFor = Throwable.class)
+    public void addApplicationToDataBuild(ApplicationMnt tApplicationMnt) {
         DataBuild dataBuild = new DataBuild();
         dataBuild.setDataBuildId(snowflake.next());
         dataBuild.setApplicationId(tApplicationMnt.getApplicationId());
@@ -203,7 +213,8 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         iDataBuildService.save(dataBuild);
     }
 
-    private void addApplication(ApplicationMnt tApplicationMnt, TenantCommonExt headers) {
+    @Transactional(rollbackFor = Throwable.class)
+    public void addApplication(ApplicationMnt tApplicationMnt, TenantCommonExt headers) {
         tApplicationMnt.setApplicationId(snowflake.next());
         tApplicationMnt.setCacheExpTime(tApplicationMnt.getCacheExpTime() == null ? 0L : tApplicationMnt.getCacheExpTime());
         tApplicationMnt.setUserId(headers.getUserId());
