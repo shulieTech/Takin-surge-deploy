@@ -72,24 +72,35 @@ public abstract class AbstractLinkCache {
         try {
             LinkedHashMap<String, Map<String, Object>> tmpLinkConfig = Maps.newLinkedHashMap();
             DefaultRpcBasedParser defaultRpcBasedParser = new DefaultRpcBasedParser();
-            List<Map<String, Object>> linkConfigModels = mysqlSupport.queryForList("select * from " + LINKID_CONFIG_TABLENAME + " limit 9999");
-            for (Map<String, Object> linkConf : linkConfigModels) {
-                Map<String, Object> linkConfMap = Maps.newHashMap();
-                for (String key : linkConf.keySet()) {
-                    linkConfMap.put(lineToHump(key), linkConf.get(key));
+            Long currId = 0L;
+            while (true) {
+                List<Map<String, Object>> linkConfigModels = mysqlSupport.queryForList("select * from " + LINKID_CONFIG_TABLENAME + " where id > " + currId + " limit 500");
+                for (Map<String, Object> linkConf : linkConfigModels) {
+                    Map<String, Object> linkConfMap = Maps.newHashMap();
+                    for (String key : linkConf.keySet()) {
+                        linkConfMap.put(lineToHump(key), linkConf.get(key));
+                    }
+                    if (linkConf == null || linkConf.isEmpty()) {
+                        continue;
+                    }
+                    String linkId = defaultRpcBasedParser.linkId(linkConfMap);
+                    Map<String, Object> result = defaultRpcBasedParser.linkTags(linkConfMap);
+                    String userAppKey = String.valueOf(linkConfMap.get("userAppKey"));
+                    String envCode = String.valueOf(linkConfMap.get("envCode"));
+                    String userId = String.valueOf(linkConfMap.get("userId"));
+                    Long id = linkConfMap.get("id") == null ? 0 : Long.valueOf(linkConfMap.get("id").toString());
+                    if (id > currId) {
+                        currId = id;
+                    }
+                    result.put("userAppKey", StringUtils.isBlank(userAppKey) ? StringUtils.defaultString(ApiProcessor.staticDefaultTenantAppKey, TenantConstants.DEFAULT_USER_APP_KEY) : userAppKey);
+                    result.put("envCode", StringUtils.isBlank(envCode) ? TenantConstants.DEFAULT_ENV_CODE : envCode);
+                    result.put("userId", StringUtils.isBlank(userId) ? TenantConstants.DEFAULT_USERID : userId);
+
+                    tmpLinkConfig.put(linkId, result);
                 }
-                if (linkConf == null || linkConf.isEmpty()) {
-                    continue;
+                if (linkConfigModels.size() < 500) {
+                    break;
                 }
-                String linkId = defaultRpcBasedParser.linkId(linkConfMap);
-                Map<String, Object> result = defaultRpcBasedParser.linkTags(linkConfMap);
-                String userAppKey = String.valueOf(linkConfMap.get("userAppKey"));
-                String envCode = String.valueOf(linkConfMap.get("envCode"));
-                String userId = String.valueOf(linkConfMap.get("userId"));
-                result.put("userAppKey", StringUtils.isBlank(userAppKey) ? StringUtils.defaultString(ApiProcessor.staticDefaultTenantAppKey, TenantConstants.DEFAULT_USER_APP_KEY) : userAppKey);
-                result.put("envCode", StringUtils.isBlank(envCode) ? TenantConstants.DEFAULT_ENV_CODE : envCode);
-                result.put("userId", StringUtils.isBlank(userId) ? TenantConstants.DEFAULT_USERID : userId);
-                tmpLinkConfig.put(linkId, result);
             }
             linkConfig = tmpLinkConfig;
         } catch (Exception e) {
