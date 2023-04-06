@@ -37,6 +37,7 @@ import io.shulie.surge.data.runtime.common.remote.Remote;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseSupport;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
@@ -462,6 +463,13 @@ public class LinkProcessor extends AbstractProcessor {
         return modelList.stream().map(TTrackClickhouseModel::getRpcBased).collect(Collectors.toList());
     }
 
+    private static String objectToString(Object value, String defaultStr) {
+        if (value == null || "null".equalsIgnoreCase(value.toString())) {
+            return "";
+        }
+        return ObjectUtils.toString(value);
+    }
+
     /**
      * 链路关系分析
      *
@@ -484,13 +492,13 @@ public class LinkProcessor extends AbstractProcessor {
         //如果当前业务活动只有一条边并且不为业务真实入口,不计算其上游节点
         if (rpcBaseds.size() == 1 && !"0".equals(rpcBaseds.get(0).getRpcId())) {
             StringBuffer tags = new StringBuffer();
-            tags.append(rpcBaseds.get(0).getServiceName())
+            tags.append(objectToString(rpcBaseds.get(0).getServiceName(), ""))
                     .append("|")
-                    .append(rpcBaseds.get(0).getMethodName())
+                    .append(objectToString(rpcBaseds.get(0).getMethodName(), ""))
                     .append("|")
-                    .append(rpcBaseds.get(0).getAppName())
+                    .append(objectToString(rpcBaseds.get(0).getAppName(), ""))
                     .append("|")
-                    .append(rpcBaseds.get(0).getRpcType())
+                    .append(objectToString(rpcBaseds.get(0).getRpcType(), ""))
                     .append("|")
                     .append("");
             if (linkId.equals(Md5Utils.md5(tags.toString()))) {
