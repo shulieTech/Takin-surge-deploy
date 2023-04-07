@@ -103,7 +103,7 @@ public class ExitByLinkIdProcessor extends AbstractProcessor {
      */
     @Override
     public void share(List<String> taskIds, String currentTaskId) {
-        if (!exitProcessDisable.get()) {
+        if (exitProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {

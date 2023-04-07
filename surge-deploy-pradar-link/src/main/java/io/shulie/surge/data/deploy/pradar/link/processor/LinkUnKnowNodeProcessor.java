@@ -196,7 +196,7 @@ public class LinkUnKnowNodeProcessor extends AbstractProcessor {
 
     @Override
     public void share(List<String> taskIds, String currentTaskId) {
-        if (!unknowNodeProcessDisable.get()) {
+        if (unknowNodeProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {
