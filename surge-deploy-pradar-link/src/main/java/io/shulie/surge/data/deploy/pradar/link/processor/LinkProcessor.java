@@ -124,7 +124,7 @@ public class LinkProcessor extends AbstractProcessor {
      */
     @Override
     public void share() {
-        if (!linkProcessDisable.get()) {
+        if (linkProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {
@@ -153,7 +153,7 @@ public class LinkProcessor extends AbstractProcessor {
      */
     @Override
     public void share(int taskId) {
-        if (!linkProcessDisable.get()) {
+        if (linkProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {
@@ -180,7 +180,7 @@ public class LinkProcessor extends AbstractProcessor {
 //     */
 //    @Override
 //    public void share() {
-//        if (!linkProcessDisable.get()) {
+//        if (linkProcessDisable.get()) {
 //            return;
 //        }
 //        if (!isHandler(intervalTime.get())) {

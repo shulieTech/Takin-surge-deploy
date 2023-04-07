@@ -288,7 +288,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     }
 
     private boolean executeDisabled() {
-        return !analysisShadowDatabaseDisable.get() || !isHandler(analysisShadowDatabaseInterval.get(), 60);
+        return analysisShadowDatabaseDisable.get() || !isHandler(analysisShadowDatabaseInterval.get(), 60);
     }
 
     @Override

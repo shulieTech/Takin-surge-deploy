@@ -113,7 +113,7 @@ public class EntranceProcessor extends AbstractProcessor {
      * @throws IOException
      */
     public void noShare() {
-        if (!entranceProcessDisable.get()) {
+        if (entranceProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {
@@ -138,7 +138,7 @@ public class EntranceProcessor extends AbstractProcessor {
      */
     @Override
     public void share(int taskId) {
-        if (!entranceProcessDisable.get()) {
+        if (entranceProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {
@@ -167,7 +167,7 @@ public class EntranceProcessor extends AbstractProcessor {
      */
     @Override
     public void share() {
-        if (!entranceProcessDisable.get()) {
+        if (entranceProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {
@@ -196,7 +196,7 @@ public class EntranceProcessor extends AbstractProcessor {
      */
     @Override
     public void share(List<String> taskIds, String currentId) {
-        if (!entranceProcessDisable.get()) {
+        if (entranceProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {

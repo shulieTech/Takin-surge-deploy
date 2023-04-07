@@ -104,7 +104,7 @@ public class ExitProcessor extends AbstractProcessor {
      * @throws IOException
      */
     public void noShare() {
-        if (!exitProcessDisable.get()) {
+        if (exitProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {
@@ -129,7 +129,7 @@ public class ExitProcessor extends AbstractProcessor {
      */
     @Override
     public void share(int taskId) {
-        if (!exitProcessDisable.get()) {
+        if (exitProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {
@@ -158,7 +158,7 @@ public class ExitProcessor extends AbstractProcessor {
      */
     @Override
     public void share() {
-        if (!exitProcessDisable.get()) {
+        if (exitProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {
@@ -187,7 +187,7 @@ public class ExitProcessor extends AbstractProcessor {
      */
     @Override
     public void share(List<String> taskIds, String currentId) {
-        if (!exitProcessDisable.get()) {
+        if (exitProcessDisable.get()) {
             return;
         }
         if (!isHandler(intervalTime.get(), 60)) {
