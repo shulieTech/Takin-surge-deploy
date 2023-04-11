@@ -54,7 +54,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultProcessor.class);
 
-    private long[] digesterTimeCost;
+    private AtomicLong[] digesterTimeCost;
 
     private ProcessorConfigSpec processorConfig;
     private RingBuffer<DigestJob> ringBuffer;
@@ -66,7 +66,10 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      */
     @Override
     public void start() throws Exception {
-        this.digesterTimeCost = new long[processorConfig.getDigesters().length];
+        this.digesterTimeCost = new AtomicLong[processorConfig.getDigesters().length];
+        for (int i = 0, len = processorConfig.getDigesters().length; i < len; i++) {
+            this.digesterTimeCost[i] = new AtomicLong(0L);
+        }
         // disruptor实现
         ExecutorService es = DataPoolExecutors.newDefaultNoQueueExecutors(processorConfig.getExecuteSize(), processorConfig.getExecuteSize() * 2, 3, TimeUnit.SECONDS, new ThreadFactoryBuilder().setNameFormat(processorConfig.getName() + "-Processor_thread_-%d").build(), null);
         disruptor = new Disruptor<>(DigestJob.EVENT_FACTORY, processorConfig.getRingBufferSize(), es, ProducerType.MULTI, new SleepingWaitStrategy());
@@ -227,14 +230,14 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
                 StringBuilder appender = new StringBuilder(256);
                 appender.append(processorConfig.getName() + " Process Time");
                 for (int i = 0; i < processorConfig.getDigesters().length; ++i) {
-                    long timeCost = digesterTimeCost[i];
+                    AtomicLong timeCost = digesterTimeCost[i];
                     appender.append("\n  ").append(processorConfig.getDigesters()[i].getClass().getSimpleName()).append(": ")
-                            .append(FormatUtils.humanReadableTimeSpan(timeCost))
+                            .append(FormatUtils.humanReadableTimeSpan(timeCost.get()))
                             .append(", about ")
-                            .append(FormatUtils.roundx4(divide(timeCost, processCount.get()))).append(" ms/line")
+                            .append(FormatUtils.roundx4(divide(timeCost.get(), processCount.get()))).append(" ms/line")
                             .append(" line:").append(processCount.get())
-                            .append(" tps:").append(FormatUtils.roundx0(divide(processCount.get() , timeCost / 1000)));
-                    digesterTimeCost[i] = 0;
+                            .append(" tps:").append(FormatUtils.roundx0(divide(processCount.get(), timeCost.get() / 1000)));
+                    digesterTimeCost[i] = new AtomicLong(0L);
                 }
                 processCount = new AtomicLong(0);
                 logger.warn(appender.toString());
