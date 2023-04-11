@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -70,8 +71,10 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
         for (int i = 0, len = processorConfig.getDigesters().length; i < len; i++) {
             this.digesterTimeCost[i] = new AtomicLong(0L);
         }
+        int totalThreadCount = Arrays.stream(processorConfig.getDigesters()).mapToInt(DataDigester::threadCount).sum();
+        int threadCount = Math.max(processorConfig.getExecuteSize(), totalThreadCount);
         // disruptor实现
-        ExecutorService es = DataPoolExecutors.newDefaultNoQueueExecutors(processorConfig.getExecuteSize(), processorConfig.getExecuteSize() * 2, 3, TimeUnit.SECONDS, new ThreadFactoryBuilder().setNameFormat(processorConfig.getName() + "-Processor_thread_-%d").build(), null);
+        ExecutorService es = DataPoolExecutors.newDefaultNoQueueExecutors(threadCount, threadCount * 2, 3, TimeUnit.SECONDS, new ThreadFactoryBuilder().setNameFormat(processorConfig.getName() + "-Processor_thread_-%d").build(), null);
         disruptor = new Disruptor<>(DigestJob.EVENT_FACTORY, processorConfig.getRingBufferSize(), es, ProducerType.MULTI, new SleepingWaitStrategy());
         int digesterCount = processorConfig.getDigesters().length;
 
