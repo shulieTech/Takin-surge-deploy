@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 @Singleton
 public class AppConfigUtil {
@@ -86,43 +87,50 @@ public class AppConfigUtil {
     private volatile Integer sampling;
     private AtomicBoolean isInited = new AtomicBoolean(false);
 
+    private void subscribeNacosConfig(Consumer<Map<String, Object>> consumer) {
+        if (configService == null) {
+            return;
+        }
+        if (!isInited.compareAndSet(false, true)) {
+            return;
+        }
+        String nacosId = "pradarConfig", group = "PRADAR_CONFIG";
+        try {
+            String value = configService.getConfigAndSignListener(nacosId, group, 3000L, new AbstractListener() {
+                @Override
+                public void receiveConfigInfo(String configInfo) {
+                    nacosConfigs = JSON.parseObject(configInfo, Map.class);
+                    if (consumer != null) {
+                        consumer.accept(nacosConfigs);
+                    }
+                }
+            });
+            nacosConfigs = JSON.parseObject(value, Map.class);
+            if (consumer != null) {
+                consumer.accept(nacosConfigs);
+            }
+        } catch (Throwable e) {
+            logger.error("从 nacos 获取采样率失败.", e);
+        }
+    }
+
     private int getSamplingFromNacos() {
         if (sampling != null) {
             return sampling;
         }
-
-        if (configService == null) {
-            return 1;
-        }
-
-        if (!isInited.compareAndSet(false, true)) {
-            String nacosId = "pradarConfig", group = "PRADAR_CONFIG";
-            try {
-                String value = configService.getConfigAndSignListener(nacosId, group, 3000L, new AbstractListener() {
-                    @Override
-                    public void receiveConfigInfo(String configInfo) {
-                        nacosConfigs = JSON.parseObject(configInfo, Map.class);
-                        if (nacosConfigs != null) {
-                            Object obj = nacosConfigs.get(globalSamplingPath);
-                            String val = obj == null ? null : obj.toString();
-                            if (NumberUtils.isDigits(StringUtils.trim(val))) {
-                                sampling = Integer.valueOf(StringUtils.trim(val));
-                            }
-                        }
-                    }
-                });
-                nacosConfigs = JSON.parseObject(value, Map.class);
-                if (nacosConfigs != null) {
-                    Object obj = nacosConfigs.get(globalSamplingPath);
-                    String val = obj == null ? null : obj.toString();
-                    if (NumberUtils.isDigits(StringUtils.trim(val))) {
-                        this.sampling = Integer.valueOf(StringUtils.trim(val));
-                    }
-                }
-            } catch (Throwable e) {
-                logger.error("从 nacos 获取采样率失败.", e);
+        subscribeNacosConfig(map -> {
+            if (map == null) {
+                return;
             }
-        }
+            Object obj = map.get(globalSamplingPath);
+            if (obj == null) {
+                return;
+            }
+            String val = StringUtils.trim(obj == null ? null : obj.toString());
+            if (NumberUtils.isDigits(val)) {
+                sampling = Integer.valueOf(val);
+            }
+        });
 
         return this.sampling == null ? 1 : this.sampling;
     }
