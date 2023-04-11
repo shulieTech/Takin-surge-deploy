@@ -48,7 +48,7 @@ public class ClickhouseFacade {
      * @param clickhouseCommand
      * @return
      */
-    public ClickhouseFacade addCommond(ClickhouseCommand clickhouseCommand) {
+    public ClickhouseFacade addCommand(ClickhouseCommand clickhouseCommand) {
         commands.add(clickhouseCommand);
         return this;
     }
