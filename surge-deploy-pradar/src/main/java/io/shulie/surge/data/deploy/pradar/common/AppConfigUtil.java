@@ -78,7 +78,7 @@ public class AppConfigUtil {
     private ConfigService configService;
 
     @Inject
-    @DefaultValue("false")
+    @DefaultValue("true")
     @Named("/pradar/config/nacos/nacosDisable")
     private Remote<Boolean> nacosDisable;
 
