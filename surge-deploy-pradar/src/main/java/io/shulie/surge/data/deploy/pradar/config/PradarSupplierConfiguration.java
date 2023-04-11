@@ -120,7 +120,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
         }
         String registerZkStr = Objects.toString(args.get(ParamUtil.REGISTERZK), "");
         this.registerZk = CommonStat.TRUE.equals(String.valueOf(registerZkStr)) ? true : false;
-        this.coreSize = NumberUtils.toInt(Objects.toString(args.get(ParamUtil.CORE_SIZE), ""), Runtime.getRuntime().availableProcessors() * 2);
+        this.coreSize = NumberUtils.toInt(Objects.toString(args.get(ParamUtil.CORE_SIZE), ""), 8);
         this.dataSourceType = Objects.toString(args.get(ParamUtil.DATA_SOURCE_TYPE), "");
         this.openMqConsumer = Objects.isNull(args.get(ParamUtil.MQConsumer)) ? false : true;
 
