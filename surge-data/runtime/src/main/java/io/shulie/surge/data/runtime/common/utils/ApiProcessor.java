@@ -727,6 +727,10 @@ final class Matcher {
         if (apiPatterns.contains(url)) {
             return url;
         }
+        //如果不是 restful 就不要再往下进行解析了
+        if (StringUtils.indexOf(url, '{') == -1) {
+            return url;
+        }
         /*
             借用 spring requestMapping 的匹配逻辑，先匹配出所有满足匹配条件的path，然后选中匹配度最高的path
             此处性能较merge2略差，但是能保证同一个url返回唯一结果，merge2返回的结果依赖于apiPath的顺序
