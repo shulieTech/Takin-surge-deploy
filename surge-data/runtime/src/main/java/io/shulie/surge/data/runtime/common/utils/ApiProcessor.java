@@ -148,6 +148,8 @@ public class ApiProcessor {
         if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
             Object data = res.get("data");
             Map<String, List<String>> map = (Map<String, List<String>>) data;
+
+            Map<String, Matcher> newMatchers = new HashMap<>();
             for (String appName : map.keySet()) {
                 List<String> apiList = map.get(appName);
                 Map<String, List<String>> newApiMap = Maps.newHashMap();
@@ -166,8 +168,10 @@ public class ApiProcessor {
                     }
                 }
                 API_COLLECTION.put(appName, newApiMap);
+                Matcher matcher = new Matcher(newApiMap);
+                newMatchers.put(appName, matcher);
             }
-            MATHERS.clear();
+            MATHERS = newMatchers;
         }
     }
 
@@ -183,6 +187,7 @@ public class ApiProcessor {
         if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
             Object data = res.get("data");
             Map<String, List<String>> map = (Map<String, List<String>>) data;
+            Map<String, Matcher> newMatchers = new HashMap<>();
             for (String appName : map.keySet()) {
                 List<String> apiList = map.get(appName);
                 Map<String, List<String>> newApiMap = Maps.newHashMap();
@@ -201,8 +206,10 @@ public class ApiProcessor {
                     }
                 }
                 API_COLLECTION.put(appName, newApiMap);
+                Matcher matcher = new Matcher(newApiMap);
+                newMatchers.put(appName, matcher);
             }
-            MATHERS.clear();
+            MATHERS = newMatchers;
         }
     }
 
@@ -434,18 +441,15 @@ public class ApiProcessor {
     }
 
     public static String merge(String appName, String url, String type) {
-        url = urlFormat(url);
+        if (StringUtils.indexOf(url, "http://") >= 0 || StringUtils.indexOf(url, "https://") >= 0) {
+            url = urlFormat(url);
+        }
         if (StringUtils.isBlank(url)) {
             return "";
         }
         Matcher matcher = MATHERS.get(appName);
-        if (Objects.isNull(matcher)) {
-            Map<String, List<String>> apiMaps = API_COLLECTION.get(appName);
-            if (Objects.isNull(apiMaps) || apiMaps.size() < 1) {
-                return url;
-            }
-            matcher = new Matcher(apiMaps);
-            MATHERS.putIfAbsent(appName, matcher);
+        if (matcher == null) {
+            return url;
         }
         return matcher.match3(url, type, null);
     }
