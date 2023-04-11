@@ -101,14 +101,23 @@ public class AppConfigUtil {
                 String value = configService.getConfigAndSignListener(nacosId, group, 3000L, new AbstractListener() {
                     @Override
                     public void receiveConfigInfo(String configInfo) {
-                        String value = StringUtils.trim(configInfo);
-                        if (NumberUtils.isDigits(value)) {
-                            sampling = Integer.valueOf(value);
+                        nacosConfigs = JSON.parseObject(configInfo, Map.class);
+                        if (nacosConfigs != null) {
+                            Object obj = nacosConfigs.get(globalSamplingPath);
+                            String val = obj == null ? null : obj.toString();
+                            if (NumberUtils.isDigits(StringUtils.trim(val))) {
+                                sampling = Integer.valueOf(StringUtils.trim(val));
+                            }
                         }
                     }
                 });
-                if (NumberUtils.isDigits(StringUtils.trim(value))) {
-                    this.sampling = Integer.valueOf(StringUtils.trim(value));
+                nacosConfigs = JSON.parseObject(value, Map.class);
+                if (nacosConfigs != null) {
+                    Object obj = nacosConfigs.get(globalSamplingPath);
+                    String val = obj == null ? null : obj.toString();
+                    if (NumberUtils.isDigits(StringUtils.trim(val))) {
+                        this.sampling = Integer.valueOf(StringUtils.trim(val));
+                    }
                 }
             } catch (Throwable e) {
                 logger.error("从 nacos 获取采样率失败.", e);
