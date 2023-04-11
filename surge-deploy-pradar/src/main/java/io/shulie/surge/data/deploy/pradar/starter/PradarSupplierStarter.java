@@ -38,7 +38,8 @@ public class PradarSupplierStarter implements PradarTaskStarter {
             pradarSupplierConfiguration.initArgs(args);
             pradarSupplierConfiguration.install(bootstrap);
         } catch (Throwable e) {
-            throw new RuntimeException("fail to start PradarSupplierStarter", e);
+            logger.error("fail to init PradarSupplierStarter",e);
+            throw new RuntimeException("fail to start PradarSupplierStarter.", e);
         }
     }
 
@@ -62,7 +63,8 @@ public class PradarSupplierStarter implements PradarTaskStarter {
             dataRuntime = bootstrap.startRuntime();
             pradarSupplierConfiguration.doAfterInit(dataRuntime);
         } catch (Throwable e) {
-            throw new RuntimeException("fail to start PradarSupplierStarter", e);
+            logger.error("fail to start PradarSupplierStarter", e);
+            throw new RuntimeException("fail to start PradarSupplierStarter.", e);
         }
         logger.info("PradarSupplierStarter start successfull...");
     }
