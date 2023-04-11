@@ -16,7 +16,6 @@
 package io.shulie.surge.data.deploy.pradar.digester.command;
 
 import com.alibaba.fastjson.JSON;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
@@ -87,7 +86,7 @@ public class BaseCommand implements ClickhouseCommand {
 
     @Override
     public LinkedHashMap<String, Object> action(RpcBased rpcBased) {
-        LinkedHashMap<String, Object> map = Maps.newLinkedHashMap();
+        LinkedHashMap<String, Object> map = new LinkedHashMap<>(100);
         map.put("appName", rpcBased.getAppName());
         map.put("entranceId", rpcBased.getEntranceId());
         map.put("entranceNodeId", rpcBased.getEntranceNodeId());

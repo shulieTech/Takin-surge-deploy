@@ -15,7 +15,6 @@
 
 package io.shulie.surge.data.deploy.pradar.digester.command;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.pamirs.pradar.log.parser.trace.AttachmentBased;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
@@ -39,7 +38,7 @@ public class FlagCommand implements ClickhouseCommand {
 
     @Override
     public LinkedHashMap<String, Object> action(RpcBased rpcBased) {
-        LinkedHashMap<String, Object> map = Maps.newLinkedHashMap();
+        LinkedHashMap<String, Object> map = new LinkedHashMap<>(16);
         map.put("flag", TraceFlagEnum.LOG_OK.getCode());
 
         //放入attachment

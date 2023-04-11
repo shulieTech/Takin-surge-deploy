@@ -67,8 +67,8 @@ import java.util.concurrent.TimeUnit;
  * @Description:
  */
 @Singleton
-public class TraceMetricsDiggester implements DataDigester<RpcBased> {
-    private static Logger logger = LoggerFactory.getLogger(TraceMetricsDiggester.class);
+public class TraceMetricsDigester implements DataDigester<RpcBased> {
+    private static Logger logger = LoggerFactory.getLogger(TraceMetricsDigester.class);
 
     @Inject
     @DefaultValue("false")
@@ -330,7 +330,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
 
     @Override
     public int threadCount() {
-        return 1;
+        return 2;
     }
 
     @Override

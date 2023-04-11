@@ -45,7 +45,7 @@ public class LinkCommand implements ClickhouseCommand {
     @Override
     public LinkedHashMap<String, Object> action(RpcBased rpcBased) {
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
-        LinkedHashMap<String, Object> map = Maps.newLinkedHashMap();
+        LinkedHashMap<String, Object> map = new LinkedHashMap<>(16);
         map.put("timeMin", rpcBased.getStartTime() / 1000 / 60);
         map.put("dateToMin", rpcBased.getStartTime() / 1000 / 60 / 60 / 24);
         if (rpcBasedParser != null) {
