@@ -20,13 +20,15 @@ import io.shulie.surge.data.runtime.disruptor.WorkHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class DigesterWorkerHanlder implements WorkHandler<DigestJob> {
     private static Logger logger = LoggerFactory.getLogger(DigesterHandler.class);
     DataDigester eed;
     int index;
-    long[] digesterTimeCost;
+    AtomicLong[] digesterTimeCost;
 
-    public DigesterWorkerHanlder(DataDigester eed, int index, long[] digesterTimeCost) {
+    public DigesterWorkerHanlder(DataDigester eed, int index, AtomicLong[] digesterTimeCost) {
         this.eed = eed;
         this.index = index;
         this.digesterTimeCost = digesterTimeCost;
@@ -43,6 +45,6 @@ public class DigesterWorkerHanlder implements WorkHandler<DigestJob> {
         } catch (Throwable e) {
             logger.error("digest error ", e);
         }
-        digesterTimeCost[index] += (System.currentTimeMillis() - now);
+        digesterTimeCost[index].addAndGet(System.currentTimeMillis() - now);
     }
 }
