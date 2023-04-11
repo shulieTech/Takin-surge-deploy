@@ -30,7 +30,7 @@ import java.lang.reflect.Type;
 
 /**
  * 使用注入方式同步配置数据的通用基类
- * 
+ *
  * @author pamirs
  */
 public abstract class BaseRemoteData<T> implements Remote<T>, FieldInjectionAware {
@@ -45,6 +45,11 @@ public abstract class BaseRemoteData<T> implements Remote<T>, FieldInjectionAwar
 
 	protected Object instance;
 	protected Method updateMethod;
+
+	@Override
+	public T get() {
+		return data;
+	}
 
 	@Override
 	public void setInjectionContext(Field field, Type fieldType, Object instance) throws Exception {

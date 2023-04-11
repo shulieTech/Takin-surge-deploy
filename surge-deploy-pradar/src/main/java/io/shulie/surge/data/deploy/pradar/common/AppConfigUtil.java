@@ -211,7 +211,7 @@ public class AppConfigUtil {
      * @return
      */
     public int getAppSamplingByAppName(String userAppKey, String envCode, String appName, String clusterTest) {
-        if (!nacosDisable.get()) {
+        if (nacosDisable.get()) {
             return getSamplingFromNacos();
         } else {
             try {
