@@ -72,7 +72,7 @@ public class ApiProcessor {
 
     private static Map<String, String> tenantConfigMap = new HashMap<>();
 
-    protected static Map<String, Matcher> MATHERS = new HashMap<>();
+    protected static Map<String, Matcher> MATCHERS = new HashMap<>();
 
     private ScheduledExecutorService service =
             new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
@@ -171,7 +171,7 @@ public class ApiProcessor {
                 Matcher matcher = new Matcher(newApiMap);
                 newMatchers.put(appName, matcher);
             }
-            MATHERS = newMatchers;
+            MATCHERS = newMatchers;
         }
     }
 
@@ -209,7 +209,7 @@ public class ApiProcessor {
                 Matcher matcher = new Matcher(newApiMap);
                 newMatchers.put(appName, matcher);
             }
-            MATHERS = newMatchers;
+            MATCHERS = newMatchers;
         }
     }
 
@@ -447,7 +447,7 @@ public class ApiProcessor {
         if (StringUtils.isBlank(url)) {
             return "";
         }
-        Matcher matcher = MATHERS.get(appName);
+        Matcher matcher = MATCHERS.get(appName);
         if (matcher == null) {
             return url;
         }
@@ -460,14 +460,14 @@ public class ApiProcessor {
         if (StringUtils.isBlank(url)) {
             return "";
         }
-        Matcher matcher = MATHERS.get(appName);
+        Matcher matcher = MATCHERS.get(appName);
         if (Objects.isNull(matcher)) {
             Map<String, List<String>> apiMaps = API_COLLECTION.get(appName);
             if (Objects.isNull(apiMaps) || apiMaps.size() < 1) {
                 return url;
             }
             matcher = new Matcher(apiMaps);
-            MATHERS.putIfAbsent(appName, matcher);
+            MATCHERS.putIfAbsent(appName, matcher);
         }
         return matcher.match(url, type);
     }
