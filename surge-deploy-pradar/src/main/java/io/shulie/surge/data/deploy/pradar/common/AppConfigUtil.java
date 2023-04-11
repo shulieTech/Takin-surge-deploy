@@ -38,6 +38,8 @@ import javax.inject.Singleton;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 @Singleton
 public class AppConfigUtil {
@@ -83,31 +85,52 @@ public class AppConfigUtil {
     private Remote<Boolean> nacosDisable;
 
     private volatile Integer sampling;
+    private AtomicBoolean isInited = new AtomicBoolean(false);
 
-    private int getSamplingFromNacos() {
-        if (sampling != null) {
-            return sampling;
-        }
+    private void subscribeNacosConfig(Consumer<Map<String, Object>> consumer) {
         if (configService == null) {
-            return 1;
+            return;
+        }
+        if (!isInited.compareAndSet(false, true)) {
+            return;
         }
         String nacosId = "pradarConfig", group = "PRADAR_CONFIG";
         try {
             String value = configService.getConfigAndSignListener(nacosId, group, 3000L, new AbstractListener() {
                 @Override
                 public void receiveConfigInfo(String configInfo) {
-                    String value = StringUtils.trim(configInfo);
-                    if (NumberUtils.isDigits(value)) {
-                        sampling = Integer.valueOf(value);
+                    nacosConfigs = JSON.parseObject(configInfo, Map.class);
+                    if (consumer != null) {
+                        consumer.accept(nacosConfigs);
                     }
                 }
             });
-            if (NumberUtils.isDigits(StringUtils.trim(value))) {
-                this.sampling = Integer.valueOf(StringUtils.trim(value));
+            nacosConfigs = JSON.parseObject(value, Map.class);
+            if (consumer != null) {
+                consumer.accept(nacosConfigs);
             }
         } catch (Throwable e) {
             logger.error("从 nacos 获取采样率失败.", e);
         }
+    }
+
+    private int getSamplingFromNacos() {
+        if (sampling != null) {
+            return sampling;
+        }
+        subscribeNacosConfig(map -> {
+            if (map == null) {
+                return;
+            }
+            Object obj = map.get(globalSamplingPath);
+            if (obj == null) {
+                return;
+            }
+            String val = StringUtils.trim(obj == null ? null : obj.toString());
+            if (NumberUtils.isDigits(val)) {
+                sampling = Integer.valueOf(val);
+            }
+        });
 
         return this.sampling == null ? 1 : this.sampling;
     }
@@ -211,7 +234,7 @@ public class AppConfigUtil {
      * @return
      */
     public int getAppSamplingByAppName(String userAppKey, String envCode, String appName, String clusterTest) {
-        if (nacosDisable.get()) {
+        if (!nacosDisable.get()) {
             return getSamplingFromNacos();
         } else {
             try {
