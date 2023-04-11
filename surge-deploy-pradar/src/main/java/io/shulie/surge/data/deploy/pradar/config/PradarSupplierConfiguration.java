@@ -389,9 +389,9 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @return
      */
     private DataDigester[] buildTraceLogComplexDigester(DataRuntime dataRuntime) {
-        TraceMetricsDiggester traceMetricsDiggester = dataRuntime.getInstance(TraceMetricsDiggester.class);
-        traceMetricsDiggester.init();
-        return new DataDigester[]{traceMetricsDiggester};
+        TraceMetricsDigester traceMetricsDigester = dataRuntime.getInstance(TraceMetricsDigester.class);
+        traceMetricsDigester.init();
+        return new DataDigester[]{traceMetricsDigester};
     }
 
     /**

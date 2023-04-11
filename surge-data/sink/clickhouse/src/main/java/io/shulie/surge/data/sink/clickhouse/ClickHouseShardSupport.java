@@ -39,6 +39,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -58,7 +60,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
     private static int deleyTime = 5;
     private Map<String, String> urlMap = Maps.newHashMap();
     private Map<String, JdbcTemplate> shardJdbcTemplateMap = Maps.newHashMap();
-    private Map<String, RotationBatch<Object[]>> rotationPrepareSqlBatch = Maps.newHashMap();
+    private ConcurrentMap<String, RotationBatch<Object[]>> rotationPrepareSqlBatch = new ConcurrentHashMap<>();
 
     public ClickHouseShardSupport() {
     }
@@ -117,12 +119,15 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
      * @param sql
      * @param shardBatchArgs
      */
-    public synchronized void batchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
+    public void batchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
         Map<String, List<Object[]>> shardBatchArgsMap = shardBatchArgs(shardBatchArgs);
         for (Map.Entry<String, List<Object[]>> entry : shardBatchArgsMap.entrySet()) {
-            RotationBatch<Object[]> rotationBatch = null;
-            if (!rotationPrepareSqlBatch.containsKey(entry.getKey() + ":" + sql)) {
-                rotationBatch = new RotationBatch(entry.getKey(), new CountRotationPolicy(batchCount), new TimedRotationPolicy(deleyTime, TimeUnit.SECONDS));
+            RotationBatch<Object[]> rotationBatch = new RotationBatch(entry.getKey(), new CountRotationPolicy(batchCount), new TimedRotationPolicy(deleyTime, TimeUnit.SECONDS));
+            String key = entry.getKey() + ":" + sql;
+            RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(key, rotationBatch);
+            if (old != null) {
+                rotationBatch = old;
+            } else {
                 rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
                     @Override
                     public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
@@ -148,13 +153,12 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
                         return true;
                     }
                 });
-            } else {
-                rotationBatch = rotationPrepareSqlBatch.get(entry.getKey() + ":" + sql);
             }
+
             for (Object[] args : entry.getValue()) {
                 rotationBatch.addBatch(args);
             }
-            rotationPrepareSqlBatch.put(entry.getKey() + ":" + sql, rotationBatch);
+            rotationPrepareSqlBatch.put(key, rotationBatch);
         }
     }
 
