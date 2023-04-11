@@ -36,7 +36,7 @@ public class CacheRpcBasedParser extends DBClientRpcBasedParser {
     @Override
     public String methodParse(RpcBased rpcBased) {
         //如果中间件类型是redis,则从serviceName中解析方法名称,其他缓存如google-guava则还是取其methodname
-        if ("redis".equals(rpcBased.getMiddlewareName())) {
+        if (StringUtils.equalsIgnoreCase("redis", rpcBased.getMiddlewareName())) {
             // 这里处理的时候比较麻烦,因为serviceName和methodName都可能会搞成值的形式，这里直接匹配Redis Command
             return RedisCommandUtils.parseMethod(rpcBased.getServiceName(), rpcBased.getMethodName());
         }
@@ -46,7 +46,7 @@ public class CacheRpcBasedParser extends DBClientRpcBasedParser {
     @Override
     public String serviceParse(RpcBased rpcBased) {
         String serviceName = rpcBased.getServiceName();
-        if ("redis".equals(rpcBased.getMiddlewareName())) {
+        if (StringUtils.equalsIgnoreCase("redis", rpcBased.getMiddlewareName())) {
             // 1、旧版本的日志的库名跟方法是放到一起的，按:分开解析出来
 //            if (StringUtils.isNotBlank(serviceName) && serviceName.contains(":")) {
 //                return serviceName.substring(0, serviceName.indexOf(":"));
@@ -66,14 +66,15 @@ public class CacheRpcBasedParser extends DBClientRpcBasedParser {
     @Override
     public String appNameParse(RpcBased rpcBased) {
         String addr = rpcBased.getRemoteIp();
-        int port = NumberUtils.toInt(rpcBased.getPort(), 0);
         String dbType = rpcBased.getMiddlewareName();
-        String serviceName = serviceParse(rpcBased);
-        String appName = dbType + " " + addr + ":" + port + ":" + serviceName;
         // 本地缓存的这类。没有remoteIp。直接返回dbType
         if (StringUtils.isBlank(addr)) {
             return dbType;
         }
+
+        int port = NumberUtils.toInt(rpcBased.getPort(), 0);
+        String serviceName = serviceParse(rpcBased);
+        String appName = dbType + " " + addr + ":" + port + ":" + serviceName;
         return appName;
     }
 }

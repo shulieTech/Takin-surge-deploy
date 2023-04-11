@@ -15,6 +15,11 @@
 
 package io.shulie.surge.data.deploy.pradar.common;
 
+import org.apache.commons.lang.StringUtils;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public enum MiddlewareTypeEnum {
     /**
      * 默认(空)
@@ -123,82 +128,65 @@ public enum MiddlewareTypeEnum {
         this.type = type;
     }
 
+    private static Map<String, MiddlewareTypeEnum> types = new HashMap<>();
+
+    static {
+        types.put("app", MiddlewareTypeEnum.APP);
+        types.put("dubbo", MiddlewareTypeEnum.DUBBO);
+        types.put("apache-dubbo", MiddlewareTypeEnum.DUBBO);
+        types.put("feign", MiddlewareTypeEnum.FEIGN);
+        types.put("apache-rocketmq", MiddlewareTypeEnum.ROCKETMQ);
+        types.put("ons", MiddlewareTypeEnum.ROCKETMQ);
+        types.put("rocketmq", MiddlewareTypeEnum.ROCKETMQ);
+        types.put("apache-kafka", MiddlewareTypeEnum.KAFKA);
+        types.put("kafka", MiddlewareTypeEnum.KAFKA);
+        types.put("sf-kafka", MiddlewareTypeEnum.KAFKA);
+        types.put("apache-activemq", MiddlewareTypeEnum.ACTIVEMQ);
+        types.put("activemq", MiddlewareTypeEnum.ACTIVEMQ);
+        types.put("ibmmq", MiddlewareTypeEnum.IBMMQ);
+        types.put("rabbitmq", MiddlewareTypeEnum.RABBITMQ);
+        types.put("hbase", MiddlewareTypeEnum.HBASE);
+        types.put("aliyun-hbase", MiddlewareTypeEnum.HBASE);
+        types.put("hessian", MiddlewareTypeEnum.HESSIAN);
+        types.put("tfs", MiddlewareTypeEnum.OSS);
+        types.put("oss", MiddlewareTypeEnum.OSS);
+        types.put("http", MiddlewareTypeEnum.HTTP);
+        types.put("undertow", MiddlewareTypeEnum.HTTP);
+        types.put("tomcat", MiddlewareTypeEnum.HTTP);
+        types.put("jetty", MiddlewareTypeEnum.HTTP);
+        types.put("jdk-http", MiddlewareTypeEnum.HTTP);
+        types.put("netty-gateway", MiddlewareTypeEnum.HTTP);
+        types.put("webflux", MiddlewareTypeEnum.HTTP);
+        types.put("okhttp", MiddlewareTypeEnum.HTTP);
+        types.put("mysql", MiddlewareTypeEnum.MYSQL);
+        types.put("oracle", MiddlewareTypeEnum.ORACLE);
+        types.put("sqlserver", MiddlewareTypeEnum.SQLSERVER);
+        types.put("cassandra", MiddlewareTypeEnum.CASSANDRA);
+        types.put("mongodb", MiddlewareTypeEnum.MONGODB);
+        types.put("elasticsearch", MiddlewareTypeEnum.ELASTICJOB);
+        types.put("redis", MiddlewareTypeEnum.REDIS);
+        types.put("memcache", MiddlewareTypeEnum.MEMCACHE);
+        types.put("cache", MiddlewareTypeEnum.CACHE);
+        types.put("google-guava", MiddlewareTypeEnum.CACHE);
+        types.put("guava", MiddlewareTypeEnum.CACHE);
+        types.put("caffeine", MiddlewareTypeEnum.CACHE);
+        types.put("search", MiddlewareTypeEnum.ES);
+        types.put("elastic-job", MiddlewareTypeEnum.ELASTICJOB);
+    }
+
     public static MiddlewareTypeEnum getNodeType(String middlewareName) {
-        if (middlewareName == null || "".equals(middlewareName.trim())) {
+        String name = StringUtils.lowerCase(StringUtils.trim(middlewareName));
+        if (StringUtils.isBlank(name)) {
             return MiddlewareTypeEnum.UNKNOWN;
         }
-        if (middlewareName.toLowerCase().contains("http")) {
+        if (name.indexOf("http") >= 0) {
             middlewareName = "http";
         }
-        switch (middlewareName.toLowerCase()) {
-            case "app":
-                return MiddlewareTypeEnum.APP;
-            case "dubbo":
-            case "apache-dubbo":
-                return MiddlewareTypeEnum.DUBBO;
-            case "feign":
-                return MiddlewareTypeEnum.FEIGN;
-            case "apache-rocketmq":
-            case "rocketmq":
-            case "ons":
-                return MiddlewareTypeEnum.ROCKETMQ;
-            case "apache-kafka":
-            case "kafka":
-            case "sf-kafka":
-                return MiddlewareTypeEnum.KAFKA;
-            case "apache-activemq":
-            case "activemq":
-                return MiddlewareTypeEnum.ACTIVEMQ;
-            case "ibmmq":
-                return MiddlewareTypeEnum.IBMMQ;
-            case "rabbitmq":
-                return MiddlewareTypeEnum.RABBITMQ;
-            case "hbase":
-            case "aliyun-hbase":
-                return MiddlewareTypeEnum.HBASE;
-            case "hessian":
-                return MiddlewareTypeEnum.HESSIAN;
-            case "tfs":
-                return MiddlewareTypeEnum.OSS;
-            case "http":
-            case "undertow":
-            case "tomcat":
-            case "jetty":
-            case "jdk-http":
-            case "netty-gateway":
-            case "webflux":
-            case "okhttp":
-                return MiddlewareTypeEnum.HTTP;
-            case "oss":
-                return MiddlewareTypeEnum.OSS;
-            case "mysql":
-                return MiddlewareTypeEnum.MYSQL;
-            case "oracle":
-                return MiddlewareTypeEnum.ORACLE;
-            case "sqlserver":
-                return MiddlewareTypeEnum.SQLSERVER;
-            case "cassandra":
-                return MiddlewareTypeEnum.CASSANDRA;
-            case "mongodb":
-                return MiddlewareTypeEnum.MONGODB;
-            case "elasticsearch":
-                return MiddlewareTypeEnum.ES;
-            case "redis":
-                return MiddlewareTypeEnum.REDIS;
-            case "memcache":
-                return MiddlewareTypeEnum.MEMCACHE;
-            case "cache":
-            case "google-guava":
-            case "guava":
-            case "caffeine":
-                return MiddlewareTypeEnum.CACHE;
-            case "search":
-                return MiddlewareTypeEnum.ES;
-            case "elastic-job":
-                return MiddlewareTypeEnum.ELASTICJOB;
-            default:
-                return buildEnum(middlewareName.toUpperCase());
+        MiddlewareTypeEnum typeEnum = types.get(middlewareName);
+        if (typeEnum != null) {
+            return typeEnum;
         }
+        return buildEnum(middlewareName.toUpperCase());
     }
 
     public String getType() {

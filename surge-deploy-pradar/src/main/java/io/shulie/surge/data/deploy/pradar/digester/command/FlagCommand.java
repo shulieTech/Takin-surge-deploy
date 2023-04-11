@@ -27,18 +27,24 @@ import java.util.LinkedHashSet;
 
 public class FlagCommand implements ClickhouseCommand {
     private static Logger logger = LoggerFactory.getLogger(FlagCommand.class);
+    private static ThreadLocal<LinkedHashMap<String, Object>> mapGetter = ThreadLocal.withInitial(() -> new LinkedHashMap<>(200));
+
+    private LinkedHashSet<String> meta;
+
+    public FlagCommand() {
+        meta = Sets.newLinkedHashSet();
+        meta.add("flag");
+        meta.add("flagMessage");
+    }
 
     @Override
     public LinkedHashSet<String> meta() {
-        LinkedHashSet<String> linkedHashSet = Sets.newLinkedHashSet();
-        linkedHashSet.add("flag");
-        linkedHashSet.add("flagMessage");
-        return linkedHashSet;
+        return meta;
     }
 
     @Override
     public LinkedHashMap<String, Object> action(RpcBased rpcBased) {
-        LinkedHashMap<String, Object> map = new LinkedHashMap<>(16);
+        LinkedHashMap<String, Object> map = mapGetter.get();
         map.put("flag", TraceFlagEnum.LOG_OK.getCode());
 
         //放入attachment
@@ -48,29 +54,6 @@ public class FlagCommand implements ClickhouseCommand {
         } else {
             map.put("flagMessage", "");
         }
-        /*if (CollectionUtils.isNotEmpty(RuleLoader.flagRules)) {
-            Map<String, Object> ctx = BeanMap.create(rpcBased);
-            StringBuilder flagMessage = new StringBuilder();
-            for (int i = 0; i < RuleLoader.flagRules.size(); i++) {
-                try {
-                    Map<String, Object> ruleModel = RuleLoader.flagRules.get(i);
-                    if (StringUtils.isBlank(Objects.toString(ruleModel.get("rule")))) {
-                        continue;
-                    }
-                    String result = Objects.toString(RuleFactory.getTinyElEvalService().eval(ctx, Objects.toString(ruleModel.get("rule"))));
-                    if (Boolean.TRUE.equals(result)) {
-                        flagMessage = flagMessage.append(ruleModel.get("tips") + ",");
-                    }
-                } catch (Throwable e) {
-                    logger.error(ExceptionUtils.getStackTrace(e));
-                    break;
-                }
-            }
-            if (StringUtils.isNotBlank(flagMessage.toString())) {
-                map.put("flag", TraceFlagEnum.LOG_ERROR.getCode());
-                map.put("flagMessage", flagMessage.deleteCharAt(flagMessage.length() - 1));
-            }
-        }*/
         return map;
     }
 }

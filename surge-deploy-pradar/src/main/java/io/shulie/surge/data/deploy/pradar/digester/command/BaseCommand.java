@@ -30,12 +30,12 @@ import java.util.LinkedHashSet;
  * @author vincent
  */
 public class BaseCommand implements ClickhouseCommand {
+    private LinkedHashSet meta;
 
-    /**
-     * @return
-     */
-    public LinkedHashSet<String> meta() {
-        LinkedHashSet<String> meta = Sets.newLinkedHashSet();
+    private static ThreadLocal<LinkedHashMap<String, Object>> mapGetter = ThreadLocal.withInitial(() -> new LinkedHashMap<>(200));
+
+    public BaseCommand() {
+        this.meta = Sets.newLinkedHashSet();
         meta.add("appName");
         meta.add("entranceId");
         meta.add("entranceNodeId");
@@ -80,13 +80,19 @@ public class BaseCommand implements ClickhouseCommand {
         meta.add("userAppKey");
         meta.add("envCode");
         meta.add("userId");
+    }
 
+    /**
+     * @return
+     */
+    @Override
+    public LinkedHashSet<String> meta() {
         return meta;
     }
 
     @Override
     public LinkedHashMap<String, Object> action(RpcBased rpcBased) {
-        LinkedHashMap<String, Object> map = new LinkedHashMap<>(100);
+        LinkedHashMap<String, Object> map = mapGetter.get();
         map.put("appName", rpcBased.getAppName());
         map.put("entranceId", rpcBased.getEntranceId());
         map.put("entranceNodeId", rpcBased.getEntranceNodeId());

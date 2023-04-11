@@ -15,7 +15,6 @@
 
 package io.shulie.surge.data.deploy.pradar.digester.command;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.common.MiddlewareTypeEnum;
@@ -28,24 +27,30 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 
 public class LinkCommand implements ClickhouseCommand {
+    private static ThreadLocal<LinkedHashMap<String, Object>> mapGetter = ThreadLocal.withInitial(() -> new LinkedHashMap<>(200));
+    private LinkedHashSet<String> meta;
+
+    public LinkCommand() {
+        this.meta = Sets.newLinkedHashSet();
+        meta.add("timeMin");
+        meta.add("dateToMin");
+        meta.add("parsedServiceName");
+        meta.add("parsedMethod");
+        meta.add("parsedAppName");
+        meta.add("parsedExtend");
+        meta.add("parsedMiddlewareName");
+        meta.add("entranceServiceType");
+    }
+
     @Override
     public LinkedHashSet<String> meta() {
-        LinkedHashSet<String> linkedHashSet = Sets.newLinkedHashSet();
-        linkedHashSet.add("timeMin");
-        linkedHashSet.add("dateToMin");
-        linkedHashSet.add("parsedServiceName");
-        linkedHashSet.add("parsedMethod");
-        linkedHashSet.add("parsedAppName");
-        linkedHashSet.add("parsedExtend");
-        linkedHashSet.add("parsedMiddlewareName");
-        linkedHashSet.add("entranceServiceType");
-        return linkedHashSet;
+        return meta;
     }
 
     @Override
     public LinkedHashMap<String, Object> action(RpcBased rpcBased) {
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
-        LinkedHashMap<String, Object> map = new LinkedHashMap<>(16);
+        LinkedHashMap<String, Object> map = mapGetter.get();
         map.put("timeMin", rpcBased.getStartTime() / 1000 / 60);
         map.put("dateToMin", rpcBased.getStartTime() / 1000 / 60 / 60 / 24);
         if (rpcBasedParser != null) {

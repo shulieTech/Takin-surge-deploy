@@ -104,9 +104,9 @@ public class LogDigester implements DataDigester<RpcBased> {
             tableName = clickHouseShardSupport.isCluster() ? "t_trace" : "t_trace_all";
             engineTable = clickHouseShardSupport.isCluster() ? "t_pressure" : "t_trace_pressure";
         }
-        clickhouseFacade.addCommond(new BaseCommand());
-        clickhouseFacade.addCommond(new LinkCommand());
-        clickhouseFacade.addCommond(new FlagCommand());
+        clickhouseFacade.addCommand(new BaseCommand());
+        clickhouseFacade.addCommand(new LinkCommand());
+        clickhouseFacade.addCommand(new FlagCommand());
         sql = "insert into " + tableName + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
         engineSql = "insert into " + engineTable + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
     }
