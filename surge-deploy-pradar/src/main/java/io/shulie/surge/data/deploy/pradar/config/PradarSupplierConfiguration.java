@@ -220,9 +220,9 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
 
 
             Map<String, DataQueue> queueMap = Maps.newHashMap();
-            queueMap.put(String.valueOf(DataType.TRACE_LOG), buidTraceProcesser(dataRuntime, isDistributed));
-            queueMap.put(String.valueOf(DataType.MONITOR_LOG), buidMonitorProcesser(dataRuntime));
-            queueMap.put(String.valueOf(DataType.AGENT_LOG), buidAgentLogProcesser(dataRuntime));
+            queueMap.put(String.valueOf(DataType.TRACE_LOG), buildTraceProcessor(dataRuntime, isDistributed));
+            queueMap.put(String.valueOf(DataType.MONITOR_LOG), buildMonitorProcessor(dataRuntime));
+            queueMap.put(String.valueOf(DataType.AGENT_LOG), buildAgentLogProcessor(dataRuntime));
 
             nettyRemotingSupplier.setQueue(queueMap);
             nettyRemotingSupplier.setInputPortMap(serverPortsMap);
@@ -241,13 +241,13 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @return
      * @throws Exception
      */
-    protected PradarProcessor buidTraceProcesser(DataRuntime dataRuntime, boolean isDistributed) throws Exception {
+    protected PradarProcessor buildTraceProcessor(DataRuntime dataRuntime, boolean isDistributed) throws Exception {
         /**
          * storm消费trace日志
          */
         ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
         traceLogProcessorConfigSpec.setName("trace-log");
-        traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogDigesters(dataRuntime), isDistributed ? buildTraceLogComplexDigester(dataRuntime) : buildE2EProcessByStandadloneDigesters(dataRuntime)));
+        traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogDigesters(dataRuntime), isDistributed ? buildTraceLogComplexDigester(dataRuntime) : buildE2EProcessByStandaloneDigesters(dataRuntime)));
         traceLogProcessorConfigSpec.setExecuteSize(coreSize);
         return dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
 
@@ -260,7 +260,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @return
      * @throws Exception
      */
-    protected PradarProcessor buidMonitorProcesser(DataRuntime dataRuntime) throws Exception {
+    protected PradarProcessor buildMonitorProcessor(DataRuntime dataRuntime) throws Exception {
         /**
          * storm消费monitor日志
          */
@@ -278,7 +278,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @return
      * @throws Exception
      */
-    protected PradarProcessor buidAgentLogProcesser(DataRuntime dataRuntime) throws Exception {
+    protected PradarProcessor buildAgentLogProcessor(DataRuntime dataRuntime) throws Exception {
         ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
         agentProcessorConfigSpec.setName("agent-log");
         agentProcessorConfigSpec.setDigesters(buildAgentDigesters(dataRuntime));
@@ -303,7 +303,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
              */
             ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
             traceLogProcessorConfigSpec.setName("trace-log");
-            traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogDigesters(dataRuntime), isDistributed ? buildTraceLogComplexDigester(dataRuntime) : buildE2EProcessByStandadloneDigesters(dataRuntime)));
+            traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogDigesters(dataRuntime), isDistributed ? buildTraceLogComplexDigester(dataRuntime) : buildE2EProcessByStandaloneDigesters(dataRuntime)));
             traceLogProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
 
@@ -400,7 +400,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @param dataRuntime
      * @return
      */
-    private DataDigester[] buildE2EProcessByStandadloneDigesters(DataRuntime dataRuntime) {
+    private DataDigester[] buildE2EProcessByStandaloneDigesters(DataRuntime dataRuntime) {
         E2EDefaultDigester e2eDefaultDigester = dataRuntime.getInstance(E2EDefaultDigester.class);
         e2eDefaultDigester.init();
         return new DataDigester[]{e2eDefaultDigester};
