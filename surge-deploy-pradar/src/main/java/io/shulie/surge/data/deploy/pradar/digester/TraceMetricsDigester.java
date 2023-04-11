@@ -330,7 +330,7 @@ public class TraceMetricsDigester implements DataDigester<RpcBased> {
 
     @Override
     public int threadCount() {
-        return 1;
+        return 2;
     }
 
     @Override
