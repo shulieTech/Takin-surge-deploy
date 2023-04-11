@@ -38,6 +38,7 @@ import javax.inject.Singleton;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
 public class AppConfigUtil {
@@ -83,30 +84,35 @@ public class AppConfigUtil {
     private Remote<Boolean> nacosDisable;
 
     private volatile Integer sampling;
+    private AtomicBoolean isInited = new AtomicBoolean(false);
 
     private int getSamplingFromNacos() {
         if (sampling != null) {
             return sampling;
         }
+
         if (configService == null) {
             return 1;
         }
-        String nacosId = "pradarConfig", group = "PRADAR_CONFIG";
-        try {
-            String value = configService.getConfigAndSignListener(nacosId, group, 3000L, new AbstractListener() {
-                @Override
-                public void receiveConfigInfo(String configInfo) {
-                    String value = StringUtils.trim(configInfo);
-                    if (NumberUtils.isDigits(value)) {
-                        sampling = Integer.valueOf(value);
+
+        if (!isInited.compareAndSet(false, true)) {
+            String nacosId = "pradarConfig", group = "PRADAR_CONFIG";
+            try {
+                String value = configService.getConfigAndSignListener(nacosId, group, 3000L, new AbstractListener() {
+                    @Override
+                    public void receiveConfigInfo(String configInfo) {
+                        String value = StringUtils.trim(configInfo);
+                        if (NumberUtils.isDigits(value)) {
+                            sampling = Integer.valueOf(value);
+                        }
                     }
+                });
+                if (NumberUtils.isDigits(StringUtils.trim(value))) {
+                    this.sampling = Integer.valueOf(StringUtils.trim(value));
                 }
-            });
-            if (NumberUtils.isDigits(StringUtils.trim(value))) {
-                this.sampling = Integer.valueOf(StringUtils.trim(value));
+            } catch (Throwable e) {
+                logger.error("从 nacos 获取采样率失败.", e);
             }
-        } catch (Throwable e) {
-            logger.error("从 nacos 获取采样率失败.", e);
         }
 
         return this.sampling == null ? 1 : this.sampling;
