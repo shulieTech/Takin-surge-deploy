@@ -18,6 +18,7 @@ package io.shulie.surge.data.deploy.pradar.parser.fs;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.parser.db.DBClientRpcBasedParser;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * @author xingchen
@@ -27,7 +28,7 @@ public class FsRpcBasedParser extends DBClientRpcBasedParser {
 
     @Override
     public String serviceParse(RpcBased rpcBased) {
-        if (rpcBased.getMiddlewareName().equalsIgnoreCase(OSS)) {
+        if (StringUtils.equalsIgnoreCase(rpcBased.getMiddlewareName(), OSS)) {
             return ApiProcessor.formatUrl(rpcBased.getServiceName());
         }
         return super.serviceParse(rpcBased);
@@ -35,7 +36,7 @@ public class FsRpcBasedParser extends DBClientRpcBasedParser {
 
     @Override
     public String appNameParse(RpcBased rpcBased) {
-        if (rpcBased.getMiddlewareName().equalsIgnoreCase(OSS)) {
+        if (StringUtils.equalsIgnoreCase(rpcBased.getMiddlewareName(), OSS)) {
             String addr = rpcBased.getRemoteIp();
             String dbType = rpcBased.getMiddlewareName();
             String appName = dbType + " " + addr;

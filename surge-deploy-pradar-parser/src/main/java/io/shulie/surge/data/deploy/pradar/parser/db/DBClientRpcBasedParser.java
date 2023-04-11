@@ -37,11 +37,11 @@ public class DBClientRpcBasedParser extends DefaultRpcBasedParser {
 
     @Override
     public String methodParse(RpcBased rpcBased) {
-        if ("hbase".equalsIgnoreCase(rpcBased.getMiddlewareName())) {
+        if (StringUtils.equalsIgnoreCase("hbase", rpcBased.getMiddlewareName())) {
             String serviceName = rpcBased.getServiceName();
             //解析出表名
             //serviceName 2种格式  1:namespace:tableName 2: tableName
-            serviceName = serviceName.contains(":") ? serviceName.split(":")[1] : serviceName;
+            serviceName = serviceName.indexOf(':') >= 0 ? StringUtils.split(serviceName, ':')[1] : serviceName;
             return serviceName;
         }
         // 兼容新版本，1.6版本的日志，method为表名，低版本为空,低版本解析表名放到method中
@@ -54,13 +54,14 @@ public class DBClientRpcBasedParser extends DefaultRpcBasedParser {
     @Override
     public String serviceParse(RpcBased rpcBased) {
         String serviceName = rpcBased.getServiceName();
-        if ("hbase".equalsIgnoreCase(rpcBased.getMiddlewareName())) {
+        if (StringUtils.equalsIgnoreCase("hbase", rpcBased.getMiddlewareName())) {
             //serviceName 2种格式  1:namespace:tableName 2: tableName
-            return serviceName.contains(":") ? serviceName.split(":")[0] : "default";
+            return serviceName.indexOf(':') >= 0 ? serviceName.split(":")[0] : "default";
         }
         if (StringUtils.isNotBlank(serviceName)) {
-            if (serviceName.contains("?")) {
-                return serviceName.substring(0, serviceName.indexOf("?"));
+            int indexOf = serviceName.indexOf('?');
+            if (indexOf >= 0) {
+                return serviceName.substring(0, indexOf);
             }
         }
         return super.serviceParse(rpcBased);
@@ -73,13 +74,14 @@ public class DBClientRpcBasedParser extends DefaultRpcBasedParser {
     @Override
     public String appNameParse(RpcBased rpcBased) {
         String addr = rpcBased.getRemoteIp();
-        int port = NumberUtils.toInt(rpcBased.getPort(), 0);
         String dbType = rpcBased.getMiddlewareName();
-        String serviceName = serviceParse(rpcBased);
-        String appName = dbType + " " + addr + ":" + port + ":" + serviceName;
         if (StringUtils.isBlank(addr)) {
             return dbType;
         }
+
+        int port = NumberUtils.toInt(rpcBased.getPort(), 0);
+        String serviceName = serviceParse(rpcBased);
+        String appName = dbType + " " + addr + ":" + port + ":" + serviceName;
         return appName;
     }
 

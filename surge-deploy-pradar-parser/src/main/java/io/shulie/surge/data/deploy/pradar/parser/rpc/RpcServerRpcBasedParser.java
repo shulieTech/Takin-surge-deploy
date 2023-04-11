@@ -34,7 +34,9 @@ public class RpcServerRpcBasedParser extends DefaultRpcBasedParser {
      */
     @Override
     public String serviceParse(RpcBased rpcBased) {
-        if ((rpcBased.getRpcType() == MiddlewareType.TYPE_WEB_SERVER) && (rpcBased.getServiceName() != null && rpcBased.getServiceName().contains("/"))) {
+        if (rpcBased.getRpcType() == MiddlewareType.TYPE_WEB_SERVER
+                && rpcBased.getServiceName() != null
+                && rpcBased.getServiceName().indexOf('/') >= 0) {
             String formatUrl = ApiProcessor.merge(rpcBased.getUserAppKey() + "#" + rpcBased.getEnvCode() + "#" + rpcBased.getAppName(), rpcBased.getServiceName(), rpcBased.getMethodName());
             return formatUrl;
         }

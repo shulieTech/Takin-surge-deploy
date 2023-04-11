@@ -35,10 +35,9 @@ public class MQProducerRpcBasedParser extends DefaultRpcBasedParser {
      */
     @Override
     public String serviceParse(RpcBased rpcBased) {
-        if ("ons".equalsIgnoreCase(rpcBased.getMiddlewareName())) {
+        if (StringUtils.equalsIgnoreCase("ons", rpcBased.getMiddlewareName())) {
             String serviceName = rpcBased.getServiceName();
-            serviceName = serviceName.contains("%") ? serviceName.split("%")[1] : serviceName;
-            //serviceName = serviceName.startsWith("PT_") ? serviceName.substring(3) : serviceName;
+            serviceName = serviceName.indexOf('%') >= 0 ? StringUtils.split(serviceName, '%')[1] : serviceName;
             return serviceName;
         }
         return super.serviceParse(rpcBased);
@@ -50,24 +49,27 @@ public class MQProducerRpcBasedParser extends DefaultRpcBasedParser {
      */
     @Override
     public String appNameParse(RpcBased rpcBased) {
-        String addr = sortAddr(rpcBased.getRemoteIp());
-        int port = NumberUtils.toInt(rpcBased.getPort(), 0);
-        String dbType = rpcBased.getMiddlewareName();
-        String appName = dbType + "" + addr + ":" + port;
-        if (StringUtils.isNotBlank(addr) && addr.contains(":")) {
-            appName = dbType + "" + addr;
-        }
-        if ("ons".equalsIgnoreCase(rpcBased.getMiddlewareName())) {
+        if (StringUtils.equalsIgnoreCase("ons", rpcBased.getMiddlewareName())) {
             String methodName = rpcBased.getMethodName();
-            appName = "";
+            String appName = "";
             if (StringUtils.isNotBlank(methodName)) {
-                appName = methodName.substring(0, methodName.indexOf(":"));
-                if (methodName.contains("%")) {
-                    appName = methodName.substring(0, methodName.indexOf("%"));
+                appName = methodName.substring(0, methodName.indexOf(':'));
+                int indexOf = methodName.indexOf('%');
+                if (indexOf >= 0) {
+                    appName = methodName.substring(0, indexOf);
                 }
             }
+            return appName;
+        } else {
+            String addr = sortAddr(rpcBased.getRemoteIp());
+            int port = NumberUtils.toInt(rpcBased.getPort(), 0);
+            String dbType = rpcBased.getMiddlewareName();
+            String appName = dbType + "" + addr + ":" + port;
+            if (StringUtils.isNotBlank(addr) && addr.indexOf(':') >= 0) {
+                appName = dbType + "" + addr;
+            }
+            return appName;
         }
-        return appName;
     }
 
     /**
@@ -87,22 +89,25 @@ public class MQProducerRpcBasedParser extends DefaultRpcBasedParser {
      */
     @Override
     public String methodParse(RpcBased rpcBased) {
-        if ("ons".equalsIgnoreCase(rpcBased.getMiddlewareName())) {
+        if (StringUtils.equalsIgnoreCase("ons", rpcBased.getMiddlewareName())) {
             String methodTmp = rpcBased.getMethodName();
             String methodName = "";
             if (StringUtils.isNotBlank(methodTmp)) {
-                if (methodTmp.contains("%")) {
-                    methodName = methodTmp.substring(methodTmp.indexOf("%") + 1);
+                int index = methodTmp.indexOf('%');
+                if (index >= 0) {
+                    methodName = methodTmp.substring(index + 1);
                 }
-                if (methodName.contains(":")) {
-                    methodName = methodName.substring(0, methodName.indexOf(":"));
+                int indexOf = methodName.indexOf(':');
+                if (indexOf >= 0) {
+                    methodName = methodName.substring(0, indexOf);
                 }
             }
             return methodName;
         }
         String methodName = rpcBased.getMethodName();
-        if (methodName.contains(":")) {
-            methodName = methodName.substring(0, methodName.indexOf(":"));
+        int indexOf = methodName.indexOf(':');
+        if (indexOf >= 0) {
+            methodName = methodName.substring(0, indexOf);
             return methodName;
         }
         return super.methodParse(rpcBased);

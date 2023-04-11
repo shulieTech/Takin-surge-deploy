@@ -73,16 +73,18 @@ public class MQConsumerRpcBasedParser extends DefaultRpcBasedParser {
      */
     @Override
     public String methodParse(RpcBased rpcBased) {
-        if ("ons".equalsIgnoreCase(rpcBased.getMiddlewareName())) {
+        if (StringUtils.equalsIgnoreCase("ons", rpcBased.getMiddlewareName())) {
             String methodName = rpcBased.getMethodName();
             String methodTmp = methodName;
             if (StringUtils.isNotBlank(methodTmp)) {
-                if (methodTmp.contains("%")) {
+                int indexOf = methodTmp.indexOf('%');
+                if (indexOf >= 0) {
                     //修复bug
-                    methodTmp = methodTmp.substring(methodTmp.indexOf("%") + 1);
+                    methodTmp = methodTmp.substring(indexOf + 1);
                 }
-                if (methodTmp.contains(":")) {
-                    methodTmp = methodTmp.substring(0, methodTmp.indexOf(":"));
+                int index = methodTmp.indexOf(':');
+                if (index >= 0) {
+                    methodTmp = methodTmp.substring(0, index);
                 }
             }
             return "".equals(methodTmp) ? methodName : methodTmp;
