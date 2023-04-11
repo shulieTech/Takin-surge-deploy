@@ -78,7 +78,7 @@ public class AppConfigUtil {
     private ConfigService configService;
 
     @Inject
-    @DefaultValue("true")
+    @DefaultValue("false")
     @Named("/pradar/config/nacos/nacosDisable")
     private Remote<Boolean> nacosDisable;
 
@@ -211,7 +211,7 @@ public class AppConfigUtil {
      * @return
      */
     public int getAppSamplingByAppName(String userAppKey, String envCode, String appName, String clusterTest) {
-        if (!nacosDisable.get()) {
+        if (nacosDisable.get()) {
             return getSamplingFromNacos();
         } else {
             try {
