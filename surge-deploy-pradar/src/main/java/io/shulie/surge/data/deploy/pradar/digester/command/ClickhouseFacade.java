@@ -17,10 +17,10 @@ package io.shulie.surge.data.deploy.pradar.digester.command;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +61,7 @@ public class ClickhouseFacade {
         if (commands.isEmpty()) {
             throw new IllegalArgumentException("Not add command.");
         }
-        Map<String, Object> colMap = Maps.newLinkedHashMap();
+        Map<String, Object> colMap = new LinkedHashMap<>(200);
         for (ClickhouseCommand command : commands) {
             colMap.putAll(command.action(rpcBased));
         }
