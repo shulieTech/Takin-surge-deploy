@@ -79,16 +79,10 @@ public class LinkCommand implements ClickhouseCommand {
     }
 
     private void parse0(RpcBased rpcBased, RpcBasedParser rpcBasedParser, LinkedHashMap<String, Object> map) {
-//        map.put("parsedServiceName", StringUtils.defaultString(rpcBasedParser.serviceParse(rpcBased), ""));
-//        map.put("parsedMethod", StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), ""));
-//        map.put("parsedAppName", StringUtils.defaultString(rpcBasedParser.appNameParse(rpcBased), ""));
-//        map.put("parsedExtend", StringUtils.defaultString(rpcBasedParser.extendParse(rpcBased), ""));
-//        map.put("parsedMiddlewareName", MiddlewareTypeEnum.getNodeType(rpcBased.getMiddlewareName()).getType());
-
-        map.put("parsedServiceName", rpcBased.getServiceName());
-        map.put("parsedMethod", rpcBased.getMethodName());
-        map.put("parsedAppName", rpcBased.getAppName());
-        map.put("parsedExtend", "");
-        map.put("parsedMiddlewareName", rpcBased.getMiddlewareName());
+        map.put("parsedServiceName", StringUtils.defaultString(rpcBasedParser.serviceParse(rpcBased), ""));
+        map.put("parsedMethod", StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), ""));
+        map.put("parsedAppName", StringUtils.defaultString(rpcBasedParser.appNameParse(rpcBased), ""));
+        map.put("parsedExtend", StringUtils.defaultString(rpcBasedParser.extendParse(rpcBased), ""));
+        map.put("parsedMiddlewareName", MiddlewareTypeEnum.getNodeType(rpcBased.getMiddlewareName()).getType());
     }
 }
