@@ -112,6 +112,10 @@ public class ClickhouseFacade {
     public static class Factory {
         private static ClickhouseFacade INSTANCE = new ClickhouseFacade();
 
+        private static class FactoryHolder {
+
+        }
+
         public static ClickhouseFacade getInstace() {
             return INSTANCE;
         }

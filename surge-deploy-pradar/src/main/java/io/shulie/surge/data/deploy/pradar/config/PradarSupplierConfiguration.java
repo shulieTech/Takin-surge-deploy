@@ -354,6 +354,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
     private DataDigester[] buildTraceLogDigesters(DataRuntime dataRuntime) {
         LogDigester logDigester = dataRuntime.getInstance(LogDigester.class);
         logDigester.setDataSourceType(this.dataSourceType);
+        logDigester.init();
         if (openMqConsumer) {
             RocketmqDigester rocketmqDigester = dataRuntime.getInstance(RocketmqDigester.class);
             return new DataDigester[]{logDigester, rocketmqDigester};

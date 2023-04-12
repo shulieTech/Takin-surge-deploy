@@ -233,7 +233,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
                             .append(", about ")
                             .append(FormatUtils.roundx4(divide(timeCost.get(), processCount.get()))).append(" ms/line")
                             .append(" line:").append(processCount.get())
-                            .append(" tps:").append(FormatUtils.roundx0(divide(processCount.get(), timeCost.get() < 1000 ? 1 : timeCost.get() / 1000)));
+                            .append(" tps:").append(FormatUtils.roundx0((divide(processCount.get(), timeCost.get()) * 1000) > processCount.get() ? processCount.get() : (divide(processCount.get(), timeCost.get()) * 1000)));
                     digesterTimeCost[i] = new AtomicLong(0L);
                 }
                 processCount = new AtomicLong(0);
