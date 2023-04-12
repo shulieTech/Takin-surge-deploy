@@ -126,7 +126,11 @@ public class RotationBatch<T extends Serializable> {
         if (started.compareAndSet(false, true)) {
             start();
         }
-        batchObjs.add(object);
+        try {
+            batchObjs.put(object);
+        } catch (InterruptedException e) {
+            logger.error("", e);
+        }
         /**
          * 检查mark
          */
