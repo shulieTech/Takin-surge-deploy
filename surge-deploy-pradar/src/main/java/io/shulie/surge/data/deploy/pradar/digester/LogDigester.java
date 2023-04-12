@@ -176,7 +176,7 @@ public class LogDigester implements DataDigester<RpcBased> {
 
     @Override
     public int threadCount() {
-        return 4;
+        return 2;
     }
 
     @Override
