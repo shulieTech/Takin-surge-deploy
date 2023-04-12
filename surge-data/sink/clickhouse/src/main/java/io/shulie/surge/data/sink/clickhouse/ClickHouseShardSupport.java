@@ -133,6 +133,8 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
                     RotationBatch current = rotationBatch;
                     rotationBatch = old;
                     current.stop();
+                } else {
+                    rotationBatch.start();
                 }
             }
 
@@ -152,6 +154,8 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
                 RotationBatch current = rotationBatch;
                 rotationBatch = old;
                 current.stop();
+            } else {
+                rotationBatch.start();
             }
         }
 
@@ -167,44 +171,26 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
     public void addBatch(final String sql, String key, List<Object[]> args) {
         String shardKey = getShardKey(key);
         String identityId = shardKey + ":" + sql;
-        RotationBatch<Object[]> rotationBatch = new RotationBatch();
-        RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(identityId, rotationBatch);
-        if (old != null) {
-            rotationBatch = old;
-        } else {
-            rotationBatch.init(shardKey, new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
+        RotationBatch<Object[]> rotationBatch = rotationPrepareSqlBatch.get(identityId);
+        if (rotationBatch == null) {
+            rotationBatch = new RotationBatch<>(key, new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
             rotationBatch.batchSaver(new DefaultBatchSaver(sql, shardJdbcTemplateMap));
+            RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(identityId, rotationBatch);
+            if (old != null) {
+                RotationBatch current = rotationBatch;
+                rotationBatch = old;
+                current.stop();
+            } else {
+                rotationBatch.start();
+            }
         }
 
-        for (Object[] objs : args) {
-            rotationBatch.addBatch(objs);
-        }
-    }
-
-    private JdbcTemplate shardJdbcTemplate(String key) {
-        return shardJdbcTemplateMap.get(key);
+        rotationBatch.addBatch(args);
     }
 
     private String getShardKey(final String key) {
         int idx = (key.hashCode() & Integer.MAX_VALUE) % this.urls.size();
         return urls.get(idx);
-    }
-
-    /**
-     * 按url-> args拆分
-     *
-     * @param args
-     * @return
-     */
-    private Map<String, List<Object[]>> shardBatchArgs(final String key, final List<Object[]> args) {
-        Map<String, List<Object[]>> shardBatchArgsMap = Maps.newHashMap();
-        int idx = (key.hashCode() & Integer.MAX_VALUE) % this.urls.size();
-        if (shardBatchArgsMap.containsKey(urls.get(idx))) {
-            shardBatchArgsMap.get(urls.get(idx)).addAll(args);
-        } else {
-            shardBatchArgsMap.put(urls.get(idx), args);
-        }
-        return shardBatchArgsMap;
     }
 
     public List<String> splitUrl(String url) {
