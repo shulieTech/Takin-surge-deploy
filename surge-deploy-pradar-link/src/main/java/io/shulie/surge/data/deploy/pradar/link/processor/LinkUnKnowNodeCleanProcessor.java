@@ -93,7 +93,7 @@ public class LinkUnKnowNodeCleanProcessor extends AbstractProcessor {
 
 
     @Override
-    public void share(List<String> taskIds, String currentTaskId) {
+    public void share() {
         Map<String, Map<String, Object>> linkConfig = linkCache.getLinkConfig();
         if (linkConfig == null || linkConfig.isEmpty()) {
             return;
