@@ -45,7 +45,7 @@ public class DefaultBatchSaver implements RotationBatch.BatchSaver<Object[]> {
                         .append(", about ")
                         .append(FormatUtils.roundx4(divide(cost.get(), count.get()))).append(" ms/line")
                         .append(" line:").append(count.get())
-                        .append(" tps:").append(FormatUtils.roundx0(divide(count.get(), cost.get() < 1000 ? 1 : cost.get() / 1000)));
+                        .append(" tps:").append(FormatUtils.roundx0((divide(count.get(), cost.get()) * 1000) > count.get() ? cost.get() : (divide(count.get(), cost.get()) * 1000)));
                 count.set(0);
                 cost.set(0);
                 logger.warn(appender.toString());
