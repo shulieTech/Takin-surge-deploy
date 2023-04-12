@@ -53,7 +53,7 @@ public class RotationBatch<T extends Serializable> {
     private volatile long flushInterval = -1L;
 
     private ReentrantLock lock;
-    private Condition notEmpty;
+    private Condition signal;
 
     private volatile boolean isRunning = false;
 
@@ -69,7 +69,7 @@ public class RotationBatch<T extends Serializable> {
         this.shardKey = shardKey;
         this.executor = Executors.newSingleThreadScheduledExecutor();
         this.lock = new ReentrantLock(false);
-        this.notEmpty = lock.newCondition();
+        this.signal = lock.newCondition();
         rotationPolicy(rotationPolicy);
     }
 
@@ -77,7 +77,7 @@ public class RotationBatch<T extends Serializable> {
         this.shardKey = shardKey;
         this.executor = Executors.newSingleThreadScheduledExecutor();
         this.lock = new ReentrantLock(false);
-        this.notEmpty = lock.newCondition();
+        this.signal = lock.newCondition();
         rotationPolicy(rotationPolicy);
     }
 
@@ -157,7 +157,7 @@ public class RotationBatch<T extends Serializable> {
         if (!timeFlush || shouldFlush) {
             if (lock.tryLock()) {
                 try {
-                    notEmpty.signal();
+                    signal.signal();
                 } catch (Throwable e) {
                     logger.error("fail to signal notEmpty.", e);
                 } finally {
@@ -245,7 +245,7 @@ public class RotationBatch<T extends Serializable> {
             while (isRunning) {
                 if (lock.tryLock()) {
                     try {
-                        notEmpty.await();
+                        signal.await();
                     } catch (InterruptedException e) {
                         logger.error("", e);
                     } finally {
