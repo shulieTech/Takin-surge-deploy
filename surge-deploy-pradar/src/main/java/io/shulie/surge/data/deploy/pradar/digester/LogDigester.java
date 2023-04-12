@@ -147,6 +147,7 @@ public class LogDigester implements DataDigester<RpcBased> {
             rpcBased = processRpcBased(context, rpcBased);
             long time3 = System.currentTimeMillis();
             Object[] args = clickhouseFacade.toObjects(clickhouseFacade.invoke(rpcBased));
+            long time4 = System.currentTimeMillis();
             if (isUseCk) {
                 //对引擎trace数据进行去重
                 if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE && rpcBased.getTraceId() != null) {
@@ -156,12 +157,12 @@ public class LogDigester implements DataDigester<RpcBased> {
                     }
                     pressureTraceIds.put(rpcBased.getTraceId(), (byte) 1);
                 }
-                long time4 = System.currentTimeMillis();
-                clickHouseShardSupport.addBatch(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, rpcBased.getTraceId(), args);
                 long time5 = System.currentTimeMillis();
+                clickHouseShardSupport.addBatch(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, rpcBased.getTraceId(), args);
+                long time6 = System.currentTimeMillis();
 
-                if (time5 - time1 > 100) {
-                    logger.info("LogDigester cost={}. sc1={}, sc2={},sc3={},sc4={}", time5 - time1, time2 - time1, time3 - time2, time4 - time3, time5 - time4);
+                if (time6 - time1 > 100) {
+                    logger.info("LogDigester cost={}. sc1={}, sc2={},sc3={},sc4={},sc5={}", time6 - time1, time2 - time1, time3 - time2, time4 - time3, time5 - time4, time6 - time5);
                 }
             } else {
                 mysqlSupport.update(sql, args);
