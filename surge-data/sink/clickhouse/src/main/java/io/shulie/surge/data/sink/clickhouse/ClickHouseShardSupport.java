@@ -57,7 +57,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
     private static final Pattern URL_TEMPLATE = Pattern.compile("jdbc:clickhouse://([a-zA-Z0-9_:,.-]+)(/[a-zA-Z0-9_]+([?][a-zA-Z0-9_]+[=][a-zA-Z0-9_]+([&][a-zA-Z0-9_]+[=][a-zA-Z0-9_]+)*)?)?");
     private List<String> urls;
     private int batchCount;
-    private static int deleyTime = 5;
+    private static int delayTime = 5;
     private Map<String, String> urlMap = Maps.newHashMap();
     private Map<String, JdbcTemplate> shardJdbcTemplateMap = Maps.newHashMap();
     private ConcurrentMap<String, RotationBatch<Object[]>> rotationPrepareSqlBatch = new ConcurrentHashMap<>();
@@ -122,7 +122,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
     public void batchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
         Map<String, List<Object[]>> shardBatchArgsMap = shardBatchArgs(shardBatchArgs);
         for (Map.Entry<String, List<Object[]>> entry : shardBatchArgsMap.entrySet()) {
-            RotationBatch<Object[]> rotationBatch = new RotationBatch(entry.getKey(), new CountRotationPolicy(batchCount), new TimedRotationPolicy(deleyTime, TimeUnit.SECONDS));
+            RotationBatch<Object[]> rotationBatch = new RotationBatch(entry.getKey(), new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
             String key = entry.getKey() + ":" + sql;
             RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(key, rotationBatch);
             if (old != null) {

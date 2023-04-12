@@ -25,11 +25,12 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author vincent
@@ -40,10 +41,21 @@ public class RotationBatch<T extends Serializable> {
     private int maxRetries = 3;
     private LinkedBlockingQueue<T> batchObjs = new LinkedBlockingQueue<>();
     private List<RotationPolicy> rotationPolicies = Lists.newLinkedList();
-    private ScheduledExecutorService executor;
+    private ExecutorService executor;
     private BatchSaver batchSaver;
     private AtomicBoolean started = new AtomicBoolean(false);
     private String shardKey = "";
+
+    private volatile long lastFlushTime;
+
+    private volatile boolean timeFlush = false;
+
+    private volatile long flushInterval = -1L;
+
+    private final ReentrantLock lock;
+    private final Condition notEmpty;
+
+    private volatile boolean isRunning = false;
 
     public RotationBatch(RotationPolicy... rotationPolicy) {
         this(null, rotationPolicy);
@@ -51,7 +63,9 @@ public class RotationBatch<T extends Serializable> {
 
     public RotationBatch(String shardKey, RotationPolicy... rotationPolicy) {
         this.shardKey = shardKey;
-        this.executor = Executors.newScheduledThreadPool(2);
+        this.executor = Executors.newSingleThreadScheduledExecutor();
+        this.lock = new ReentrantLock(false);
+        this.notEmpty = lock.newCondition();
         rotationPolicy(rotationPolicy);
     }
 
@@ -67,6 +81,16 @@ public class RotationBatch<T extends Serializable> {
      */
     public RotationBatch rotationPolicy(RotationPolicy... rotationPolicy) {
         rotationPolicies.addAll(Arrays.asList(rotationPolicy));
+
+        Iterator<RotationPolicy> iterator = rotationPolicies.iterator();
+        while (iterator.hasNext()) {
+            RotationPolicy policy = iterator.next();
+            if (policy instanceof TimedRotationPolicy) {
+                timeFlush = true;
+                flushInterval = ((TimedRotationPolicy) policy).getInterval();
+                iterator.remove();
+            }
+        }
         return this;
     }
 
@@ -107,14 +131,24 @@ public class RotationBatch<T extends Serializable> {
          * 检查mark
          */
         if (checkMark(offset)) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    saveBatch();
-                }
-            });
+            inFlushBatch();
         }
         return this;
+    }
+
+    private synchronized void inFlushBatch() {
+        boolean shouldFlush = timeFlush && (System.currentTimeMillis() - lastFlushTime >= flushInterval);
+        if (!timeFlush || shouldFlush) {
+            if (lock.tryLock()) {
+                try {
+                    notEmpty.signal();
+                } catch (Throwable e) {
+                    logger.error("fail to signal notEmpty.", e);
+                } finally {
+                    lock.unlock();
+                }
+            }
+        }
     }
 
     /**
@@ -190,18 +224,24 @@ public class RotationBatch<T extends Serializable> {
      * @return
      */
     public RotationBatch start() {
-        Iterator<RotationPolicy> iterator = rotationPolicies.iterator();
-        while (iterator.hasNext()) {
-            RotationPolicy rotationPolicy = iterator.next();
-            if (rotationPolicy instanceof TimedRotationPolicy) {
-                if (batchSaver == null) {
-                    throw new IllegalStateException("Please add batchSaver first!");
+        isRunning = true;
+        executor.execute(() -> {
+            while (isRunning) {
+                if (lock.tryLock()) {
+                    try {
+                        notEmpty.await();
+                    } catch (InterruptedException e) {
+                        logger.error("", e);
+                    } finally {
+                        lock.unlock();
+                    }
                 }
-                long interval = ((TimedRotationPolicy) rotationPolicy).getInterval();
-                executor.scheduleAtFixedRate(() -> saveBatch(), interval, interval, TimeUnit.MILLISECONDS);
-                iterator.remove();
+                saveBatch();
+                lastFlushTime = System.currentTimeMillis();
+
             }
-        }
+        });
+
         return this;
     }
 
