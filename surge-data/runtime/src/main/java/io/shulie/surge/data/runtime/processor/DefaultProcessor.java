@@ -224,7 +224,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
 
     private void monitor() {
         Scheduler scheduler = new Scheduler(1);
-        long interval = TimeUnit.MINUTES.toMillis(1);
+        long interval = TimeUnit.SECONDS.toMillis(10);
         long now = System.currentTimeMillis();
         long delay = DateUtils.truncateToMinute(now + interval) - now;
         scheduler.scheduleAtFixedRate(new Runnable() {
@@ -239,7 +239,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
                             .append(", about ")
                             .append(FormatUtils.roundx4(divide(timeCost.get(), processCount.get()))).append(" ms/line")
                             .append(" line:").append(processCount.get())
-                            .append(" tps:").append(FormatUtils.roundx0(divide(processCount.get(), timeCost.get() / 1000)));
+                            .append(" tps:").append(FormatUtils.roundx0(divide(processCount.get(), timeCost.get()) * 1000));
                     digesterTimeCost[i] = new AtomicLong(0L);
                 }
                 processCount = new AtomicLong(0);
