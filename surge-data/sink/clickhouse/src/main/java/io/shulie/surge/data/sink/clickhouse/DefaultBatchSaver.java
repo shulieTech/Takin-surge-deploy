@@ -34,23 +34,6 @@ public class DefaultBatchSaver implements RotationBatch.BatchSaver<Object[]> {
         this.shardJdbcTemplateMap = shardJdbcTemplateMap;
         this.sql = sql;
         this.service = Executors.newSingleThreadScheduledExecutor();
-
-        service.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                StringBuilder appender = new StringBuilder(256);
-                appender.append("Clickhouse Process Time: ");
-                appender.append("\n  ")
-                        .append(FormatUtils.humanReadableTimeSpan(cost.get()))
-                        .append(", about ")
-                        .append(FormatUtils.roundx4(divide(cost.get(), count.get()))).append(" ms/line")
-                        .append(" line:").append(count.get())
-                        .append(" tps:").append(FormatUtils.roundx0((divide(count.get(), cost.get()) * 1000) > count.get() ? cost.get() : (divide(count.get(), cost.get()) * 1000)));
-                count = new AtomicInteger(0);
-                cost = new AtomicLong(0L);
-                logger.warn(appender.toString());
-            }
-        }, 1, 5, TimeUnit.SECONDS);
     }
 
     @Override
@@ -64,11 +47,7 @@ public class DefaultBatchSaver implements RotationBatch.BatchSaver<Object[]> {
             return true;
         }
         try {
-            long start = System.currentTimeMillis();
             shardJdbcTemplateMap.get(shardKey).batchUpdate(sql, Lists.newArrayList(batchSql));
-            long end = System.currentTimeMillis();
-            cost.addAndGet(end - start);
-            count.addAndGet(batchSql.size());
         } catch (Exception e) {
             e.printStackTrace();
             try {
