@@ -150,9 +150,6 @@ public class RotationBatch<T extends Serializable> {
      * @return
      */
     public RotationBatch addBatch(T object) {
-        if (started.compareAndSet(false, true)) {
-            start();
-        }
         try {
             batchObjs.put(object);
         } catch (InterruptedException e) {
@@ -174,9 +171,6 @@ public class RotationBatch<T extends Serializable> {
      * @return
      */
     public RotationBatch addBatch(List<T> list) {
-        if (started.compareAndSet(false, true)) {
-            start();
-        }
         try {
             for (T obj : list) {
                 batchObjs.put(obj);
@@ -254,7 +248,10 @@ public class RotationBatch<T extends Serializable> {
      *
      * @return
      */
-    public RotationBatch start() {
+    public void start() {
+        if (!started.compareAndSet(false, true)) {
+            return;
+        }
         isRunning = true;
         executor.execute(() -> {
             while (isRunning) {
@@ -272,8 +269,6 @@ public class RotationBatch<T extends Serializable> {
 
             }
         });
-
-        return this;
     }
 
     public void stop() {
