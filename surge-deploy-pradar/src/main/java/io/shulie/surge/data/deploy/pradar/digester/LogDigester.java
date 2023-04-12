@@ -17,7 +17,6 @@ package io.shulie.surge.data.deploy.pradar.digester;
 
 import com.google.common.cache.*;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
@@ -66,6 +65,8 @@ public class LogDigester implements DataDigester<RpcBased> {
      */
     private String dataSourceType;
 
+    private boolean isUseCk;
+
     @Inject
     @DefaultValue("false")
     @Named("/pradar/config/rt/clickhouseDisable")
@@ -103,6 +104,7 @@ public class LogDigester implements DataDigester<RpcBased> {
         if (CommonStat.isUseCk(this.dataSourceType)) {
             tableName = clickHouseShardSupport.isCluster() ? "t_trace" : "t_trace_all";
             engineTable = clickHouseShardSupport.isCluster() ? "t_pressure" : "t_trace_pressure";
+            isUseCk = true;
         }
         clickhouseFacade.addCommand(new BaseCommand());
         clickhouseFacade.addCommand(new LinkCommand());
@@ -120,57 +122,58 @@ public class LogDigester implements DataDigester<RpcBased> {
             init();
         }
         RpcBased rpcBased = context.getContent();
+        if (rpcBased == null) {
+            return;
+        }
+
+        if (!PradarUtils.isTraceSampleAccepted(rpcBased, clickhouseSampling.get())) {
+            return;
+        }
+
+        //如果是压测引擎日志,统计每个压测报告实际上报条数
+        if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
+            Long count = taskIds.getIfPresent(rpcBased.getTaskId());
+            //logger.info("now task[{}] requestCount is [{}]", rpcBased.getTaskId(), count);
+            taskIds.put(rpcBased.getTaskId(), count != null ? ++count : 1);
+        }
+
         try {
-            if (rpcBased == null) {
-                return;
-            }
-            if (!PradarUtils.isTraceSampleAccepted(rpcBased, clickhouseSampling.get())) {
-                return;
-            }
-
-            //如果是压测引擎日志,统计每个压测报告实际上报条数
-            if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
-                Long count = taskIds.getIfPresent(rpcBased.getTaskId());
-                //logger.info("now task[{}] requestCount is [{}]", rpcBased.getTaskId(), count);
-                taskIds.put(rpcBased.getTaskId(), count != null ? ++count : 1);
-            }
-
-            rpcBased.setDataLogTime(context.getProcessTime());
-            Map<String, Object> header = context.getHeader();
-            if (header.containsKey("uploadTime")) {
-                rpcBased.setUploadTime((Long) header.get("uploadTime"));
-            }
-            rpcBased.setReceiveHttpTime((Long) header.get("receiveHttpTime"));
-            //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
-            if (StringUtils.isBlank(rpcBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
-                rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
-            }
-            if (StringUtils.isBlank(rpcBased.getEnvCode())) {
-                rpcBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("envCode"));
-            }
-
+            rpcBased = processRpcBased(context, rpcBased);
             List<Object[]> batchs = Lists.newArrayList();
             batchs.add(clickhouseFacade.toObjects(clickhouseFacade.invoke(rpcBased)));
-            Map<String, List<Object[]>> objMap = Maps.newHashMap();
-            objMap.put(rpcBased.getTraceId(), batchs);
-
-            // TODO 此修改支持mysql和clickhouse写入,代码不是很友好，后续剥离出来
-            if (CommonStat.isUseCk(dataSourceType)) {
+            if (isUseCk) {
                 //对引擎trace数据进行去重
-                if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE && rpcBased.getTraceId() != null){
+                if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE && rpcBased.getTraceId() != null) {
                     Byte ifPresent = pressureTraceIds.getIfPresent(rpcBased.getTraceId());
-                    if (ifPresent != null){
+                    if (ifPresent != null) {
                         return;
                     }
-                    pressureTraceIds.put(rpcBased.getTraceId(), (byte)1);
+                    pressureTraceIds.put(rpcBased.getTraceId(), (byte) 1);
                 }
-                clickHouseShardSupport.batchUpdate(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, objMap);
+                clickHouseShardSupport.batchUpdate(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, rpcBased.getTraceId(), batchs);
             } else {
                 mysqlSupport.batchUpdate(sql, batchs);
             }
         } catch (Throwable e) {
             logger.warn("fail to write clickhouse, log: " + rpcBased.getLog() + ", error:" + ExceptionUtils.getStackTrace(e));
         }
+    }
+
+    private RpcBased processRpcBased(DigestContext<RpcBased> context, RpcBased rpcBased) {
+        rpcBased.setDataLogTime(context.getProcessTime());
+        Map<String, Object> header = context.getHeader();
+        if (header.containsKey("uploadTime")) {
+            rpcBased.setUploadTime((Long) header.get("uploadTime"));
+        }
+        rpcBased.setReceiveHttpTime((Long) header.get("receiveHttpTime"));
+        //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
+        if (StringUtils.isBlank(rpcBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
+            rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
+        }
+        if (StringUtils.isBlank(rpcBased.getEnvCode())) {
+            rpcBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("envCode"));
+        }
+        return rpcBased;
     }
 
 
@@ -190,6 +193,9 @@ public class LogDigester implements DataDigester<RpcBased> {
 
     public void setDataSourceType(String dataSourceType) {
         this.dataSourceType = dataSourceType;
+        if (CommonStat.isUseCk(this.dataSourceType)) {
+            isUseCk = true;
+        }
     }
 
     public Remote<Boolean> getClickhouseDisable() {
