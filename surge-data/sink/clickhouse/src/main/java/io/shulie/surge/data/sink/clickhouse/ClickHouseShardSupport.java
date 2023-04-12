@@ -35,10 +35,7 @@ import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 import javax.sql.DataSource;
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -72,6 +69,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
                                   @Named("config.clickhouse.enableRound") boolean enableRound) {
         try {
             this.urls = splitUrl(url);
+            logger.info("clickhouse url={}.", this.urls);
             ClickHouseProperties clickHouseProperties = new ClickHouseProperties();
             if (StringUtils.isNotBlank(username)) {
                 clickHouseProperties.setUser(username);
@@ -110,6 +108,31 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
     @Override
     public boolean isRunning() {
         return true;
+    }
+
+    public void addBatch(final String sql, Map<String, List<Object[]>> args) {
+        Map<String, List<Object[]>> map = new HashMap<>();
+        for (Map.Entry<String, List<Object[]>> entry : args.entrySet()) {
+            String shardKey = getShardKey(entry.getKey());
+            List<Object[]> list = map.get(shardKey);
+            if (list == null) {
+                list = new ArrayList<>();
+            }
+            list.addAll(entry.getValue());
+        }
+
+        RotationBatch<Object[]> rotationBatch = new RotationBatch();
+        for (Map.Entry<String, List<Object[]>> entry : map.entrySet()) {
+            String key = entry.getKey() + ':' + sql;
+            RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(key, rotationBatch);
+            if (old != null) {
+                rotationBatch = old;
+            } else {
+                rotationBatch.init(entry.getKey(), new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
+                rotationBatch.batchSaver(new DefaultBatchSaver(sql, shardJdbcTemplateMap));
+            }
+            rotationBatch.addBatch(entry.getValue());
+        }
     }
 
     public void addBatch(final String sql, String key, Object[] args) {
