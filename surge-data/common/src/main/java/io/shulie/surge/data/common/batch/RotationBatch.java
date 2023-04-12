@@ -39,7 +39,7 @@ public class RotationBatch<T extends Serializable> {
 
     private Logger logger = LoggerFactory.getLogger(RotationBatch.class);
     private int maxRetries = 3;
-    private LinkedBlockingQueue<T> batchObjs = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue<T> batchObjs = new LinkedBlockingQueue<>(200000);
     private List<RotationPolicy> rotationPolicies = Lists.newLinkedList();
     private ExecutorService executor;
     private BatchSaver batchSaver;
@@ -169,7 +169,7 @@ public class RotationBatch<T extends Serializable> {
         LinkedBlockingQueue<T> batch = null;
         synchronized (this) {
             batch = batchObjs;
-            batchObjs = new LinkedBlockingQueue<T>();
+            batchObjs = new LinkedBlockingQueue<T>(200000);
             reset();
         }
         if (CollectionUtils.isEmpty(batch)) {
