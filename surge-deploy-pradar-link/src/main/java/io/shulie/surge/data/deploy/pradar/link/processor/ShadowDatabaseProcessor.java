@@ -138,6 +138,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
         if (executeDisabled()) {
             return;
         }
+        logger.info("开始梳理影子库表信息");
         List<InnerEntity> entityCache = appCache.getEntityCache();
         if (CollectionUtils.isEmpty(entityCache)) {
             return;
@@ -145,6 +146,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
         for (InnerEntity innerEntity : entityCache) {
             analysisAndSave(innerEntity);
         }
+        logger.info("影子库表信息梳理完成");
     }
 
     // 查询5分钟内的trace日志并进行解析
