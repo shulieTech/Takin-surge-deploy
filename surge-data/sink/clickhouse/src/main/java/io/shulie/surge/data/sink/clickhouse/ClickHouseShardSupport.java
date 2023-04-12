@@ -130,7 +130,9 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
                 rotationBatch.batchSaver(new DefaultBatchSaver(sql, shardJdbcTemplateMap));
                 RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(key, rotationBatch);
                 if (old != null) {
+                    RotationBatch current = rotationBatch;
                     rotationBatch = old;
+                    current.stop();
                 }
             }
 
@@ -147,7 +149,9 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
             rotationBatch.batchSaver(new DefaultBatchSaver(sql, shardJdbcTemplateMap));
             RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(identityId, rotationBatch);
             if (old != null) {
+                RotationBatch current = rotationBatch;
                 rotationBatch = old;
+                current.stop();
             }
         }
 
