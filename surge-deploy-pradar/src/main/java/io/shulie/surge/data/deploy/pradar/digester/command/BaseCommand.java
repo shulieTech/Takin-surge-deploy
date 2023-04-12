@@ -76,7 +76,6 @@ public class BaseCommand implements ClickhouseCommand {
         meta.add("uploadTime");
         meta.add("receiveHttpTime");
         meta.add("taskId");
-
         meta.add("userAppKey");
         meta.add("envCode");
         meta.add("userId");

@@ -22,10 +22,6 @@ import com.google.inject.name.Named;
 import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.common.PradarUtils;
-import io.shulie.surge.data.deploy.pradar.digester.command.BaseCommand;
-import io.shulie.surge.data.deploy.pradar.digester.command.ClickhouseFacade;
-import io.shulie.surge.data.deploy.pradar.digester.command.FlagCommand;
-import io.shulie.surge.data.deploy.pradar.digester.command.LinkCommand;
 import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
@@ -90,19 +86,10 @@ public class LogDigester implements DataDigester<RpcBased> {
 
     private transient AtomicBoolean isRunning = new AtomicBoolean(false);
 
-    private ClickhouseFacade clickhouseFacade = initClickhouseFacade();
+    private LogTraceArgBuilder argBuilder = new LogTraceArgBuilder();
 
     private String sql = "";
     private String engineSql = "";
-
-
-    private ClickhouseFacade initClickhouseFacade() {
-        ClickhouseFacade clickhouseFacade = ClickhouseFacade.Factory.getInstace();
-        clickhouseFacade.addCommand(new BaseCommand());
-        clickhouseFacade.addCommand(new LinkCommand());
-        clickhouseFacade.addCommand(new FlagCommand());
-        return clickhouseFacade;
-    }
 
     public void init() {
         if (!isRunning.compareAndSet(false, true)) {
@@ -115,8 +102,8 @@ public class LogDigester implements DataDigester<RpcBased> {
             engineTable = clickHouseShardSupport.isCluster() ? "t_pressure" : "t_trace_pressure";
             isUseCk = true;
         }
-        sql = "insert into " + tableName + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
-        engineSql = "insert into " + engineTable + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
+        sql = "insert into " + tableName + " (" + argBuilder.getCols() + ") values(" + argBuilder.getParam() + ") ";
+        engineSql = "insert into " + engineTable + " (" + argBuilder.getCols() + ") values(" + argBuilder.getParam() + ") ";
     }
 
     @Override
@@ -146,7 +133,7 @@ public class LogDigester implements DataDigester<RpcBased> {
             long time2 = System.currentTimeMillis();
             rpcBased = processRpcBased(context, rpcBased);
             long time3 = System.currentTimeMillis();
-            Object[] args = clickhouseFacade.toObjects(clickhouseFacade.invoke(rpcBased));
+            Object[] args = argBuilder.buildArg(rpcBased);
             long time4 = System.currentTimeMillis();
             if (isUseCk) {
                 //对引擎trace数据进行去重
