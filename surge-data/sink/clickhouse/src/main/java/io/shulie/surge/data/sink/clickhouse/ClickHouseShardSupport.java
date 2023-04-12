@@ -41,7 +41,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -122,31 +121,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
             rotationBatch = old;
         } else {
             rotationBatch.init(shardKey, new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
-            rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
-                @Override
-                public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
-                    return true;
-                }
-
-                @Override
-                public boolean shardSaveBatch(String shardKey, LinkedBlockingQueue<Object[]> batchSql) {
-                    if (batchSql == null || batchSql.isEmpty()) {
-                        return true;
-                    }
-                    try {
-                        shardJdbcTemplate(shardKey).batchUpdate(sql, Lists.newArrayList(batchSql));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        try {
-                            TimeUnit.MILLISECONDS.sleep(10L);
-                        } catch (InterruptedException interruptedException) {
-                            interruptedException.printStackTrace();
-                        }
-                        return false;
-                    }
-                    return true;
-                }
-            });
+            rotationBatch.batchSaver(new DefaultBatchSaver(sql, shardJdbcTemplateMap));
         }
 
         rotationBatch.addBatch(args);
@@ -167,31 +142,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
             rotationBatch = old;
         } else {
             rotationBatch.init(shardKey, new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
-            rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
-                @Override
-                public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
-                    return true;
-                }
-
-                @Override
-                public boolean shardSaveBatch(String shardKey, LinkedBlockingQueue<Object[]> batchSql) {
-                    if (batchSql == null || batchSql.isEmpty()) {
-                        return true;
-                    }
-                    try {
-                        shardJdbcTemplate(shardKey).batchUpdate(sql, Lists.newArrayList(batchSql));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        try {
-                            TimeUnit.MILLISECONDS.sleep(10L);
-                        } catch (InterruptedException interruptedException) {
-                            interruptedException.printStackTrace();
-                        }
-                        return false;
-                    }
-                    return true;
-                }
-            });
+            rotationBatch.batchSaver(new DefaultBatchSaver(sql, shardJdbcTemplateMap));
         }
 
         for (Object[] objs : args) {
