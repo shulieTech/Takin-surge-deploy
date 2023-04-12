@@ -147,7 +147,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         String identityId = shardKey + ":" + sql;
         RotationBatch<Object[]> rotationBatch = rotationPrepareSqlBatch.get(identityId);
         if (rotationBatch == null) {
-            rotationBatch = new RotationBatch<>(key, new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
+            rotationBatch = new RotationBatch<>(shardKey, new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
             rotationBatch.batchSaver(new DefaultBatchSaver(sql, shardJdbcTemplateMap));
             RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(identityId, rotationBatch);
             if (old != null) {
@@ -173,7 +173,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         String identityId = shardKey + ":" + sql;
         RotationBatch<Object[]> rotationBatch = rotationPrepareSqlBatch.get(identityId);
         if (rotationBatch == null) {
-            rotationBatch = new RotationBatch<>(key, new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
+            rotationBatch = new RotationBatch<>(shardKey, new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
             rotationBatch.batchSaver(new DefaultBatchSaver(sql, shardJdbcTemplateMap));
             RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(identityId, rotationBatch);
             if (old != null) {
