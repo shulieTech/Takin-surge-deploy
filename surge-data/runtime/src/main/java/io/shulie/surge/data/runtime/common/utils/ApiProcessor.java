@@ -72,7 +72,7 @@ public class ApiProcessor {
 
     private static Map<String, String> tenantConfigMap = new HashMap<>();
 
-    protected static Map<String, Matcher> MATCHERS = new HashMap<>();
+    protected static Map<String, Matcher> MATHERS = new HashMap<>();
 
     private ScheduledExecutorService service =
             new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
@@ -148,8 +148,6 @@ public class ApiProcessor {
         if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
             Object data = res.get("data");
             Map<String, List<String>> map = (Map<String, List<String>>) data;
-
-            Map<String, Matcher> newMatchers = new HashMap<>();
             for (String appName : map.keySet()) {
                 List<String> apiList = map.get(appName);
                 Map<String, List<String>> newApiMap = Maps.newHashMap();
@@ -168,10 +166,8 @@ public class ApiProcessor {
                     }
                 }
                 API_COLLECTION.put(appName, newApiMap);
-                Matcher matcher = new Matcher(newApiMap);
-                newMatchers.put(appName, matcher);
             }
-            MATCHERS = newMatchers;
+            MATHERS.clear();
         }
     }
 
@@ -187,7 +183,6 @@ public class ApiProcessor {
         if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
             Object data = res.get("data");
             Map<String, List<String>> map = (Map<String, List<String>>) data;
-            Map<String, Matcher> newMatchers = new HashMap<>();
             for (String appName : map.keySet()) {
                 List<String> apiList = map.get(appName);
                 Map<String, List<String>> newApiMap = Maps.newHashMap();
@@ -206,10 +201,8 @@ public class ApiProcessor {
                     }
                 }
                 API_COLLECTION.put(appName, newApiMap);
-                Matcher matcher = new Matcher(newApiMap);
-                newMatchers.put(appName, matcher);
             }
-            MATCHERS = newMatchers;
+            MATHERS.clear();
         }
     }
 
@@ -441,15 +434,18 @@ public class ApiProcessor {
     }
 
     public static String merge(String appName, String url, String type) {
-        if (StringUtils.indexOf(url, "http://") >= 0 || StringUtils.indexOf(url, "https://") >= 0) {
             url = urlFormat(url);
-        }
         if (StringUtils.isBlank(url)) {
             return "";
         }
-        Matcher matcher = MATCHERS.get(appName);
-        if (matcher == null) {
+        Matcher matcher = MATHERS.get(appName);
+        if (Objects.isNull(matcher)) {
+            Map<String, List<String>> apiMaps = API_COLLECTION.get(appName);
+            if (Objects.isNull(apiMaps) || apiMaps.size() < 1) {
             return url;
+        }
+            matcher = new Matcher(apiMaps);
+            MATHERS.putIfAbsent(appName, matcher);
         }
         return matcher.match3(url, type, null);
     }
@@ -460,14 +456,14 @@ public class ApiProcessor {
         if (StringUtils.isBlank(url)) {
             return "";
         }
-        Matcher matcher = MATCHERS.get(appName);
+        Matcher matcher = MATHERS.get(appName);
         if (Objects.isNull(matcher)) {
             Map<String, List<String>> apiMaps = API_COLLECTION.get(appName);
             if (Objects.isNull(apiMaps) || apiMaps.size() < 1) {
                 return url;
             }
             matcher = new Matcher(apiMaps);
-            MATCHERS.putIfAbsent(appName, matcher);
+            MATHERS.putIfAbsent(appName, matcher);
         }
         return matcher.match(url, type);
     }
@@ -725,10 +721,6 @@ final class Matcher {
             }
         }
         if (apiPatterns.contains(url)) {
-            return url;
-        }
-        //如果不是 restful 就不要再往下进行解析了
-        if (StringUtils.indexOf(url, '{') == -1) {
             return url;
         }
         /*
