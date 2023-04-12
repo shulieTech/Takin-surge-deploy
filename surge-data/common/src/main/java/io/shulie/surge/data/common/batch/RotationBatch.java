@@ -52,16 +52,28 @@ public class RotationBatch<T extends Serializable> {
 
     private volatile long flushInterval = -1L;
 
-    private final ReentrantLock lock;
-    private final Condition notEmpty;
+    private ReentrantLock lock;
+    private Condition notEmpty;
 
     private volatile boolean isRunning = false;
+
+    //结合 init 一起使用
+    public RotationBatch() {
+    }
 
     public RotationBatch(RotationPolicy... rotationPolicy) {
         this(null, rotationPolicy);
     }
 
     public RotationBatch(String shardKey, RotationPolicy... rotationPolicy) {
+        this.shardKey = shardKey;
+        this.executor = Executors.newSingleThreadScheduledExecutor();
+        this.lock = new ReentrantLock(false);
+        this.notEmpty = lock.newCondition();
+        rotationPolicy(rotationPolicy);
+    }
+
+    public void init(String shardKey, RotationPolicy... rotationPolicy) {
         this.shardKey = shardKey;
         this.executor = Executors.newSingleThreadScheduledExecutor();
         this.lock = new ReentrantLock(false);

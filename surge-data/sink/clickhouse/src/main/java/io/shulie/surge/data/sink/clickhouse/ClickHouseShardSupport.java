@@ -122,12 +122,13 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
     public void batchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
         Map<String, List<Object[]>> shardBatchArgsMap = shardBatchArgs(shardBatchArgs);
         for (Map.Entry<String, List<Object[]>> entry : shardBatchArgsMap.entrySet()) {
-            RotationBatch<Object[]> rotationBatch = new RotationBatch(entry.getKey(), new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
+            RotationBatch<Object[]> rotationBatch = new RotationBatch();
             String key = entry.getKey() + ":" + sql;
             RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(key, rotationBatch);
             if (old != null) {
                 rotationBatch = old;
             } else {
+                rotationBatch.init(entry.getKey(), new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
                 rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
                     @Override
                     public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
