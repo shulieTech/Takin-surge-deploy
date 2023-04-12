@@ -128,6 +128,26 @@ public class RotationBatch<T extends Serializable> {
         return this;
     }
 
+    public RotationBatch addBatch(List<T> list, long offset) {
+        if (started.compareAndSet(false, true)) {
+            start();
+        }
+        try {
+            for (T obj : list) {
+                batchObjs.put(obj);
+            }
+        } catch (InterruptedException e) {
+            logger.error("", e);
+        }
+        /**
+         * 检查mark
+         */
+        if (checkMark(offset)) {
+            inFlushBatch();
+        }
+        return this;
+    }
+
     /**
      * 添加对象到批中
      *
@@ -175,6 +195,17 @@ public class RotationBatch<T extends Serializable> {
      */
     public RotationBatch addBatch(T object) {
         addBatch(object, 1);
+        return this;
+    }
+
+    /**
+     * 添加对象到批中
+     *
+     * @param list
+     * @return
+     */
+    public RotationBatch addBatch(List<T> list) {
+        addBatch(list, list.size());
         return this;
     }
 

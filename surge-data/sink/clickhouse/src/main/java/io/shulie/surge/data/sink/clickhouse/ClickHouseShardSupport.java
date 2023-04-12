@@ -113,13 +113,52 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         return true;
     }
 
+    public void addBatch(final String sql, String key, Object[] args) {
+        String shardKey = getShardKey(key);
+        String identityId = shardKey + ":" + sql;
+        RotationBatch<Object[]> rotationBatch = new RotationBatch();
+        RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(identityId, rotationBatch);
+        if (old != null) {
+            rotationBatch = old;
+        } else {
+            rotationBatch.init(shardKey, new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
+            rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
+                @Override
+                public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
+                    return true;
+                }
+
+                @Override
+                public boolean shardSaveBatch(String shardKey, LinkedBlockingQueue<Object[]> batchSql) {
+                    if (batchSql == null || batchSql.isEmpty()) {
+                        return true;
+                    }
+                    try {
+                        shardJdbcTemplate(shardKey).batchUpdate(sql, Lists.newArrayList(batchSql));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(10L);
+                        } catch (InterruptedException interruptedException) {
+                            interruptedException.printStackTrace();
+                        }
+                        return false;
+                    }
+                    return true;
+                }
+            });
+        }
+
+        rotationBatch.addBatch(args);
+    }
+
     /**
      * 批量更新
      *
      * @param sql
      * @param args
      */
-    public void batchUpdate(final String sql, String key, List<Object[]> args) {
+    public void addBatch(final String sql, String key, List<Object[]> args) {
         String shardKey = getShardKey(key);
         String identityId = shardKey + ":" + sql;
         RotationBatch<Object[]> rotationBatch = new RotationBatch();
@@ -253,6 +292,6 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         String sql = "insert into " + tableName + " (" + cols + ") values(" + param + ") ";
         List<Object[]> batchs = Lists.newArrayList();
         batchs.add(map.values().toArray());
-        this.batchUpdate(sql, key, batchs);
+        this.addBatch(sql, key, batchs);
     }
 }

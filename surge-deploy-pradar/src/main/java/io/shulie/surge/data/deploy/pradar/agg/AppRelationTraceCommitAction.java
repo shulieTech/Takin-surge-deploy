@@ -9,7 +9,6 @@ import io.shulie.surge.data.common.aggregation.metrics.Metric;
 import io.shulie.surge.data.deploy.pradar.model.AmdbAppModel;
 import io.shulie.surge.data.deploy.pradar.model.AmdbAppRelationModel;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
-import io.shulie.surge.data.sink.influxdb.InfluxDBSupport;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -76,8 +75,8 @@ public class AppRelationTraceCommitAction implements Aggregation.CommitAction<Me
                 appRelationSet.add(amdbAppRelationModel);
             });
 
-            mysqlSupport.batchUpdate(appInsertSql, appSet.stream().map(AmdbAppModel::getValues).collect(Collectors.toList()));
-            mysqlSupport.batchUpdate(appRelationInsertSql, appRelationSet.stream().map(AmdbAppRelationModel::getValues).collect(Collectors.toList()));
+            mysqlSupport.addBatch(appInsertSql, appSet.stream().map(AmdbAppModel::getValues).collect(Collectors.toList()));
+            mysqlSupport.addBatch(appRelationInsertSql, appRelationSet.stream().map(AmdbAppRelationModel::getValues).collect(Collectors.toList()));
         } catch (Throwable e) {
             logger.error("write fail clickhouse " + ExceptionUtils.getStackTrace(e));
         }

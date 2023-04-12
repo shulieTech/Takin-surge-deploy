@@ -139,8 +139,7 @@ public class LogDigester implements DataDigester<RpcBased> {
 
         try {
             rpcBased = processRpcBased(context, rpcBased);
-            List<Object[]> batchs = Lists.newArrayList();
-            batchs.add(clickhouseFacade.toObjects(clickhouseFacade.invoke(rpcBased)));
+            Object[] args = clickhouseFacade.toObjects(clickhouseFacade.invoke(rpcBased));
             if (isUseCk) {
                 //对引擎trace数据进行去重
                 if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE && rpcBased.getTraceId() != null) {
@@ -150,9 +149,9 @@ public class LogDigester implements DataDigester<RpcBased> {
                     }
                     pressureTraceIds.put(rpcBased.getTraceId(), (byte) 1);
                 }
-                clickHouseShardSupport.batchUpdate(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, rpcBased.getTraceId(), batchs);
+                clickHouseShardSupport.addBatch(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, rpcBased.getTraceId(), args);
             } else {
-                mysqlSupport.batchUpdate(sql, batchs);
+                mysqlSupport.update(sql, args);
             }
         } catch (Throwable e) {
             logger.warn("fail to write clickhouse, log: " + rpcBased.getLog() + ", error:" + ExceptionUtils.getStackTrace(e));

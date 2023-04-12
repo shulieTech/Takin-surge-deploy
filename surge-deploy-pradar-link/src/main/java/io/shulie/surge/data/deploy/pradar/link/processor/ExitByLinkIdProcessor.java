@@ -183,7 +183,7 @@ public class ExitByLinkIdProcessor extends AbstractProcessor {
                 linkEntranceModels.addAll(modelList);
             });
 
-            mysqlSupport.batchUpdate(linkEntranceInsertSql, new ArrayList<>(
+            mysqlSupport.addBatch(linkEntranceInsertSql, new ArrayList<>(
                     linkEntranceModels.stream().map(LinkEntranceModel::getValues).collect(Collectors.toSet())));
             logger.info("{} saveExitByLinkId is ok,size: {}", linkId, linkEntranceModels.size());
         } catch (Throwable e) {
