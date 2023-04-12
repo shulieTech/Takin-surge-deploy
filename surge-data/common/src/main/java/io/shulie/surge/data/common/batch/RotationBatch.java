@@ -51,7 +51,7 @@ public class RotationBatch<T extends Serializable> {
 
     public RotationBatch(String shardKey, RotationPolicy... rotationPolicy) {
         this.shardKey = shardKey;
-        this.executor = Executors.newSingleThreadScheduledExecutor();
+        this.executor = Executors.newScheduledThreadPool(2);
         rotationPolicy(rotationPolicy);
     }
 
