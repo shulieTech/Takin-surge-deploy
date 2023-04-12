@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 /**
  * @author vincent
@@ -111,54 +110,7 @@ public final class KafkaSupplier extends DefaultSupplier {
         messageFetcher.execute(() -> {
             try {
                 while (isRunning()) {
-                    //如果队列不能完成一次push，先不进行拉取
-                    while (!queue.canPublish(500)) {
-                        try {
-                            Thread.sleep(10);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    try {
-                        /**
-                         * 指定超时时间，通常情况下consumer拿到了足够多的可用数据，会立即从该方法返回，但若当前没有足够多数据
-                         * consumer会处于阻塞状态，但当到达设定的超时时间，则无论数据是否足够都为立即返回
-                         */
-                        ConsumerRecords<String, byte[]> records = consumer.poll(POLL_TIMEOUT);
-                        Iterator<ConsumerRecord<String, byte[]>> iterator = records.iterator();
-                        while (iterator.hasNext()) {
-                            ConsumerRecord<String, byte[]> record = iterator.next();
-                            byte[] value = record.value();
-                            ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("thrift");
-                            MessageEntity messageEntity = objectSerializer.deserialize(value);
-                            if (messageEntity != null) {
-                                Map<String, Object> header = messageEntity.getHeaders();
-                                String message = null;
-                                if (MapUtils.isNotEmpty(messageEntity.getBody()) && messageEntity.getBody().containsKey("content")
-                                        && messageEntity.getBody().get("content") != null) {
-                                    message = ObjectUtils.toString(messageEntity.getBody().get("content"));
-                                }
-                                if (StringUtils.isBlank(message)) {
-                                    continue;
-                                }
-                                header.put("dataVersion", header.get("version"));
-                                header.put("receiveHttpTime", System.currentTimeMillis());
-                                Object dataType = header.get("dataType");
-                                if (dataType != null && DataType.PRESSURE_ENGINE_TRACE_LOG == (byte) dataType) {
-                                    header.put("dataType", DataType.TRACE_LOG);
-                                    queue.publish(header, queue.splitLog(message, DataType.TRACE_LOG));
-                                } else if (dataType != null && (DataType.MONITOR_LOG == (byte) dataType
-                                        || DataType.TRACE_LOG == (byte) dataType)) {
-                                    queue.publish(header, queue.splitLog(message, (byte) dataType));
-                                } else {
-                                    queue.publish(header, message);
-                                }
-
-                            }
-                        }
-                    } catch (Exception e) {
-                        logger.error("Publish message error.");
-                    }
+                    fetchMessages();
                 }
             } finally {
                 /**
@@ -169,6 +121,62 @@ public final class KafkaSupplier extends DefaultSupplier {
                 consumer.close();
             }
         });
+    }
+
+    private void fetchMessages() {
+        //如果队列不能完成一次push，先不进行拉取
+        while (!queue.canPublish(500)) {
+            try {
+                logger.info("queue is full. kafka message fetcher waiting for 10 ms...");
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            /**
+             * 指定超时时间，通常情况下consumer拿到了足够多的可用数据，会立即从该方法返回，但若当前没有足够多数据
+             * consumer会处于阻塞状态，但当到达设定的超时时间，则无论数据是否足够都为立即返回
+             */
+            ConsumerRecords<String, byte[]> records = consumer.poll(POLL_TIMEOUT);
+            Iterator<ConsumerRecord<String, byte[]>> iterator = records.iterator();
+            while (iterator.hasNext()) {
+                ConsumerRecord<String, byte[]> record = iterator.next();
+                publishMessage(record);
+            }
+        } catch (Exception e) {
+            logger.error("Publish message error.");
+        }
+    }
+
+    private void publishMessage(ConsumerRecord<String, byte[]> record) throws InterruptedException {
+        byte[] value = record.value();
+        ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("thrift");
+        MessageEntity messageEntity = objectSerializer.deserialize(value);
+        if (messageEntity != null) {
+            Map<String, Object> header = messageEntity.getHeaders();
+            String message = null;
+            if (MapUtils.isNotEmpty(messageEntity.getBody()) && messageEntity.getBody().containsKey("content")
+                    && messageEntity.getBody().get("content") != null) {
+                message = ObjectUtils.toString(messageEntity.getBody().get("content"));
+            }
+            if (StringUtils.isBlank(message)) {
+                return;
+            }
+            header.put("dataVersion", header.get("version"));
+            header.put("receiveHttpTime", System.currentTimeMillis());
+            Object dataType = header.get("dataType");
+            if (dataType != null && DataType.PRESSURE_ENGINE_TRACE_LOG == (byte) dataType) {
+                header.put("dataType", DataType.TRACE_LOG);
+                queue.publish(header, queue.splitLog(message, DataType.TRACE_LOG));
+            } else if (dataType != null && (DataType.MONITOR_LOG == (byte) dataType
+                    || DataType.TRACE_LOG == (byte) dataType)) {
+                queue.publish(header, queue.splitLog(message, (byte) dataType));
+            } else {
+                queue.publish(header, message);
+            }
+
+        }
     }
 
 
