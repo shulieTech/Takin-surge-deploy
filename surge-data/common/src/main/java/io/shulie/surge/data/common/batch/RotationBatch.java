@@ -276,6 +276,13 @@ public class RotationBatch<T extends Serializable> {
         return this;
     }
 
+    public void stop() {
+        isRunning = false;
+        if (executor != null) {
+            executor.shutdown();
+        }
+    }
+
 
     /**
      * 批处理保存器
