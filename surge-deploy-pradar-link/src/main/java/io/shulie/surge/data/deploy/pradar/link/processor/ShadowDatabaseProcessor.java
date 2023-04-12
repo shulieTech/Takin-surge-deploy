@@ -183,8 +183,8 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
                 if (CollectionUtils.isNotEmpty(bizTableModel)) {
                     bizTableModel.forEach(model -> {
                         if (StringUtils.isNotBlank(traceModel.getCallbackMsg())){
-                            model.setCanRead(traceModel.getCallbackMsg().trim().startsWith("select") ? 1 : 0);
-                            model.setCanWrite(traceModel.getCallbackMsg().trim().startsWith("select") ? 0 : 1);
+                            model.setCanRead(traceModel.getCallbackMsg().trim().toLowerCase().startsWith("select") ? 1 : 0);
+                            model.setCanWrite(traceModel.getCallbackMsg().trim().toLowerCase().startsWith("select") ? 0 : 1);
                         }
                         model.setUserAppKey(userAppKey);
                         model.setEnvCode(envCode);
