@@ -46,7 +46,7 @@ public class RotationBatch<T extends Serializable> {
     private String shardKey = "";
 
     public RotationBatch(RotationPolicy... rotationPolicy) {
-        rotationPolicy(rotationPolicy);
+        this(null, rotationPolicy);
     }
 
     public RotationBatch(String shardKey, RotationPolicy... rotationPolicy) {
