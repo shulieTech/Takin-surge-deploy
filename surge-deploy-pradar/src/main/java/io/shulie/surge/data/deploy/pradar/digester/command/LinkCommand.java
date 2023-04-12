@@ -82,20 +82,10 @@ public class LinkCommand implements ClickhouseCommand {
     }
 
     private void parse0(RpcBased rpcBased, RpcBasedParser rpcBasedParser, LinkedHashMap<String, Object> map) {
-        long time1 = System.currentTimeMillis();
         map.put("parsedServiceName", StringUtils.defaultString(rpcBasedParser.serviceParse(rpcBased), ""));
-        long time2 = System.currentTimeMillis();
         map.put("parsedMethod", StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), ""));
-        long time3 = System.currentTimeMillis();
         map.put("parsedAppName", StringUtils.defaultString(rpcBasedParser.appNameParse(rpcBased), ""));
-        long time4 = System.currentTimeMillis();
         map.put("parsedExtend", StringUtils.defaultString(rpcBasedParser.extendParse(rpcBased), ""));
-        long time5 = System.currentTimeMillis();
         map.put("parsedMiddlewareName", MiddlewareTypeEnum.getNodeType(rpcBased.getMiddlewareName()).getType());
-        long time6 = System.currentTimeMillis();
-
-        if (time6 - time1 > 50) {
-            logger.info("LinkCommand data={}, cost={}, parsedServiceName={}, parsedMethod={}, parsedAppName={}, parsedExtend={}, parsedMiddlewareName={}", rpcBased, time6 - time1, time2 - time1, time3 - time2, time4 - time3, time5 - time4, time6 - time5);
-        }
     }
 }
