@@ -46,8 +46,8 @@ public class DefaultBatchSaver implements RotationBatch.BatchSaver<Object[]> {
                         .append(FormatUtils.roundx4(divide(cost.get(), count.get()))).append(" ms/line")
                         .append(" line:").append(count.get())
                         .append(" tps:").append(FormatUtils.roundx0((divide(count.get(), cost.get()) * 1000) > count.get() ? cost.get() : (divide(count.get(), cost.get()) * 1000)));
-                count.set(0);
-                cost.set(0);
+                count = new AtomicInteger(0);
+                cost = new AtomicLong(0L);
                 logger.warn(appender.toString());
             }
         }, 1, 5, TimeUnit.SECONDS);
