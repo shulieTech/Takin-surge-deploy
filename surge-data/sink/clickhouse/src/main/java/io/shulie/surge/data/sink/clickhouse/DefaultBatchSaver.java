@@ -2,7 +2,6 @@ package io.shulie.surge.data.sink.clickhouse;
 
 import com.google.common.collect.Lists;
 import io.shulie.surge.data.common.batch.RotationBatch;
-import io.shulie.surge.data.common.utils.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -11,11 +10,8 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
-import static io.shulie.surge.data.common.utils.CommonUtils.divide;
 
 /**
  * @author xiaobin.zfb|xiaobin@shulie.io
@@ -49,12 +45,7 @@ public class DefaultBatchSaver implements RotationBatch.BatchSaver<Object[]> {
         try {
             shardJdbcTemplateMap.get(shardKey).batchUpdate(sql, Lists.newArrayList(batchSql));
         } catch (Exception e) {
-            e.printStackTrace();
-            try {
-                TimeUnit.MILLISECONDS.sleep(10L);
-            } catch (InterruptedException interruptedException) {
-                interruptedException.printStackTrace();
-            }
+            logger.error("write clickhouse failed. shardKey={}, batchSql={}", shardKey, batchSql, e);
             return false;
         }
         return true;

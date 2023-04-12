@@ -30,7 +30,7 @@ import java.util.LinkedHashSet;
 
 public class LinkCommand implements ClickhouseCommand {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private static ThreadLocal<LinkedHashMap<String, Object>> mapGetter = ThreadLocal.withInitial(() -> new LinkedHashMap<>(200));
+    private static ThreadLocal<LinkedHashMap<String, Object>> mapGetter = ThreadLocal.withInitial(() -> new LinkedHashMap<>(16));
     private LinkedHashSet<String> meta;
 
     public LinkCommand() {
@@ -95,7 +95,7 @@ public class LinkCommand implements ClickhouseCommand {
         long time6 = System.currentTimeMillis();
 
         if (time6 - time1 > 50) {
-            logger.info("LinkCommand cost={}, parsedServiceName={}, parsedMethod={}, parsedAppName={}, parsedExtend={}, parsedMiddlewareName={}", time6 - time1, time2 - time1, time3 - time2, time4 - time3, time5 - time4, time6 - time5);
+            logger.info("LinkCommand data={}, cost={}, parsedServiceName={}, parsedMethod={}, parsedAppName={}, parsedExtend={}, parsedMiddlewareName={}", rpcBased, time6 - time1, time2 - time1, time3 - time2, time4 - time3, time5 - time4, time6 - time5);
         }
     }
 }
