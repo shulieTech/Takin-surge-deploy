@@ -144,30 +144,33 @@ public final class KafkaSupplier extends DefaultSupplier {
         byte[] value = record.value();
         ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("thrift");
         MessageEntity messageEntity = objectSerializer.deserialize(value);
-        if (messageEntity != null) {
-            Map<String, Object> header = messageEntity.getHeaders();
-            String message = null;
-            if (MapUtils.isNotEmpty(messageEntity.getBody()) && messageEntity.getBody().containsKey("content")
-                    && messageEntity.getBody().get("content") != null) {
-                message = ObjectUtils.toString(messageEntity.getBody().get("content"));
-            }
-            if (StringUtils.isBlank(message)) {
-                return;
-            }
-            header.put("dataVersion", header.get("version"));
-            header.put("receiveHttpTime", System.currentTimeMillis());
-            Object dataType = header.get("dataType");
-            if (dataType != null && DataType.PRESSURE_ENGINE_TRACE_LOG == (byte) dataType) {
-                header.put("dataType", DataType.TRACE_LOG);
-                queue.publish(header, queue.splitLog(message, DataType.TRACE_LOG));
-            } else if (dataType != null && (DataType.MONITOR_LOG == (byte) dataType
-                    || DataType.TRACE_LOG == (byte) dataType)) {
-                queue.publish(header, queue.splitLog(message, (byte) dataType));
-            } else {
-                queue.publish(header, message);
-            }
-
+        if (messageEntity == null) {
+            return;
         }
+        Map<String, Object> header = messageEntity.getHeaders();
+        String message = null;
+        Map body = messageEntity.getBody();
+        if (MapUtils.isNotEmpty(body)
+                && body.containsKey("content")
+                && body.get("content") != null) {
+            message = ObjectUtils.toString(body.get("content"));
+        }
+        if (StringUtils.isBlank(message)) {
+            return;
+        }
+        header.put("dataVersion", header.get("version"));
+        header.put("receiveHttpTime", System.currentTimeMillis());
+        Object dataType = header.get("dataType");
+        if (dataType != null && DataType.PRESSURE_ENGINE_TRACE_LOG == (byte) dataType) {
+            header.put("dataType", DataType.TRACE_LOG);
+            queue.publish(header, queue.splitLog(message, DataType.TRACE_LOG));
+        } else if (dataType != null && (DataType.MONITOR_LOG == (byte) dataType
+                || DataType.TRACE_LOG == (byte) dataType)) {
+            queue.publish(header, queue.splitLog(message, (byte) dataType));
+        } else {
+            queue.publish(header, message);
+        }
+
     }
 
 

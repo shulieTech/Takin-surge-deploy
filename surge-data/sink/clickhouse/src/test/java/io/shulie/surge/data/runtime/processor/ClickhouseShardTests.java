@@ -16,11 +16,9 @@
 package io.shulie.surge.data.runtime.processor;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseShardSupport;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -36,11 +34,9 @@ public class ClickhouseShardTests {
         support.isCluster();
         while (true) {
             Thread.sleep(1000L);
-            Map<String, List<Object[]>> map = Maps.newHashMap();
             List<Object[]> objects = Lists.newArrayList();
             objects.add(new Object[]{1});
-            map.put(UUID.randomUUID().toString(), objects);
-            support.batchUpdate("xx", map);
+            support.batchUpdate("xx", UUID.randomUUID().toString(), objects);
         }
     }
 }

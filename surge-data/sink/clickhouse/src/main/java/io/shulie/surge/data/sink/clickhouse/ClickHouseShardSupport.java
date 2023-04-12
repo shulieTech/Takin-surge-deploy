@@ -117,81 +117,46 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
      * 批量更新
      *
      * @param sql
-     * @param shardBatchArgs
+     * @param args
      */
-    public void batchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
-        Map<String, List<Object[]>> shardBatchArgsMap = shardBatchArgs(shardBatchArgs);
-        for (Map.Entry<String, List<Object[]>> entry : shardBatchArgsMap.entrySet()) {
-            RotationBatch<Object[]> rotationBatch = new RotationBatch();
-            String key = entry.getKey() + ":" + sql;
-            RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(key, rotationBatch);
-            if (old != null) {
-                rotationBatch = old;
-            } else {
-                rotationBatch.init(entry.getKey(), new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
-                rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
-                    @Override
-                    public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
+    public void batchUpdate(final String sql, String key, List<Object[]> args) {
+        String shardKey = getShardKey(key);
+        String identityId = shardKey + ":" + sql;
+        RotationBatch<Object[]> rotationBatch = new RotationBatch();
+        RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(identityId, rotationBatch);
+        if (old != null) {
+            rotationBatch = old;
+        } else {
+            rotationBatch.init(shardKey, new CountRotationPolicy(batchCount), new TimedRotationPolicy(delayTime, TimeUnit.SECONDS));
+            rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
+                @Override
+                public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
+                    return true;
+                }
+
+                @Override
+                public boolean shardSaveBatch(String shardKey, LinkedBlockingQueue<Object[]> batchSql) {
+                    if (batchSql == null || batchSql.isEmpty()) {
                         return true;
-                    }
-
-                    @Override
-                    public boolean shardSaveBatch(String shardKey, LinkedBlockingQueue<Object[]> batchSql) {
-                        if (batchSql == null || batchSql.isEmpty()) {
-                            return true;
-                        }
-                        try {
-                            shardJdbcTemplate(shardKey).batchUpdate(sql, Lists.newArrayList(batchSql));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            try {
-                                TimeUnit.MILLISECONDS.sleep(10L);
-                            } catch (InterruptedException interruptedException) {
-                                interruptedException.printStackTrace();
-                            }
-                            return false;
-                        }
-                        return true;
-                    }
-                });
-            }
-
-            for (Object[] args : entry.getValue()) {
-                rotationBatch.addBatch(args);
-            }
-        }
-    }
-
-    /**
-     * 同步批量更新
-     *
-     * @param sql
-     * @param shardBatchArgs
-     */
-    public synchronized void syncBatchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
-        int max = Math.max(urls.size(), 3);
-        Map<String, List<Object[]>> shardBatchArgsMap = shardBatchArgs(shardBatchArgs);
-        for (Map.Entry<String, List<Object[]>> entry : shardBatchArgsMap.entrySet()) {
-            int count = 0;
-            String shardJdbcUrl = entry.getKey();
-            while (count < max) {
-                try {
-                    this.shardJdbcTemplate(shardJdbcUrl).batchUpdate(sql, Lists.newArrayList(entry.getValue()));
-                    break;
-                } catch (Throwable e) {
-                    logger.warn("执行clickhouse批量更新异常,当前执行次数:{}", count, e);
-                    shardJdbcUrl = urls.get(count % urls.size());
-                    count++;
-                    if (count >= max) {
-                        logger.error("执行clickhouse批量更新异常,超过最大重试次数:{}", count, e);
                     }
                     try {
-                        TimeUnit.MILLISECONDS.sleep(10L);
-                    } catch (InterruptedException interruptedException) {
-                        interruptedException.printStackTrace();
+                        shardJdbcTemplate(shardKey).batchUpdate(sql, Lists.newArrayList(batchSql));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(10L);
+                        } catch (InterruptedException interruptedException) {
+                            interruptedException.printStackTrace();
+                        }
+                        return false;
                     }
+                    return true;
                 }
-            }
+            });
+        }
+
+        for (Object[] objs : args) {
+            rotationBatch.addBatch(objs);
         }
     }
 
@@ -199,21 +164,24 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         return shardJdbcTemplateMap.get(key);
     }
 
+    private String getShardKey(final String key) {
+        int idx = (key.hashCode() & Integer.MAX_VALUE) % this.urls.size();
+        return urls.get(idx);
+    }
+
     /**
      * 按url-> args拆分
      *
-     * @param batchArgsMap
+     * @param args
      * @return
      */
-    private Map<String, List<Object[]>> shardBatchArgs(final Map<String, List<Object[]>> batchArgsMap) {
+    private Map<String, List<Object[]>> shardBatchArgs(final String key, final List<Object[]> args) {
         Map<String, List<Object[]>> shardBatchArgsMap = Maps.newHashMap();
-        for (Map.Entry<String, List<Object[]>> entry : batchArgsMap.entrySet()) {
-            int idx = (entry.getKey().hashCode() & Integer.MAX_VALUE) % this.urls.size();
-            if (shardBatchArgsMap.containsKey(urls.get(idx))) {
-                shardBatchArgsMap.get(urls.get(idx)).addAll(entry.getValue());
-            } else {
-                shardBatchArgsMap.put(urls.get(idx), entry.getValue());
-            }
+        int idx = (key.hashCode() & Integer.MAX_VALUE) % this.urls.size();
+        if (shardBatchArgsMap.containsKey(urls.get(idx))) {
+            shardBatchArgsMap.get(urls.get(idx)).addAll(args);
+        } else {
+            shardBatchArgsMap.put(urls.get(idx), args);
         }
         return shardBatchArgsMap;
     }
@@ -285,8 +253,6 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         String sql = "insert into " + tableName + " (" + cols + ") values(" + param + ") ";
         List<Object[]> batchs = Lists.newArrayList();
         batchs.add(map.values().toArray());
-        Map<String, List<Object[]>> objMap = Maps.newHashMap();
-        objMap.put(key, batchs);
-        this.batchUpdate(sql, objMap);
+        this.batchUpdate(sql, key, batchs);
     }
 }
