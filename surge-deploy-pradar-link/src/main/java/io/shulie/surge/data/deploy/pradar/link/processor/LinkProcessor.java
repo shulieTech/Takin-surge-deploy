@@ -224,9 +224,9 @@ public class LinkProcessor extends AbstractProcessor {
             logger.warn("LinkProcessor is empty  {}, {}", linkId, linkConfig);
             return;
         }
-        mysqlSupport.batchUpdate(linkNodeInsertSql,
+        mysqlSupport.addBatch(linkNodeInsertSql,
                 linkNodeModels.stream().map(LinkNodeModel::getValues).collect(Collectors.toList()));
-        mysqlSupport.batchUpdate(linkEdgeInsertSql,
+        mysqlSupport.addBatch(linkEdgeInsertSql,
                 linkEdgeModels.stream().map(LinkEdgeModel::getValues).collect(Collectors.toList()));
     }
 

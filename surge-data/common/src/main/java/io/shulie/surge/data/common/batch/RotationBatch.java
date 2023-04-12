@@ -128,30 +128,6 @@ public class RotationBatch<T extends Serializable> {
         return this;
     }
 
-    /**
-     * 添加对象到批中
-     *
-     * @param object
-     * @return
-     */
-    public RotationBatch addBatch(T object, long offset) {
-        if (started.compareAndSet(false, true)) {
-            start();
-        }
-        try {
-            batchObjs.put(object);
-        } catch (InterruptedException e) {
-            logger.error("", e);
-        }
-        /**
-         * 检查mark
-         */
-        if (checkMark(offset)) {
-            inFlushBatch();
-        }
-        return this;
-    }
-
     private synchronized void inFlushBatch() {
         boolean shouldFlush = timeFlush && (System.currentTimeMillis() - lastFlushTime >= flushInterval);
         if (!timeFlush || shouldFlush) {
@@ -174,7 +150,46 @@ public class RotationBatch<T extends Serializable> {
      * @return
      */
     public RotationBatch addBatch(T object) {
-        addBatch(object, 1);
+        if (started.compareAndSet(false, true)) {
+            start();
+        }
+        try {
+            batchObjs.put(object);
+        } catch (InterruptedException e) {
+            logger.error("", e);
+        }
+        /**
+         * 检查mark
+         */
+        if (checkMark(1)) {
+            inFlushBatch();
+        }
+        return this;
+    }
+
+    /**
+     * 添加对象到批中
+     *
+     * @param list
+     * @return
+     */
+    public RotationBatch addBatch(List<T> list) {
+        if (started.compareAndSet(false, true)) {
+            start();
+        }
+        try {
+            for (T obj : list) {
+                batchObjs.put(obj);
+            }
+        } catch (InterruptedException e) {
+            logger.error("", e);
+        }
+        /**
+         * 检查mark
+         */
+        if (checkMark(list.size())) {
+            inFlushBatch();
+        }
         return this;
     }
 

@@ -209,7 +209,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
                 }
                 return isUnique;
             }).collect(Collectors.toList());
-            mysqlSupport.batchUpdate(insertShadowDatabaseSql,
+            mysqlSupport.addBatch(insertShadowDatabaseSql,
                     databaseModelList.stream().map(ShadowDatabaseModel::getValues).collect(Collectors.toList()));
             if (logger.isDebugEnabled()) {
                 logger.debug("ShadowDatabaseProcessor save is ok. databaseSize：[{}]", databaseModelList.size());
@@ -237,7 +237,7 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
                 }
                 return isUnique;
             }).collect(Collectors.toList());
-            mysqlSupport.batchUpdate(insertShadowBizTableSql,
+            mysqlSupport.addBatch(insertShadowBizTableSql,
                     bizTableModelList.stream().map(ShadowBizTableModel::getValues).collect(Collectors.toList()));
             if (logger.isDebugEnabled()) {
                 logger.debug("ShadowDatabaseProcessor save is ok. bizTableSize：[{}]", bizTableModelList.size());

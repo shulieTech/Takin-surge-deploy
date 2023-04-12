@@ -272,7 +272,7 @@ public class ExitProcessor extends AbstractProcessor {
                             LinkEntranceModel::parseFromDataMap)
                     .collect(Collectors.toList()).stream().collect(Collectors.collectingAndThen(Collectors.toCollection(()
                             -> new TreeSet<>(Comparator.comparing(LinkEntranceModel::getEntranceId))), ArrayList::new));
-            mysqlSupport.batchUpdate(linkEntranceInsertSql, new ArrayList<>(
+            mysqlSupport.addBatch(linkEntranceInsertSql, new ArrayList<>(
                     linkEntranceModels.stream().map(LinkEntranceModel::getValues).collect(Collectors.toSet())));
             logger.info("{} saveExit is ok,size: {}", key, exitMapList.size());
         } catch (Throwable e) {

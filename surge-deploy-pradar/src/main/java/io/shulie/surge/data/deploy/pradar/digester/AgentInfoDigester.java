@@ -146,7 +146,7 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
                 //help gc
                 agentInfo = null;
             }
-            mysqlSupport.batchUpdate(AgentInfoModel.insertSql, Collections.singletonList(AgentInfoModel.values(agentBased)));
+            mysqlSupport.addBatch(AgentInfoModel.insertSql, Collections.singletonList(AgentInfoModel.values(agentBased)));
         } catch (Throwable e) {
             logger.warn("fail to write mysql, log: " + agentBased.getLog() + ", error:" + ExceptionUtils.getStackTrace(e));
         }

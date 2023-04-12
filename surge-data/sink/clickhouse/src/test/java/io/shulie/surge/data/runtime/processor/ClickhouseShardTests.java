@@ -36,7 +36,7 @@ public class ClickhouseShardTests {
             Thread.sleep(1000L);
             List<Object[]> objects = Lists.newArrayList();
             objects.add(new Object[]{1});
-            support.batchUpdate("xx", UUID.randomUUID().toString(), objects);
+            support.addBatch("xx", UUID.randomUUID().toString(), objects);
         }
     }
 }
