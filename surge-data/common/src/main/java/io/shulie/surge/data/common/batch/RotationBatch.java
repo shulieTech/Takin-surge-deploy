@@ -51,6 +51,7 @@ public class RotationBatch<T extends Serializable> {
 
     public RotationBatch(String shardKey, RotationPolicy... rotationPolicy) {
         this.shardKey = shardKey;
+        this.executor = Executors.newSingleThreadScheduledExecutor();
         rotationPolicy(rotationPolicy);
     }
 
@@ -106,7 +107,12 @@ public class RotationBatch<T extends Serializable> {
          * 检查mark
          */
         if (checkMark(offset)) {
-            saveBatch();
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    saveBatch();
+                }
+            });
         }
         return this;
     }
@@ -191,16 +197,8 @@ public class RotationBatch<T extends Serializable> {
                 if (batchSaver == null) {
                     throw new IllegalStateException("Please add batchSaver first!");
                 }
-                if (null == executor) {
-                    executor = Executors.newSingleThreadScheduledExecutor();
-                }
                 long interval = ((TimedRotationPolicy) rotationPolicy).getInterval();
-                executor.scheduleAtFixedRate(new Runnable() {
-                    @Override
-                    public void run() {
-                        saveBatch();
-                    }
-                }, interval, interval, TimeUnit.MILLISECONDS);
+                executor.scheduleAtFixedRate(() -> saveBatch(), interval, interval, TimeUnit.MILLISECONDS);
                 iterator.remove();
             }
         }
