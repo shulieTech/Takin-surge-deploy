@@ -57,7 +57,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
     private static final Pattern URL_TEMPLATE = Pattern.compile("jdbc:clickhouse://([a-zA-Z0-9_:,.-]+)(/[a-zA-Z0-9_]+([?][a-zA-Z0-9_]+[=][a-zA-Z0-9_]+([&][a-zA-Z0-9_]+[=][a-zA-Z0-9_]+)*)?)?");
     private List<String> urls;
     private int batchCount;
-    private static int delayTime = 5;
+    private static int delayTime = 1;
     private Map<String, String> urlMap = Maps.newHashMap();
     private Map<String, JdbcTemplate> shardJdbcTemplateMap = Maps.newHashMap();
     private ConcurrentMap<String, RotationBatch<Object[]>> rotationPrepareSqlBatch = new ConcurrentHashMap<>();
