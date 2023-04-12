@@ -147,7 +147,7 @@ public final class KafkaSupplier extends DefaultSupplier {
         if (messageEntity == null) {
             return;
         }
-        Map<String, Object> header = messageEntity.getHeaders();
+
         String message = null;
         Map body = messageEntity.getBody();
         if (MapUtils.isNotEmpty(body)
@@ -158,6 +158,8 @@ public final class KafkaSupplier extends DefaultSupplier {
         if (StringUtils.isBlank(message)) {
             return;
         }
+
+        Map<String, Object> header = messageEntity.getHeaders();
         header.put("dataVersion", header.get("version"));
         header.put("receiveHttpTime", System.currentTimeMillis());
         Object dataType = header.get("dataType");
