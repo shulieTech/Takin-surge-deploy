@@ -25,10 +25,7 @@ import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.runtime.digest.handler.DigestJob;
 import io.shulie.surge.data.runtime.digest.handler.DigesterWorkerHanlder;
-import io.shulie.surge.data.runtime.disruptor.InsufficientCapacityException;
-import io.shulie.surge.data.runtime.disruptor.RingBuffer;
-import io.shulie.surge.data.runtime.disruptor.RingBufferIllegalStateException;
-import io.shulie.surge.data.runtime.disruptor.SleepingWaitStrategy;
+import io.shulie.surge.data.runtime.disruptor.*;
 import io.shulie.surge.data.runtime.disruptor.dsl.Disruptor;
 import io.shulie.surge.data.runtime.disruptor.dsl.ProducerType;
 import io.shulie.surge.data.runtime.parser.DataParser;
@@ -75,7 +72,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
         int threadCount = Math.max(processorConfig.getExecuteSize(), totalThreadCount);
         // disruptor实现
         ExecutorService es = DataPoolExecutors.newDefaultNoQueueExecutors(threadCount, threadCount * 2, 3, TimeUnit.SECONDS, new ThreadFactoryBuilder().setNameFormat(processorConfig.getName() + "-Processor_thread_-%d").build(), null);
-        disruptor = new Disruptor<>(DigestJob.EVENT_FACTORY, processorConfig.getRingBufferSize(), es, ProducerType.MULTI, new SleepingWaitStrategy());
+        disruptor = new Disruptor<>(DigestJob.EVENT_FACTORY, processorConfig.getRingBufferSize(), es, ProducerType.MULTI, new BlockingWaitStrategy());
         int digesterCount = processorConfig.getDigesters().length;
 
         for (int i = 0; i < digesterCount; i++) {
@@ -137,7 +134,6 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      */
     @Override
     public void publish(DigestContext<OUT> data) throws InterruptedException {
-        canPublish(1);
         if (data == null) {
             return;
         }
@@ -200,8 +196,6 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      */
     @Override
     public void publish(Map<String, Object> header, List<IN> datas) throws InterruptedException {
-
-        canPublish(datas.size());
         DataParser<IN, OUT> dataParser = getDataParser(header);
         List<DigestContext<OUT>> list = Lists.newArrayList();
         for (IN data : datas) {
