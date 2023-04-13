@@ -25,9 +25,10 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -41,7 +42,7 @@ public class RotationBatch<T extends Serializable> {
     private int maxRetries = 3;
     private LinkedBlockingQueue<T> batchObjs = new LinkedBlockingQueue<>(200000);
     private List<RotationPolicy> rotationPolicies = Lists.newLinkedList();
-    private ExecutorService executor;
+    private ScheduledExecutorService executor;
     private BatchSaver batchSaver;
     private AtomicBoolean started = new AtomicBoolean(false);
     private String shardKey = "";
@@ -57,6 +58,11 @@ public class RotationBatch<T extends Serializable> {
 
     private volatile boolean isRunning = false;
 
+    /**
+     * 是否所有策略都满足时才执行，默认是
+     */
+    private boolean allOfExecute = true;
+
     //结合 init 一起使用
     public RotationBatch() {
     }
@@ -67,7 +73,7 @@ public class RotationBatch<T extends Serializable> {
 
     public RotationBatch(String shardKey, RotationPolicy... rotationPolicy) {
         this.shardKey = shardKey;
-        this.executor = Executors.newSingleThreadExecutor();
+        this.executor = Executors.newSingleThreadScheduledExecutor();
         this.lock = new ReentrantLock(false);
         this.signal = lock.newCondition();
         rotationPolicy(rotationPolicy);
@@ -129,17 +135,21 @@ public class RotationBatch<T extends Serializable> {
     }
 
     private synchronized void inFlushBatch() {
-        boolean shouldFlush = timeFlush && (System.currentTimeMillis() - lastFlushTime >= flushInterval);
-        if (!timeFlush || shouldFlush) {
-            if (lock.tryLock()) {
-                try {
-                    signal.signal();
-                } catch (Throwable e) {
-                    logger.error("fail to signal notEmpty.", e);
-                } finally {
-                    lock.unlock();
+        if (allOfExecute) {
+            boolean shouldFlush = timeFlush && (System.currentTimeMillis() - lastFlushTime >= flushInterval);
+            if (!timeFlush || shouldFlush) {
+                if (lock.tryLock()) {
+                    try {
+                        signal.signal();
+                    } catch (Throwable e) {
+                        logger.error("fail to signal notEmpty.", e);
+                    } finally {
+                        lock.unlock();
+                    }
                 }
             }
+        } else {
+            saveBatch();
         }
     }
 
@@ -241,6 +251,51 @@ public class RotationBatch<T extends Serializable> {
         for (RotationPolicy rotationPolicy : rotationPolicies) {
             rotationPolicy.reset();
         }
+    }
+
+    public void start(boolean allOfExecute) {
+        if (!started.compareAndSet(false, true)) {
+            return;
+        }
+        isRunning = true;
+        if (allOfExecute) {
+            execute();
+        } else {
+            scheduleExecute();
+        }
+    }
+
+    private void execute() {
+        executor.execute(() -> {
+            while (isRunning) {
+                try {
+                    if (lock.tryLock()) {
+                        try {
+                            signal.await();
+                        } catch (InterruptedException e) {
+                            logger.error("", e);
+                        } finally {
+                            lock.unlock();
+                        }
+                    }
+                    saveBatch();
+                    lastFlushTime = System.currentTimeMillis();
+                } catch (Throwable e) {
+                    logger.error("RotationBatch execute error.ignore.", e);
+                }
+
+            }
+        });
+    }
+
+
+    private void scheduleExecute() {
+        executor.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                saveBatch();
+            }
+        }, 1, flushInterval, TimeUnit.MILLISECONDS);
     }
 
     /**
