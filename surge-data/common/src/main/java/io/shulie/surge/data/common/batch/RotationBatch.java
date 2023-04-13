@@ -304,30 +304,7 @@ public class RotationBatch<T extends Serializable> {
      * @return
      */
     public void start() {
-        if (!started.compareAndSet(false, true)) {
-            return;
-        }
-        isRunning = true;
-        executor.execute(() -> {
-            while (isRunning) {
-                try {
-                    if (lock.tryLock()) {
-                        try {
-                            signal.await();
-                        } catch (InterruptedException e) {
-                            logger.error("", e);
-                        } finally {
-                            lock.unlock();
-                        }
-                    }
-                    saveBatch();
-                    lastFlushTime = System.currentTimeMillis();
-                } catch (Throwable e) {
-                    logger.error("RotationBatch execute error.ignore.", e);
-                }
-
-            }
-        });
+        start(true);
     }
 
     public void stop() {
