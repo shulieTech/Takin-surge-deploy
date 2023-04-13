@@ -37,11 +37,6 @@ public class ZkDataImpl<T> extends BaseRemoteData<T> {
 	private ZkClient zkClient;
 
 	@Override
-	public T get() {
-		return data;
-	}
-
-	@Override
 	public void set(T value) {
 		zkClient.writeData(dataId, value);
 		updateData(value);

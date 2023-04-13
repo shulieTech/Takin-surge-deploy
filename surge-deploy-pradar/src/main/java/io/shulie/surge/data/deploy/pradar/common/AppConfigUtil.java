@@ -27,6 +27,8 @@ import com.google.inject.name.Named;
 import io.shulie.surge.data.common.utils.HttpUtil;
 import io.shulie.surge.data.common.zk.ZkClient;
 import io.shulie.surge.data.deploy.pradar.link.util.StringUtil;
+import io.shulie.surge.data.runtime.common.remote.DefaultValue;
+import io.shulie.surge.data.runtime.common.remote.Remote;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
@@ -36,6 +38,8 @@ import javax.inject.Singleton;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 @Singleton
 public class AppConfigUtil {
@@ -74,6 +78,62 @@ public class AppConfigUtil {
 
     @Inject(optional = true)
     private ConfigService configService;
+
+    @Inject
+    @DefaultValue("false")
+    @Named("/pradar/config/nacos/nacosDisable")
+    private Remote<Boolean> nacosDisable;
+
+    private volatile Integer sampling;
+    private AtomicBoolean isInited = new AtomicBoolean(false);
+
+    private void subscribeNacosConfig(Consumer<Map<String, Object>> consumer) {
+        if (configService == null) {
+            return;
+        }
+        if (!isInited.compareAndSet(false, true)) {
+            return;
+        }
+        String nacosId = "pradarConfig", group = "PRADAR_CONFIG";
+        try {
+            String value = configService.getConfigAndSignListener(nacosId, group, 3000L, new AbstractListener() {
+                @Override
+                public void receiveConfigInfo(String configInfo) {
+                    nacosConfigs = JSON.parseObject(configInfo, Map.class);
+                    if (consumer != null) {
+                        consumer.accept(nacosConfigs);
+                    }
+                }
+            });
+            nacosConfigs = JSON.parseObject(value, Map.class);
+            if (consumer != null) {
+                consumer.accept(nacosConfigs);
+            }
+        } catch (Throwable e) {
+            logger.error("从 nacos 获取采样率失败.", e);
+        }
+    }
+
+    private int getSamplingFromNacos() {
+        if (sampling != null) {
+            return sampling;
+        }
+        subscribeNacosConfig(map -> {
+            if (map == null) {
+                return;
+            }
+            Object obj = map.get(globalSamplingPath);
+            if (obj == null) {
+                return;
+            }
+            String val = StringUtils.trim(obj == null ? null : obj.toString());
+            if (NumberUtils.isDigits(val)) {
+                sampling = Integer.valueOf(val);
+            }
+        });
+
+        return this.sampling == null ? 1 : this.sampling;
+    }
 
     private volatile Map<String, Object> nacosConfigs;
 
@@ -174,10 +234,14 @@ public class AppConfigUtil {
      * @return
      */
     public int getAppSamplingByAppName(String userAppKey, String envCode, String appName, String clusterTest) {
-        try {
-            return samplingCache.get(userAppKey + "@~@" + envCode + "@~@" + appName + "@~@" + clusterTest);
-        } catch (Throwable e) {
-            e.printStackTrace();
+        if (!nacosDisable.get()) {
+            return getSamplingFromNacos();
+        } else {
+            try {
+                return samplingCache.get(userAppKey + "@~@" + envCode + "@~@" + appName + "@~@" + clusterTest);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
         }
         return 1;
     }

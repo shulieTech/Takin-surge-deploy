@@ -15,7 +15,6 @@
 
 package io.shulie.surge.data.deploy.pradar.digester.command;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.common.MiddlewareTypeEnum;
@@ -23,29 +22,38 @@ import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParser;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParserFactory;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 
 public class LinkCommand implements ClickhouseCommand {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static ThreadLocal<LinkedHashMap<String, Object>> mapGetter = ThreadLocal.withInitial(() -> new LinkedHashMap<>(16));
+    private LinkedHashSet<String> meta;
+
+    public LinkCommand() {
+        this.meta = Sets.newLinkedHashSet();
+        meta.add("timeMin");
+        meta.add("dateToMin");
+        meta.add("parsedServiceName");
+        meta.add("parsedMethod");
+        meta.add("parsedAppName");
+        meta.add("parsedExtend");
+        meta.add("parsedMiddlewareName");
+        meta.add("entranceServiceType");
+    }
+
     @Override
     public LinkedHashSet<String> meta() {
-        LinkedHashSet<String> linkedHashSet = Sets.newLinkedHashSet();
-        linkedHashSet.add("timeMin");
-        linkedHashSet.add("dateToMin");
-        linkedHashSet.add("parsedServiceName");
-        linkedHashSet.add("parsedMethod");
-        linkedHashSet.add("parsedAppName");
-        linkedHashSet.add("parsedExtend");
-        linkedHashSet.add("parsedMiddlewareName");
-        linkedHashSet.add("entranceServiceType");
-        return linkedHashSet;
+        return meta;
     }
 
     @Override
     public LinkedHashMap<String, Object> action(RpcBased rpcBased) {
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
-        LinkedHashMap<String, Object> map = Maps.newLinkedHashMap();
+        LinkedHashMap<String, Object> map = mapGetter.get();
         map.put("timeMin", rpcBased.getStartTime() / 1000 / 60);
         map.put("dateToMin", rpcBased.getStartTime() / 1000 / 60 / 60 / 24);
         if (rpcBasedParser != null) {

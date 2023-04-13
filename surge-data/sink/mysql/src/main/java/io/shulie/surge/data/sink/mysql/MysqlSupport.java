@@ -126,7 +126,7 @@ public class MysqlSupport implements Lifecycle, Stoppable {
      * @param sql
      */
 
-    public void batchUpdate(final String... sql) throws Exception {
+    public void addBatch(final String... sql) throws Exception {
         if (rotationSqlBatch == null) {
             start();
         }
@@ -135,6 +135,28 @@ public class MysqlSupport implements Lifecycle, Stoppable {
         }
     }
 
+    public void addBatch(final String sql, Object[] args) {
+        RotationBatch<Object[]> rotationBatch = null;
+        if (!rotationPrepareSqlBatch.containsKey(sql)) {
+            rotationBatch = new RotationBatch(new CountRotationPolicy(200), new TimedRotationPolicy(2, TimeUnit.SECONDS));
+            rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
+                @Override
+                public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
+                    jdbcTemplate.batchUpdate(sql, Lists.newArrayList(batchSql));
+                    return true;
+                }
+
+                @Override
+                public boolean shardSaveBatch(String key, LinkedBlockingQueue<Object[]> ObjectBatch) {
+                    return false;
+                }
+            });
+        } else {
+            rotationBatch = rotationPrepareSqlBatch.get(sql);
+        }
+        rotationBatch.addBatch(args);
+        rotationPrepareSqlBatch.put(sql, rotationBatch);
+    }
 
     /**
      * 批量更新
@@ -143,7 +165,7 @@ public class MysqlSupport implements Lifecycle, Stoppable {
      * @param batchArgs
      */
 
-    public void batchUpdate(final String sql, final List<Object[]> batchArgs) {
+    public void addBatch(final String sql, final List<Object[]> batchArgs) {
         RotationBatch<Object[]> rotationBatch = null;
         if (!rotationPrepareSqlBatch.containsKey(sql)) {
             rotationBatch = new RotationBatch(new CountRotationPolicy(200), new TimedRotationPolicy(2, TimeUnit.SECONDS));

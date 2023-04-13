@@ -224,9 +224,9 @@ public class LinkProcessor extends AbstractProcessor {
             logger.warn("LinkProcessor is empty  {}, {}", linkId, linkConfig);
             return;
         }
-        mysqlSupport.batchUpdate(linkNodeInsertSql,
+        mysqlSupport.addBatch(linkNodeInsertSql,
                 linkNodeModels.stream().map(LinkNodeModel::getValues).collect(Collectors.toList()));
-        mysqlSupport.batchUpdate(linkEdgeInsertSql,
+        mysqlSupport.addBatch(linkEdgeInsertSql,
                 linkEdgeModels.stream().map(LinkEdgeModel::getValues).collect(Collectors.toList()));
     }
 
@@ -492,7 +492,7 @@ public class LinkProcessor extends AbstractProcessor {
         //如果当前业务活动只有一条边并且不为业务真实入口,不计算其上游节点
         if (rpcBaseds.size() == 1 && !"0".equals(rpcBaseds.get(0).getRpcId())) {
             StringBuffer tags = new StringBuffer();
-            tags.append(objectToString(rpcBaseds.get(0).getServiceName(), ""))
+            tags.append(objectToString(rpcBaseds.get(0).getParsedServiceName(), ""))
                     .append("|")
                     .append(objectToString(rpcBaseds.get(0).getMethodName(), ""))
                     .append("|")

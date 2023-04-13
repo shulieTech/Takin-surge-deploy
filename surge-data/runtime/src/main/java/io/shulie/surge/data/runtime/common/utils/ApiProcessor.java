@@ -434,7 +434,7 @@ public class ApiProcessor {
     }
 
     public static String merge(String appName, String url, String type) {
-        url = urlFormat(url);
+            url = urlFormat(url);
         if (StringUtils.isBlank(url)) {
             return "";
         }
@@ -442,8 +442,8 @@ public class ApiProcessor {
         if (Objects.isNull(matcher)) {
             Map<String, List<String>> apiMaps = API_COLLECTION.get(appName);
             if (Objects.isNull(apiMaps) || apiMaps.size() < 1) {
-                return url;
-            }
+            return url;
+        }
             matcher = new Matcher(apiMaps);
             MATHERS.putIfAbsent(appName, matcher);
         }

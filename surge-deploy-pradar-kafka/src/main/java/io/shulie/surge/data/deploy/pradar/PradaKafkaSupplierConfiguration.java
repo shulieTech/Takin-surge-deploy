@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * @author vincent
@@ -148,7 +147,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
             KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, TRACE_TOPIC, kafkaAuthFlag,
                     securityProtocol, saslMechanism, saslJaasConfig);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
-            kafkaSupplier.setQueue(buidTraceProcesser(dataRuntime, isDistributed));
+            kafkaSupplier.setQueue(buildTraceProcessor(dataRuntime, isDistributed, TRACE_TOPIC));
             return kafkaSupplier;
         } catch (Throwable e) {
             logger.error("KafkaSupplier fail " + ExceptionUtils.getStackTrace(e));
@@ -168,7 +167,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
             KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, PRESURCE_ENGINE_TRACE_TOPIC,
                     kafkaAuthFlag, securityProtocol, saslMechanism, saslJaasConfig);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
-            kafkaSupplier.setQueue(buidTraceProcesser(dataRuntime, isDistributed));
+            kafkaSupplier.setQueue(buildTraceProcessor(dataRuntime, isDistributed, PRESURCE_ENGINE_TRACE_TOPIC));
             return kafkaSupplier;
         } catch (Throwable e) {
             logger.error("KafkaSupplier fail " + ExceptionUtils.getStackTrace(e));
@@ -188,7 +187,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
             KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, BASE_TOPIC, kafkaAuthFlag,
                     securityProtocol, saslMechanism, saslJaasConfig);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
-            kafkaSupplier.setQueue(buidMonitorProcesser(dataRuntime));
+            kafkaSupplier.setQueue(buildMonitorProcessor(dataRuntime));
             return kafkaSupplier;
         } catch (Throwable e) {
             logger.error("netty fail " + ExceptionUtils.getStackTrace(e));
@@ -208,7 +207,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
             KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, AGENT_LOG_TOPIC, kafkaAuthFlag,
                     securityProtocol, saslMechanism, saslJaasConfig);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
-            kafkaSupplier.setQueue(buidAgentLogProcesser(dataRuntime));
+            kafkaSupplier.setQueue(buildAgentLogProcessor(dataRuntime));
             return kafkaSupplier;
         } catch (Throwable e) {
             logger.error("netty fail " + ExceptionUtils.getStackTrace(e));

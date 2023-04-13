@@ -17,10 +17,10 @@ package io.shulie.surge.data.deploy.pradar.digester.command;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +48,7 @@ public class ClickhouseFacade {
      * @param clickhouseCommand
      * @return
      */
-    public ClickhouseFacade addCommond(ClickhouseCommand clickhouseCommand) {
+    public ClickhouseFacade addCommand(ClickhouseCommand clickhouseCommand) {
         commands.add(clickhouseCommand);
         return this;
     }
@@ -61,7 +61,7 @@ public class ClickhouseFacade {
         if (commands.isEmpty()) {
             throw new IllegalArgumentException("Not add command.");
         }
-        Map<String, Object> colMap = Maps.newLinkedHashMap();
+        Map<String, Object> colMap = new LinkedHashMap<>(200);
         for (ClickhouseCommand command : commands) {
             colMap.putAll(command.action(rpcBased));
         }
@@ -111,6 +111,10 @@ public class ClickhouseFacade {
      */
     public static class Factory {
         private static ClickhouseFacade INSTANCE = new ClickhouseFacade();
+
+        private static class FactoryHolder {
+
+        }
 
         public static ClickhouseFacade getInstace() {
             return INSTANCE;

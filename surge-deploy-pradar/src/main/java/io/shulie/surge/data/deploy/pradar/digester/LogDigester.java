@@ -16,18 +16,12 @@
 package io.shulie.surge.data.deploy.pradar.digester;
 
 import com.google.common.cache.*;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.common.PradarUtils;
-import io.shulie.surge.data.deploy.pradar.digester.command.BaseCommand;
-import io.shulie.surge.data.deploy.pradar.digester.command.ClickhouseFacade;
-import io.shulie.surge.data.deploy.pradar.digester.command.FlagCommand;
-import io.shulie.surge.data.deploy.pradar.digester.command.LinkCommand;
 import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
@@ -42,7 +36,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,6 +58,8 @@ public class LogDigester implements DataDigester<RpcBased> {
      * clickhouse和mysql切换
      */
     private String dataSourceType;
+
+    private boolean isUseCk;
 
     @Inject
     @DefaultValue("false")
@@ -91,91 +86,100 @@ public class LogDigester implements DataDigester<RpcBased> {
 
     private transient AtomicBoolean isRunning = new AtomicBoolean(false);
 
-    private ClickhouseFacade clickhouseFacade = ClickhouseFacade.Factory.getInstace();
+    private LogTraceArgBuilder argBuilder = new LogTraceArgBuilder();
 
     private String sql = "";
     private String engineSql = "";
 
-
     public void init() {
+        if (!isRunning.compareAndSet(false, true)) {
+            return;
+        }
         String tableName = "t_trace_all";
         String engineTable = "t_trace_pressure";
         if (CommonStat.isUseCk(this.dataSourceType)) {
             tableName = clickHouseShardSupport.isCluster() ? "t_trace" : "t_trace_all";
             engineTable = clickHouseShardSupport.isCluster() ? "t_pressure" : "t_trace_pressure";
+            isUseCk = true;
         }
-        clickhouseFacade.addCommond(new BaseCommand());
-        clickhouseFacade.addCommond(new LinkCommand());
-        clickhouseFacade.addCommond(new FlagCommand());
-        sql = "insert into " + tableName + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
-        engineSql = "insert into " + engineTable + " (" + clickhouseFacade.getCols() + ") values(" + clickhouseFacade.getParam() + ") ";
+        sql = "insert into " + tableName + " (" + argBuilder.getCols() + ") values(" + argBuilder.getParam() + ") ";
+        engineSql = "insert into " + engineTable + " (" + argBuilder.getCols() + ") values(" + argBuilder.getParam() + ") ";
     }
 
     @Override
     public void digest(DigestContext<RpcBased> context) {
+        long time1 = System.currentTimeMillis();
         if (clickhouseDisable.get()) {
             return;
         }
-        if (isRunning.compareAndSet(false, true)) {
-            init();
-        }
+
         RpcBased rpcBased = context.getContent();
+        if (rpcBased == null) {
+            return;
+        }
+
+        if (!PradarUtils.isTraceSampleAccepted(rpcBased, clickhouseSampling.get())) {
+            return;
+        }
+
+        //如果是压测引擎日志,统计每个压测报告实际上报条数
+        if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
+            Long count = taskIds.getIfPresent(rpcBased.getTaskId());
+            //logger.info("now task[{}] requestCount is [{}]", rpcBased.getTaskId(), count);
+            taskIds.put(rpcBased.getTaskId(), count != null ? ++count : 1);
+        }
+
         try {
-            if (rpcBased == null) {
-                return;
-            }
-            if (!PradarUtils.isTraceSampleAccepted(rpcBased, clickhouseSampling.get())) {
-                return;
-            }
-
-            //如果是压测引擎日志,统计每个压测报告实际上报条数
-            if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
-                Long count = taskIds.getIfPresent(rpcBased.getTaskId());
-                //logger.info("now task[{}] requestCount is [{}]", rpcBased.getTaskId(), count);
-                taskIds.put(rpcBased.getTaskId(), count != null ? ++count : 1);
-            }
-
-            rpcBased.setDataLogTime(context.getProcessTime());
-            if (context.getHeader().containsKey("uploadTime")) {
-                rpcBased.setUploadTime((Long) context.getHeader().get("uploadTime"));
-            }
-            rpcBased.setReceiveHttpTime((Long) context.getHeader().get("receiveHttpTime"));
-            //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
-            if (StringUtils.isBlank(rpcBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
-                rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
-            }
-            if (StringUtils.isBlank(rpcBased.getEnvCode())) {
-                rpcBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("envCode"));
-            }
-
-            List<Object[]> batchs = Lists.newArrayList();
-            batchs.add(clickhouseFacade.toObjects(clickhouseFacade.invoke(rpcBased)));
-            Map<String, List<Object[]>> objMap = Maps.newHashMap();
-            objMap.put(rpcBased.getTraceId(), batchs);
-
-            // TODO 此修改支持mysql和clickhouse写入,代码不是很友好，后续剥离出来
-            if (CommonStat.isUseCk(dataSourceType)) {
+            long time2 = System.currentTimeMillis();
+            rpcBased = processRpcBased(context, rpcBased);
+            long time3 = System.currentTimeMillis();
+            Object[] args = argBuilder.buildArg(rpcBased);
+            long time4 = System.currentTimeMillis();
+            if (isUseCk) {
                 //对引擎trace数据进行去重
-                if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE && rpcBased.getTraceId() != null){
+                if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE && rpcBased.getTraceId() != null) {
                     Byte ifPresent = pressureTraceIds.getIfPresent(rpcBased.getTraceId());
-                    if (ifPresent != null){
+                    if (ifPresent != null) {
                         return;
                     }
-                    pressureTraceIds.put(rpcBased.getTraceId(), (byte)1);
+                    pressureTraceIds.put(rpcBased.getTraceId(), (byte) 1);
                 }
-                clickHouseShardSupport.batchUpdate(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, objMap);
+                long time5 = System.currentTimeMillis();
+                clickHouseShardSupport.addBatch(rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE ? engineSql : sql, rpcBased.getTraceId(), args);
+                long time6 = System.currentTimeMillis();
+
+                if (time6 - time1 > 10) {
+                    logger.info("LogDigester cost={}. sc1={}, sc2={},sc3={},sc4={},sc5={}", time6 - time1, time2 - time1, time3 - time2, time4 - time3, time5 - time4, time6 - time5);
+                }
             } else {
-                mysqlSupport.batchUpdate(sql, batchs);
+                mysqlSupport.update(sql, args);
             }
         } catch (Throwable e) {
             logger.warn("fail to write clickhouse, log: " + rpcBased.getLog() + ", error:" + ExceptionUtils.getStackTrace(e));
         }
     }
 
+    private RpcBased processRpcBased(DigestContext<RpcBased> context, RpcBased rpcBased) {
+        rpcBased.setDataLogTime(context.getProcessTime());
+        Map<String, Object> header = context.getHeader();
+        if (header.containsKey("uploadTime")) {
+            rpcBased.setUploadTime((Long) header.get("uploadTime"));
+        }
+        rpcBased.setReceiveHttpTime((Long) header.get("receiveHttpTime"));
+        //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
+        if (StringUtils.isBlank(rpcBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
+            rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
+        }
+        if (StringUtils.isBlank(rpcBased.getEnvCode())) {
+            rpcBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("envCode"));
+        }
+        return rpcBased;
+    }
+
 
     @Override
     public int threadCount() {
-        return 1;
+        return 2;
     }
 
     @Override
@@ -189,6 +193,9 @@ public class LogDigester implements DataDigester<RpcBased> {
 
     public void setDataSourceType(String dataSourceType) {
         this.dataSourceType = dataSourceType;
+        if (CommonStat.isUseCk(this.dataSourceType)) {
+            isUseCk = true;
+        }
     }
 
     public Remote<Boolean> getClickhouseDisable() {

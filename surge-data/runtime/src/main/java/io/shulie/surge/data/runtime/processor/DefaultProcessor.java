@@ -25,10 +25,7 @@ import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.runtime.digest.handler.DigestJob;
 import io.shulie.surge.data.runtime.digest.handler.DigesterWorkerHanlder;
-import io.shulie.surge.data.runtime.disruptor.InsufficientCapacityException;
-import io.shulie.surge.data.runtime.disruptor.RingBuffer;
-import io.shulie.surge.data.runtime.disruptor.RingBufferIllegalStateException;
-import io.shulie.surge.data.runtime.disruptor.SleepingWaitStrategy;
+import io.shulie.surge.data.runtime.disruptor.*;
 import io.shulie.surge.data.runtime.disruptor.dsl.Disruptor;
 import io.shulie.surge.data.runtime.disruptor.dsl.ProducerType;
 import io.shulie.surge.data.runtime.parser.DataParser;
@@ -36,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -54,7 +52,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultProcessor.class);
 
-    private long[] digesterTimeCost;
+    private AtomicLong[] digesterTimeCost;
 
     private ProcessorConfigSpec processorConfig;
     private RingBuffer<DigestJob> ringBuffer;
@@ -66,10 +64,15 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      */
     @Override
     public void start() throws Exception {
-        this.digesterTimeCost = new long[processorConfig.getDigesters().length];
+        this.digesterTimeCost = new AtomicLong[processorConfig.getDigesters().length];
+        for (int i = 0, len = processorConfig.getDigesters().length; i < len; i++) {
+            this.digesterTimeCost[i] = new AtomicLong(0L);
+        }
+        int totalThreadCount = Arrays.stream(processorConfig.getDigesters()).mapToInt(DataDigester::threadCount).sum();
+        int threadCount = Math.max(processorConfig.getExecuteSize(), totalThreadCount);
         // disruptor实现
-        ExecutorService es = DataPoolExecutors.newDefaultNoQueueExecutors(processorConfig.getExecuteSize(), processorConfig.getExecuteSize() * 2, 3, TimeUnit.SECONDS, new ThreadFactoryBuilder().setNameFormat(processorConfig.getName() + "-Processor_thread_-%d").build(), null);
-        disruptor = new Disruptor<>(DigestJob.EVENT_FACTORY, processorConfig.getRingBufferSize(), es, ProducerType.MULTI, new SleepingWaitStrategy());
+        ExecutorService es = DataPoolExecutors.newDefaultNoQueueExecutors(threadCount, threadCount * 2, 3, TimeUnit.SECONDS, new ThreadFactoryBuilder().setNameFormat(processorConfig.getName() + "-Processor_thread_-%d").build(), null);
+        disruptor = new Disruptor<>(DigestJob.EVENT_FACTORY, processorConfig.getRingBufferSize(), es, ProducerType.MULTI, new BlockingWaitStrategy());
         int digesterCount = processorConfig.getDigesters().length;
 
         for (int i = 0; i < digesterCount; i++) {
@@ -131,7 +134,6 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      */
     @Override
     public void publish(DigestContext<OUT> data) throws InterruptedException {
-        canPublish(1);
         if (data == null) {
             return;
         }
@@ -194,8 +196,6 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      */
     @Override
     public void publish(Map<String, Object> header, List<IN> datas) throws InterruptedException {
-
-        canPublish(datas.size());
         DataParser<IN, OUT> dataParser = getDataParser(header);
         List<DigestContext<OUT>> list = Lists.newArrayList();
         for (IN data : datas) {
@@ -218,7 +218,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
 
     private void monitor() {
         Scheduler scheduler = new Scheduler(1);
-        long interval = TimeUnit.MINUTES.toMillis(1);
+        long interval = TimeUnit.SECONDS.toMillis(10);
         long now = System.currentTimeMillis();
         long delay = DateUtils.truncateToMinute(now + interval) - now;
         scheduler.scheduleAtFixedRate(new Runnable() {
@@ -227,11 +227,14 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
                 StringBuilder appender = new StringBuilder(256);
                 appender.append(processorConfig.getName() + " Process Time");
                 for (int i = 0; i < processorConfig.getDigesters().length; ++i) {
-                    long timeCost = digesterTimeCost[i];
+                    AtomicLong timeCost = digesterTimeCost[i];
                     appender.append("\n  ").append(processorConfig.getDigesters()[i].getClass().getSimpleName()).append(": ")
-                            .append(FormatUtils.humanReadableTimeSpan(timeCost)).append(", about ")
-                            .append(FormatUtils.roundx4(divide(timeCost, processCount.get()))).append(" ms/line").append(" line:").append(processCount.get());
-                    digesterTimeCost[i] = 0;
+                            .append(FormatUtils.humanReadableTimeSpan(timeCost.get()))
+                            .append(", about ")
+                            .append(FormatUtils.roundx4(divide(timeCost.get(), processCount.get()))).append(" ms/line")
+                            .append(" line:").append(processCount.get())
+                            .append(" tps:").append(FormatUtils.roundx0((divide(processCount.get(), timeCost.get()) * 1000) > processCount.get() ? processCount.get() : (divide(processCount.get(), timeCost.get()) * 1000)));
+                    digesterTimeCost[i] = new AtomicLong(0L);
                 }
                 processCount = new AtomicLong(0);
                 logger.warn(appender.toString());

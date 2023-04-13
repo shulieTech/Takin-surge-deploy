@@ -32,11 +32,6 @@ public class NacosDataImpl<T> extends BaseRemoteData<T> {
     private static List<ConfigRefreshListener> refreshListeners = new ArrayList<>();
 
     @Override
-    public T get() {
-        return data;
-    }
-
-    @Override
     public void set(T value) {
         // 当前方法一般不会调用
         pradarConfigs.put(dataId, value);
