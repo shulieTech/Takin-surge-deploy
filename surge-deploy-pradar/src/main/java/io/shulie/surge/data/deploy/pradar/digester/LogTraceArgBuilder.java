@@ -103,7 +103,6 @@ public class LogTraceArgBuilder {
     public Object[] buildArg(RpcBased rpcBased) {
         Object[] args = new Object[53];
         int index = 0;
-        long time1 = System.currentTimeMillis();
         args[index++] = rpcBased.getAppName();
         args[index++] = rpcBased.getEntranceId();
         args[index++] = rpcBased.getEntranceNodeId();
@@ -122,7 +121,6 @@ public class LogTraceArgBuilder {
         args[index++] = rpcBased.getServiceName();
         args[index++] = rpcBased.getMethodName();
         args[index++] = rpcBased.getRemoteIp();
-        long time2 = System.currentTimeMillis();
         args[index++] = NumberUtils.toInt(rpcBased.getPort(), 0);
         args[index++] = rpcBased.getResultCode();
         args[index++] = rpcBased.getRequestSize();
@@ -133,10 +131,8 @@ public class LogTraceArgBuilder {
         args[index++] = rpcBased.getCallbackMsg();
         args[index++] = rpcBased.getSamplingInterval();
         args[index++] = rpcBased.getLocalId();
-        long time3 = System.currentTimeMillis();
         args[index++] = JSON.toJSONString(rpcBased.getAttributes());
         args[index++] = JSON.toJSONString(rpcBased.getLocalAttributes());
-        long time4 = System.currentTimeMillis();
         args[index++] = rpcBased.isAsync();
         args[index++] = rpcBased.getVersion();
         args[index++] = rpcBased.getHostIp();
@@ -154,15 +150,25 @@ public class LogTraceArgBuilder {
         args[index++] = rpcBased.getStartTime() / 1000 / 60;
         args[index++] = rpcBased.getStartTime() / 1000 / 60 / 60 / 24;
 
-        long time5 = System.currentTimeMillis();
 
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
         if (rpcBasedParser != null) {
+            long time1 = System.currentTimeMillis();
             args[index++] = StringUtils.defaultString(rpcBasedParser.serviceParse(rpcBased), "");
+            long time2 = System.currentTimeMillis();
             args[index++] = StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), "");
+            long time3 = System.currentTimeMillis();
             args[index++] = StringUtils.defaultString(rpcBasedParser.appNameParse(rpcBased), "");
+            long time4 = System.currentTimeMillis();
             args[index++] = StringUtils.defaultString(rpcBasedParser.extendParse(rpcBased), "");
+            long time5 = System.currentTimeMillis();
             args[index++] = MiddlewareTypeEnum.getNodeType(rpcBased.getMiddlewareName()).getType();
+            long time6 = System.currentTimeMillis();
+
+            if (time6 - time1 > 10) {
+                logger.info("LogTraceArgBuilder cost={}. sc1={}, sc2={},sc3={},sc4={},sc5={}", time6 - time1, time2 - time1, time3 - time2, time4 - time3, time5 - time4, time6 - time5);
+            }
+
         } else {
             if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
                 args[index++] = rpcBased.getServiceName();
@@ -176,7 +182,6 @@ public class LogTraceArgBuilder {
             args[index++] = "";
             args[index++] = "";
         }
-        long time6 = System.currentTimeMillis();
         args[index++] = "";
         args[index++] = TraceFlagEnum.LOG_OK.getCode();
 
@@ -186,10 +191,6 @@ public class LogTraceArgBuilder {
             args[index++] = attachmentBased.getTemplateId() + "@##" + attachmentBased.getExt();
         } else {
             args[index++] = "";
-        }
-        long time7 = System.currentTimeMillis();
-        if (time7 - time1 > 10) {
-            logger.info("LogTraceArgBuilder cost={}. sc1={}, sc2={},sc3={},sc4={},sc5={},sc5={}", time7 - time1, time2 - time1, time3 - time2, time4 - time3, time5 - time4, time6 - time5, time7 - time6);
         }
 
         return args;
