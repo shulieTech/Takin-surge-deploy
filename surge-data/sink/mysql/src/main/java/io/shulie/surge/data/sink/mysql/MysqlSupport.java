@@ -166,9 +166,9 @@ public class MysqlSupport implements Lifecycle, Stoppable {
      */
 
     public void addBatch(final String sql, final List<Object[]> batchArgs) {
-        RotationBatch<Object[]> rotationBatch = rotationPrepareSqlBatch.get(sql);
-        if (rotationBatch == null) {
-            rotationBatch = new RotationBatch<>(new CountRotationPolicy(200), new TimedRotationPolicy(2, TimeUnit.SECONDS));
+        RotationBatch<Object[]> rotationBatch = null;
+        if (!rotationPrepareSqlBatch.containsKey(sql)) {
+            rotationBatch = new RotationBatch(new CountRotationPolicy(200), new TimedRotationPolicy(2, TimeUnit.SECONDS));
             rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
                 @Override
                 public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
@@ -181,16 +181,13 @@ public class MysqlSupport implements Lifecycle, Stoppable {
                     return false;
                 }
             });
-            RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(sql, rotationBatch);
-            if (old != null) {
-                RotationBatch current = rotationBatch;
-                rotationBatch = old;
-                current.stop();
-            } else {
-                rotationBatch.start();
-            }
+        } else {
+            rotationBatch = rotationPrepareSqlBatch.get(sql);
         }
-        rotationBatch.addBatch(batchArgs);
+        for (Object[] args : batchArgs) {
+            rotationBatch.addBatch(args);
+        }
+        rotationPrepareSqlBatch.put(sql, rotationBatch);
     }
 
     public void updateBatch(final String sql, final List<Object[]> batchArgs) {

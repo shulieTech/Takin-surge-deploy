@@ -255,17 +255,21 @@ public class RotationBatch<T extends Serializable> {
         isRunning = true;
         executor.execute(() -> {
             while (isRunning) {
-                if (lock.tryLock()) {
-                    try {
-                        signal.await();
-                    } catch (InterruptedException e) {
-                        logger.error("", e);
-                    } finally {
-                        lock.unlock();
+                try {
+                    if (lock.tryLock()) {
+                        try {
+                            signal.await();
+                        } catch (InterruptedException e) {
+                            logger.error("", e);
+                        } finally {
+                            lock.unlock();
+                        }
                     }
+                    saveBatch();
+                    lastFlushTime = System.currentTimeMillis();
+                } catch (Throwable e) {
+                    logger.error("RotationBatch execute error.ignore.", e);
                 }
-                saveBatch();
-                lastFlushTime = System.currentTimeMillis();
 
             }
         });
