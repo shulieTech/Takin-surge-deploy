@@ -13,7 +13,6 @@ spec:
       labels:
         app: kafka-receiver
     spec:
-      hostname: kafka-receiver
       containers:
       - name: kafka-receiver
         image: harbor.dcos.xixian.unicom.local/skyeye-platform/stresstest/kafka-receiver:2.0.0

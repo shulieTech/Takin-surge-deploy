@@ -13,7 +13,6 @@ spec:
       labels:
         app: surge
     spec:
-      hostname: surge
       containers:
       - name: surge
         image: harbor.dcos.xixian.unicom.local/skyeye-platform/stresstest/surge:2.0.0
