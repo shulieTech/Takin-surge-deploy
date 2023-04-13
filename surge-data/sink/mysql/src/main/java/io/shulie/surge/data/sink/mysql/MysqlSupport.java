@@ -25,15 +25,11 @@ import io.shulie.surge.data.common.batch.RotationBatch;
 import io.shulie.surge.data.common.batch.TimedRotationPolicy;
 import io.shulie.surge.data.common.lifecycle.Lifecycle;
 import io.shulie.surge.data.common.lifecycle.Stoppable;
-import io.shulie.surge.data.common.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -155,7 +151,7 @@ public class MysqlSupport implements Lifecycle, Stoppable {
                 rotationBatch = old;
                 current.stop();
             } else {
-                rotationBatch.start();
+                rotationBatch.start(false);
             }
         }
         rotationBatch.addBatch(args);
@@ -190,7 +186,7 @@ public class MysqlSupport implements Lifecycle, Stoppable {
                 rotationBatch = old;
                 current.stop();
             } else {
-                rotationBatch.start();
+                rotationBatch.start(false);
             }
         }
         rotationBatch.addBatch(batchArgs);
