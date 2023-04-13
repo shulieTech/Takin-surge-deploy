@@ -57,7 +57,6 @@ public class MysqlSupport implements Lifecycle, Stoppable {
     private RotationBatch<String> rotationSqlBatch;
     private Map<String, RotationBatch<Object[]>> rotationPrepareSqlBatch = Maps.newHashMap();
     private DataSourceTransactionManager transactionManager;
-    private TransactionTemplate transactionTemplate;
 
     public MysqlSupport(@Named("config.mysql.url") String url,
                         @Named("config.mysql.userName") String username,
@@ -83,7 +82,6 @@ public class MysqlSupport implements Lifecycle, Stoppable {
             this.dataSource = dataSource;
             jdbcTemplate = new JdbcTemplate(dataSource);
             transactionManager = new DataSourceTransactionManager(dataSource);
-            transactionTemplate = new TransactionTemplate(transactionManager);
         } catch (Exception e) {
             logger.error("Init datasource failed.", e);
             throw e;
@@ -136,9 +134,9 @@ public class MysqlSupport implements Lifecycle, Stoppable {
     }
 
     public void addBatch(final String sql, Object[] args) {
-        RotationBatch<Object[]> rotationBatch = null;
-        if (!rotationPrepareSqlBatch.containsKey(sql)) {
-            rotationBatch = new RotationBatch(new CountRotationPolicy(200), new TimedRotationPolicy(2, TimeUnit.SECONDS));
+        RotationBatch<Object[]> rotationBatch = rotationPrepareSqlBatch.get(sql);
+        if (rotationBatch == null) {
+            rotationBatch = new RotationBatch<>(new CountRotationPolicy(200), new TimedRotationPolicy(2, TimeUnit.SECONDS));
             rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
                 @Override
                 public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
@@ -151,11 +149,16 @@ public class MysqlSupport implements Lifecycle, Stoppable {
                     return false;
                 }
             });
-        } else {
-            rotationBatch = rotationPrepareSqlBatch.get(sql);
+            RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(sql, rotationBatch);
+            if (old != null) {
+                RotationBatch current = rotationBatch;
+                rotationBatch = old;
+                current.stop();
+            } else {
+                rotationBatch.start();
+            }
         }
         rotationBatch.addBatch(args);
-        rotationPrepareSqlBatch.put(sql, rotationBatch);
     }
 
     /**
@@ -166,9 +169,9 @@ public class MysqlSupport implements Lifecycle, Stoppable {
      */
 
     public void addBatch(final String sql, final List<Object[]> batchArgs) {
-        RotationBatch<Object[]> rotationBatch = null;
-        if (!rotationPrepareSqlBatch.containsKey(sql)) {
-            rotationBatch = new RotationBatch(new CountRotationPolicy(200), new TimedRotationPolicy(2, TimeUnit.SECONDS));
+        RotationBatch<Object[]> rotationBatch = rotationPrepareSqlBatch.get(sql);
+        if (rotationBatch == null) {
+            rotationBatch = new RotationBatch<>(new CountRotationPolicy(200), new TimedRotationPolicy(2, TimeUnit.SECONDS));
             rotationBatch.batchSaver(new RotationBatch.BatchSaver<Object[]>() {
                 @Override
                 public boolean saveBatch(LinkedBlockingQueue<Object[]> batchSql) {
@@ -181,13 +184,16 @@ public class MysqlSupport implements Lifecycle, Stoppable {
                     return false;
                 }
             });
-        } else {
-            rotationBatch = rotationPrepareSqlBatch.get(sql);
+            RotationBatch old = rotationPrepareSqlBatch.putIfAbsent(sql, rotationBatch);
+            if (old != null) {
+                RotationBatch current = rotationBatch;
+                rotationBatch = old;
+                current.stop();
+            } else {
+                rotationBatch.start();
+            }
         }
-        for (Object[] args : batchArgs) {
-            rotationBatch.addBatch(args);
-        }
-        rotationPrepareSqlBatch.put(sql, rotationBatch);
+        rotationBatch.addBatch(batchArgs);
     }
 
     public void updateBatch(final String sql, final List<Object[]> batchArgs) {
@@ -202,51 +208,6 @@ public class MysqlSupport implements Lifecycle, Stoppable {
             jdbcTemplate = new JdbcTemplate(dataSource);
         }
         jdbcTemplate.update(sql, args);
-    }
-
-    public void updateTrans(List<Pair<String, Object[]>> sqlInTrans) {
-        //final String sql, final Object[] args
-        transactionTemplate.execute(new TransactionCallback<Object>() {
-
-            @Override
-            public Object doInTransaction(TransactionStatus transactionStatus) {
-                Object savepoint = transactionStatus.createSavepoint();
-                // DML执行
-                try {
-                    for (Pair<String, Object[]> pair : sqlInTrans) {
-                        int rs = jdbcTemplate.update(pair.getFirst(), pair.getSecond());
-                    }
-                } catch (Throwable e) {
-                    logger.error("Error occured, cause by: {}", e.getMessage());
-                    transactionStatus.setRollbackOnly();
-                    // transactionStatus.rollbackToSavepoint(savepoint);
-                }
-                return null;
-            }
-        });
-    }
-
-
-    public void updateTransOnlySql(List<String> sqls) {
-        //final String sql, final Object[] args
-        transactionTemplate.execute(new TransactionCallback<Object>() {
-
-            @Override
-            public Object doInTransaction(TransactionStatus transactionStatus) {
-                Object savepoint = transactionStatus.createSavepoint();
-                // DML执行
-                try {
-                    for (String sql : sqls) {
-                        int rs = jdbcTemplate.update(sql);
-                    }
-                } catch (Throwable e) {
-                    logger.error("Error occured, cause by: {}", e.getMessage());
-                    transactionStatus.setRollbackOnly();
-                    // transactionStatus.rollbackToSavepoint(savepoint);
-                }
-                return null;
-            }
-        });
     }
 
     /**
