@@ -344,7 +344,7 @@ public class FluxInfoVO implements Serializable {
         }
         if ("entry-http".equals(fluxInfoVO.getType())) {
             String event = fluxInfoVO.getEvent();
-            String newEvent = ApiProcessor.merge(fluxInfoVO.getAppName(), event, "");
+            String newEvent = ApiProcessor.getRestfulUrl(fluxInfoVO.getAppName(), event, "");
             fluxInfoVO.setEvent(newEvent);
         }
         if (fluxInfoVO.getPtFlag()) {

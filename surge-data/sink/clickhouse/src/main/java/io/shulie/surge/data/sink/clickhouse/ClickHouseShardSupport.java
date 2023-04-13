@@ -110,6 +110,19 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         return true;
     }
 
+    private Map<String, List<Object[]>> shardBatchArgs(final Map<String, List<Object[]>> batchArgsMap) {
+        Map<String, List<Object[]>> shardBatchArgsMap = Maps.newHashMap();
+        for (Map.Entry<String, List<Object[]>> entry : batchArgsMap.entrySet()) {
+            int idx = (entry.getKey().hashCode() & Integer.MAX_VALUE) % this.urls.size();
+            if (shardBatchArgsMap.containsKey(urls.get(idx))) {
+                shardBatchArgsMap.get(urls.get(idx)).addAll(entry.getValue());
+            } else {
+                shardBatchArgsMap.put(urls.get(idx), entry.getValue());
+            }
+        }
+        return shardBatchArgsMap;
+    }
+
     /**
      * 同步批量更新
      *
@@ -117,17 +130,9 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
      * @param shardBatchArgs
      */
     public synchronized void syncBatchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
-        Map<String, List<Object[]>> map = new HashMap<>();
-        for (Map.Entry<String, List<Object[]>> entry : shardBatchArgs.entrySet()) {
-            String shardKey = getShardKey(entry.getKey());
-            List<Object[]> list = map.get(shardKey);
-            if (list == null) {
-                list = new ArrayList<>();
-            }
-            list.addAll(entry.getValue());
-        }
         int max = Math.max(urls.size(), 3);
-        for (Map.Entry<String, List<Object[]>> entry : map.entrySet()) {
+        Map<String, List<Object[]>> shardBatchArgsMap = shardBatchArgs(shardBatchArgs);
+        for (Map.Entry<String, List<Object[]>> entry : shardBatchArgsMap.entrySet()) {
             int count = 0;
             String shardJdbcUrl = entry.getKey();
             while (count < max) {
