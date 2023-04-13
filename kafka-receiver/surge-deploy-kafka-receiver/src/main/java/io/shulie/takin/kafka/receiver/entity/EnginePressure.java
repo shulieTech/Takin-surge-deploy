@@ -2,6 +2,7 @@ package io.shulie.takin.kafka.receiver.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.shulie.takin.kafka.receiver.constant.web.NodeTypeEnum;
 import io.swagger.annotations.ApiModel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -90,4 +91,5 @@ public class EnginePressure implements Serializable {
     @TableField("createDate")
     private LocalDateTime createDate;
 
+    private NodeTypeEnum type;
 }
