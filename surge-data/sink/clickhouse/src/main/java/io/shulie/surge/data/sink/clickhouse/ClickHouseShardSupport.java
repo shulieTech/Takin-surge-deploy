@@ -110,6 +110,51 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
         return true;
     }
 
+    /**
+     * 同步批量更新
+     *
+     * @param sql
+     * @param shardBatchArgs
+     */
+    public synchronized void syncBatchUpdate(final String sql, Map<String, List<Object[]>> shardBatchArgs) {
+        Map<String, List<Object[]>> map = new HashMap<>();
+        for (Map.Entry<String, List<Object[]>> entry : shardBatchArgs.entrySet()) {
+            String shardKey = getShardKey(entry.getKey());
+            List<Object[]> list = map.get(shardKey);
+            if (list == null) {
+                list = new ArrayList<>();
+            }
+            list.addAll(entry.getValue());
+        }
+        int max = Math.max(urls.size(), 3);
+        for (Map.Entry<String, List<Object[]>> entry : map.entrySet()) {
+            int count = 0;
+            String shardJdbcUrl = entry.getKey();
+            while (count < max) {
+                try {
+                    this.shardJdbcTemplate(shardJdbcUrl).batchUpdate(sql, Lists.newArrayList(entry.getValue()));
+                    break;
+                } catch (Throwable e) {
+                    logger.warn("执行clickhouse批量更新异常,当前执行次数:{}", count, e);
+                    shardJdbcUrl = urls.get(count % urls.size());
+                    count++;
+                    if (count >= max) {
+                        logger.error("执行clickhouse批量更新异常,超过最大重试次数:{}", count, e);
+                    }
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(10L);
+                    } catch (InterruptedException interruptedException) {
+                        interruptedException.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    private JdbcTemplate shardJdbcTemplate(String key) {
+        return shardJdbcTemplateMap.get(key);
+    }
+
     public void addBatch(final String sql, Map<String, List<Object[]>> args) {
         Map<String, List<Object[]>> map = new HashMap<>();
         for (Map.Entry<String, List<Object[]>> entry : args.entrySet()) {
