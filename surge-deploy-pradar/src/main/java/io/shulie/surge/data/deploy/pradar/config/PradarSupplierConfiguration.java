@@ -247,7 +247,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
          * storm消费trace日志
          */
         ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
-        traceLogProcessorConfigSpec.setName("[trace-log]" + topic == null ? "" : " " + topic);
+        traceLogProcessorConfigSpec.setName("[trace-log]" + (topic == null ? "" : " " + topic));
         traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogDigesters(dataRuntime), isDistributed ? buildTraceLogComplexDigester(dataRuntime) : buildE2EProcessByStandaloneDigesters(dataRuntime)));
         traceLogProcessorConfigSpec.setExecuteSize(coreSize);
         return dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
