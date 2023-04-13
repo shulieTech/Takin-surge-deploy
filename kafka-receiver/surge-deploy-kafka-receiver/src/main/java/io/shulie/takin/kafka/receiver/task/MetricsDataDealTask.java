@@ -396,6 +396,8 @@ public class MetricsDataDealTask {
         result.forEach((k, v) -> {
             if (v != null) {
                 copy.put(k, v);
+            }else {
+                copy.put(k, "");
             }
         });
         return copy;
