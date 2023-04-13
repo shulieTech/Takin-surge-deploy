@@ -474,8 +474,11 @@ public class MetricsDataDealTask {
          */
         List<ScriptNode> childNodes = JmxUtil.getChildNodesByFilterFunc(node,
                 n -> sourceMap.containsKey(n.getXpathMd5()));
-        final List<EnginePressure> subPressures = Lists.newArrayList(childPressures);
+        List<String> samples = Lists.newArrayList();
+        List<EnginePressure> subPressures = Lists.newArrayList(childPressures);
         if (CollectionUtils.isNotEmpty(childNodes)) {
+            samples = childNodes.stream().filter(t -> NodeTypeEnum.SAMPLER == t.getType())
+                    .map(ScriptNode::getXpathMd5).collect(Collectors.toList());
             childNodes.stream().filter(Objects::nonNull)
                     .map(ScriptNode::getXpathMd5)
                     .filter(StringUtils::isNotBlank)
@@ -484,6 +487,9 @@ public class MetricsDataDealTask {
                     .filter(d -> !childPressures.contains(d))
                     .forEach(subPressures::add);
         }
+        final List<String> finalSample  = samples;
+        subPressures =  subPressures.stream().filter(t -> (t.getType() != null && NodeTypeEnum.CONTROLLER != t.getType())
+                || finalSample.contains(t.getTransaction())).collect(Collectors.toList());
         int count = NumberUtil.sum(subPressures, EnginePressure::getCount);
         int failCount = NumberUtil.sum(subPressures, EnginePressure::getFailCount);
         int saCount = NumberUtil.sum(subPressures, EnginePressure::getSaCount);
