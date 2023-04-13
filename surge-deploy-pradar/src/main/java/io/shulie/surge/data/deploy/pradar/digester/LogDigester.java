@@ -108,7 +108,6 @@ public class LogDigester implements DataDigester<RpcBased> {
 
     @Override
     public void digest(DigestContext<RpcBased> context) {
-        long time1 = System.currentTimeMillis();
         if (clickhouseDisable.get()) {
             return;
         }
@@ -125,7 +124,6 @@ public class LogDigester implements DataDigester<RpcBased> {
         //如果是压测引擎日志,统计每个压测报告实际上报条数
         if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
             Long count = taskIds.getIfPresent(rpcBased.getTaskId());
-            //logger.info("now task[{}] requestCount is [{}]", rpcBased.getTaskId(), count);
             taskIds.put(rpcBased.getTaskId(), count != null ? ++count : 1);
         }
 

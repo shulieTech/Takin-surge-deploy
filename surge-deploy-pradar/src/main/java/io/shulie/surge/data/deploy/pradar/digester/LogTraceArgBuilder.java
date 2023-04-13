@@ -153,22 +153,11 @@ public class LogTraceArgBuilder {
 
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
         if (rpcBasedParser != null) {
-            long time1 = System.currentTimeMillis();
             args[index++] = StringUtils.defaultString(rpcBasedParser.serviceParse(rpcBased), "");
-            long time2 = System.currentTimeMillis();
             args[index++] = StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), "");
-            long time3 = System.currentTimeMillis();
             args[index++] = StringUtils.defaultString(rpcBasedParser.appNameParse(rpcBased), "");
-            long time4 = System.currentTimeMillis();
             args[index++] = StringUtils.defaultString(rpcBasedParser.extendParse(rpcBased), "");
-            long time5 = System.currentTimeMillis();
             args[index++] = MiddlewareTypeEnum.getNodeType(rpcBased.getMiddlewareName()).getType();
-            long time6 = System.currentTimeMillis();
-
-            if (time6 - time1 > 10) {
-                logger.info("LogTraceArgBuilder cost={}. sc1={}, sc2={},sc3={},sc4={},sc5={}", time6 - time1, time2 - time1, time3 - time2, time4 - time3, time5 - time4, time6 - time5);
-            }
-
         } else {
             if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE) {
                 args[index++] = rpcBased.getServiceName();

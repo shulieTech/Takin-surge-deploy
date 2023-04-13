@@ -88,7 +88,7 @@ public class RestfulUrlPacket {
         }
 
         Map<String, List<RestfulUrl>> map = appNameMapping.get(appName);
-        if (appNameMapping == null) {
+        if (map == null) {
             return orgUrl;
         }
 
