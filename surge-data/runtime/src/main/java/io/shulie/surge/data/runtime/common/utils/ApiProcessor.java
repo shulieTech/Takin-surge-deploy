@@ -443,7 +443,11 @@ public class ApiProcessor {
     }
 
     public static String getRestfulUrl(String appName, String url, String method) {
-        return packet.getRestfulUrl(appName,url,method);
+        try {
+            return packet.getRestfulUrl(appName, url, method);
+        } catch (Exception e) {
+            return url;
+        }
     }
 
     public static String merge(String appName, String url, String type) {
