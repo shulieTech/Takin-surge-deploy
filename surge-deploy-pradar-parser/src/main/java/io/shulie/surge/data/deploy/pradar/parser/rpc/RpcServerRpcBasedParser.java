@@ -37,7 +37,7 @@ public class RpcServerRpcBasedParser extends DefaultRpcBasedParser {
         if (rpcBased.getRpcType() == MiddlewareType.TYPE_WEB_SERVER
                 && rpcBased.getServiceName() != null
                 && rpcBased.getServiceName().indexOf('/') >= 0) {
-            String formatUrl = ApiProcessor.merge(rpcBased.getUserAppKey() + "#" + rpcBased.getEnvCode() + "#" + rpcBased.getAppName(), rpcBased.getServiceName(), rpcBased.getMethodName());
+            String formatUrl = ApiProcessor.getRestfulUrl(rpcBased.getUserAppKey() + "#" + rpcBased.getEnvCode() + "#" + rpcBased.getAppName(), rpcBased.getServiceName(), rpcBased.getMethodName());
             return formatUrl;
         }
         return super.serviceParse(rpcBased);

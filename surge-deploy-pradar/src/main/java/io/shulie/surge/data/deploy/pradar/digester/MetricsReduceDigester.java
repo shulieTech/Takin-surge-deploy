@@ -80,7 +80,7 @@ public class MetricsReduceDigester implements DataDigester<MetricsBased> {
 
     private static void format(MetricsBased metricsBased) {
         if ("entry-http".equals(metricsBased.getType())) {
-            metricsBased.setEvent(ApiProcessor.merge(metricsBased.getAppName(), metricsBased.getEvent(), ""));
+            metricsBased.setEvent(ApiProcessor.getRestfulUrl(metricsBased.getAppName(), metricsBased.getEvent(), ""));
         }
         if (metricsBased.isClusterTest()) {
             if ("entry-rocketmq".equals(metricsBased.getType())

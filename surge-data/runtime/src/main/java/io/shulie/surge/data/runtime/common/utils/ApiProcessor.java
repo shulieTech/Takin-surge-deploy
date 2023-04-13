@@ -66,6 +66,8 @@ public class ApiProcessor {
     private String amdbUrl;
     private String amdbPort;
 
+    private static RestfulUrlPacket packet = new RestfulUrlPacket();
+
     private static Gson gson = new Gson();
 
     protected static Map<String, Map<String, List<String>>> API_COLLECTION = new HashMap<>();
@@ -148,6 +150,7 @@ public class ApiProcessor {
         if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
             Object data = res.get("data");
             Map<String, List<String>> map = (Map<String, List<String>>) data;
+            RestfulUrlPacket newPacket = new RestfulUrlPacket();
             for (String appName : map.keySet()) {
                 List<String> apiList = map.get(appName);
                 Map<String, List<String>> newApiMap = Maps.newHashMap();
@@ -165,8 +168,11 @@ public class ApiProcessor {
                         newApiMap.put(type, newList);
                     }
                 }
+
+                newPacket.addUrl(appName, newApiMap);
                 API_COLLECTION.put(appName, newApiMap);
             }
+            packet = newPacket;
             MATHERS.clear();
         }
     }
@@ -182,6 +188,7 @@ public class ApiProcessor {
         }
         if (Objects.nonNull(res) && Objects.nonNull(res.get("data"))) {
             Object data = res.get("data");
+            RestfulUrlPacket newPacket = new RestfulUrlPacket();
             Map<String, List<String>> map = (Map<String, List<String>>) data;
             for (String appName : map.keySet()) {
                 List<String> apiList = map.get(appName);
@@ -200,8 +207,10 @@ public class ApiProcessor {
                         newApiMap.put(type, newList);
                     }
                 }
+                newPacket.addUrl(appName, newApiMap);
                 API_COLLECTION.put(appName, newApiMap);
             }
+            packet = newPacket;
             MATHERS.clear();
         }
     }
@@ -433,8 +442,12 @@ public class ApiProcessor {
         return url;
     }
 
+    public static String getRestfulUrl(String appName, String url, String method) {
+        return packet.getRestfulUrl(appName,url,method);
+    }
+
     public static String merge(String appName, String url, String type) {
-            url = urlFormat(url);
+        url = urlFormat(url);
         if (StringUtils.isBlank(url)) {
             return "";
         }
@@ -442,8 +455,8 @@ public class ApiProcessor {
         if (Objects.isNull(matcher)) {
             Map<String, List<String>> apiMaps = API_COLLECTION.get(appName);
             if (Objects.isNull(apiMaps) || apiMaps.size() < 1) {
-            return url;
-        }
+                return url;
+            }
             matcher = new Matcher(apiMaps);
             MATHERS.putIfAbsent(appName, matcher);
         }
