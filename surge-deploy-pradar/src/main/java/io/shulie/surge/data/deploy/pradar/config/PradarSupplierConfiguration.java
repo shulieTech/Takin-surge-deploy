@@ -221,7 +221,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
 
 
             Map<String, DataQueue> queueMap = Maps.newHashMap();
-            queueMap.put(String.valueOf(DataType.TRACE_LOG), buildTraceProcessor(dataRuntime, isDistributed));
+            queueMap.put(String.valueOf(DataType.TRACE_LOG), buildTraceProcessor(dataRuntime, isDistributed, null));
             queueMap.put(String.valueOf(DataType.MONITOR_LOG), buildMonitorProcessor(dataRuntime));
             queueMap.put(String.valueOf(DataType.AGENT_LOG), buildAgentLogProcessor(dataRuntime));
 
@@ -242,12 +242,12 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      * @return
      * @throws Exception
      */
-    protected PradarProcessor buildTraceProcessor(DataRuntime dataRuntime, boolean isDistributed) throws Exception {
+    protected PradarProcessor buildTraceProcessor(DataRuntime dataRuntime, boolean isDistributed, String topic) throws Exception {
         /**
          * storm消费trace日志
          */
         ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
-        traceLogProcessorConfigSpec.setName("trace-log");
+        traceLogProcessorConfigSpec.setName("[trace-log]" + topic == null ? "" : " " + topic);
         traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogDigesters(dataRuntime), isDistributed ? buildTraceLogComplexDigester(dataRuntime) : buildE2EProcessByStandaloneDigesters(dataRuntime)));
         traceLogProcessorConfigSpec.setExecuteSize(coreSize);
         return dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
@@ -266,7 +266,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
          * storm消费monitor日志
          */
         ProcessorConfigSpec<PradarProcessor> baseProcessorConfigSpec = new PradarProcessorConfigSpec();
-        baseProcessorConfigSpec.setName("base");
+        baseProcessorConfigSpec.setName("[monitor]");
         baseProcessorConfigSpec.setDigesters(buildMonitorDigesters(dataRuntime));
         baseProcessorConfigSpec.setExecuteSize(coreSize);
         return dataRuntime.createGenericInstance(baseProcessorConfigSpec);
@@ -281,7 +281,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
      */
     protected PradarProcessor buildAgentLogProcessor(DataRuntime dataRuntime) throws Exception {
         ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
-        agentProcessorConfigSpec.setName("agent-log");
+        agentProcessorConfigSpec.setName("[agent-log]");
         agentProcessorConfigSpec.setDigesters(buildAgentDigesters(dataRuntime));
         agentProcessorConfigSpec.setExecuteSize(coreSize);
         return dataRuntime.createGenericInstance(agentProcessorConfigSpec);
@@ -303,7 +303,7 @@ public class PradarSupplierConfiguration implements PradarConfiguration {
              * storm消费trace日志
              */
             ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
-            traceLogProcessorConfigSpec.setName("trace-log");
+            traceLogProcessorConfigSpec.setName("[trace-log]");
             traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogDigesters(dataRuntime), isDistributed ? buildTraceLogComplexDigester(dataRuntime) : buildE2EProcessByStandaloneDigesters(dataRuntime)));
             traceLogProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);

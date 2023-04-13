@@ -147,7 +147,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
             KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, TRACE_TOPIC, kafkaAuthFlag,
                     securityProtocol, saslMechanism, saslJaasConfig);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
-            kafkaSupplier.setQueue(buildTraceProcessor(dataRuntime, isDistributed));
+            kafkaSupplier.setQueue(buildTraceProcessor(dataRuntime, isDistributed, TRACE_TOPIC));
             return kafkaSupplier;
         } catch (Throwable e) {
             logger.error("KafkaSupplier fail " + ExceptionUtils.getStackTrace(e));
@@ -167,7 +167,7 @@ public class PradaKafkaSupplierConfiguration extends PradarSupplierConfiguration
             KafkaSupplierSpec kafkaSupplierSpec = new KafkaSupplierSpec(bootstrap, PRESURCE_ENGINE_TRACE_TOPIC,
                     kafkaAuthFlag, securityProtocol, saslMechanism, saslJaasConfig);
             KafkaSupplier kafkaSupplier = dataRuntime.createGenericInstance(kafkaSupplierSpec);
-            kafkaSupplier.setQueue(buildTraceProcessor(dataRuntime, isDistributed));
+            kafkaSupplier.setQueue(buildTraceProcessor(dataRuntime, isDistributed, PRESURCE_ENGINE_TRACE_TOPIC));
             return kafkaSupplier;
         } catch (Throwable e) {
             logger.error("KafkaSupplier fail " + ExceptionUtils.getStackTrace(e));
