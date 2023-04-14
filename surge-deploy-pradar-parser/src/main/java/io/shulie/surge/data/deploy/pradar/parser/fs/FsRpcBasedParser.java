@@ -18,7 +18,7 @@ package io.shulie.surge.data.deploy.pradar.parser.fs;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.parser.db.DBClientRpcBasedParser;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author xingchen
