@@ -305,6 +305,7 @@ public class LinkProcessor extends AbstractProcessor {
         String simpleSql = "select traceId,rpcId,logType from t_trace_all where appName='" + appName +
                 "' and parsedMethod = '" + method +
                 "' and rpcType = '" + rpcType +
+                "' and rpcId = '" + 0 +
                 "' and parsedServiceName = '" + service +
                 "' and userAppKey = '" + userAppKey +
                 "' and envCode = '" + envCode + "'";
