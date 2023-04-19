@@ -254,7 +254,7 @@ public class PradarLinkConfiguration extends AbstractPradarConfiguration {
                         logger.error("do link task error!", e);
                     }
                 }
-            }, 0, 5, TimeUnit.HOURS);
+            }, 0, 1, TimeUnit.HOURS);
 
         } catch (Throwable e) {
             logger.error("process unknow error" + ExceptionUtils.getStackTrace(e));
