@@ -11,8 +11,8 @@ JAVA_OPTS=\
 -Dpinpoint.log=$dir/pinpoint-agent-2.0.3-origin/ \
 -Duser.timezone=Asia/Shanghai \
 -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
--Xms3g \
--Xmx3g"
+-Xms3584M \
+-Xmx3584M"
 
 
 # JAVA_OPTS=\
