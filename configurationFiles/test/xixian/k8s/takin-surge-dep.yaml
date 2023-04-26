@@ -19,8 +19,8 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            memory: 4G
+            memory: 6G
           limits:
-            memory: 4G
+            memory: 6G
         command: ["./start-surge.sh"]
 
