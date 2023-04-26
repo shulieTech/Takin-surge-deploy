@@ -69,7 +69,7 @@ public class DefaultRpcBasedParser implements RpcBasedParser {
         tags.put("rpcType", rpcType);
         tags.put("logType", logType);
         tags.put("middlewareName", middlewareName);
-        tags.put("entranceId", entranceId);
+//        tags.put("entranceId", entranceId);
         return tags;
     }
 
