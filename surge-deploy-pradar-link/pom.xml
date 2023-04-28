@@ -25,7 +25,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>surge-deploy-pradar-link</artifactId>
-    <version>1.0.2.7</version>
+    <version>1.0.2.8</version>
 
     <dependencies>
         <dependency>
