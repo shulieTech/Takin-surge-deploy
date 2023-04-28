@@ -25,7 +25,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>surge-deploy-pradar-link</artifactId>
-    <version>1.0.2.8</version>
+    <version>${surge.deploy.pradar.link.version}</version>
 
     <dependencies>
         <dependency>
@@ -66,6 +66,7 @@
                     <groupId>org.ow2.asm</groupId>
                 </exclusion>
             </exclusions>
+            <version>${surge.deploy.pradar.parser.version}</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>

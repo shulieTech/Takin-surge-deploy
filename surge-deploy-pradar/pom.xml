@@ -109,6 +109,7 @@
                     <groupId>io.shulie.pradar</groupId>
                 </exclusion>
             </exclusions>
+            <version>${surge.deploy.pradar.parser.version}</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
@@ -119,6 +120,7 @@
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-link</artifactId>
             <scope>compile</scope>
+            <version>${surge.deploy.pradar.link.version}</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.pradar</groupId>

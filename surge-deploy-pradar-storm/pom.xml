@@ -65,6 +65,10 @@
                     <artifactId>guava</artifactId>
                     <groupId>com.google.guava</groupId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>surge-deploy-pradar-parser</artifactId>
+                    <groupId>io.shulie.surge.data</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -84,6 +88,7 @@
                     <groupId>jline</groupId>
                 </exclusion>
             </exclusions>
+            <version>${surge.deploy.pradar.parser.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
