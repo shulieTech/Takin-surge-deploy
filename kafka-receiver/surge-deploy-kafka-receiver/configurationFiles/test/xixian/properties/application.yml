@@ -17,17 +17,17 @@ spring:
       username: stresstest
       password: ca$hc0Wa
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://10.125.131.12:4416/trodb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true
+      url: jdbc:mysql://10.125.131.12:4418/trodb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true
     cloud:
       username: stresstest
       password: ca$hc0Wa
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://10.125.131.12:4416/crank?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true
+      url: jdbc:mysql://10.125.131.12:4418/crank?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true
     amdb:
       username: stresstest
       password: ca$hc0Wa
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://10.125.131.12:4416/amdb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=GMT%2B8
+      url: jdbc:mysql://10.125.131.12:4418/amdb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&serverTimezone=GMT%2B8
 config:
   clickhouse:
     url: jdbc:clickhouse://10.161.55.19:48123,10.161.55.17:48123/default
