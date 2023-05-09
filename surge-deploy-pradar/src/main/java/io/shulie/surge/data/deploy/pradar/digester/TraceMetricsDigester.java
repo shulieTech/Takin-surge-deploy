@@ -118,9 +118,9 @@ public class TraceMetricsDigester implements DataDigester<RpcBased> {
 
         RpcBased rpcBased = context.getContent();
         //客户端rpc日志不计算指标,只计算服务端日志,和链路拓扑图保持一致
-        if (PradarLogType.LOG_TYPE_FLOW_ENGINE == rpcBased.getLogType() || (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType())) {
-            return;
-        }
+//        if (PradarLogType.LOG_TYPE_FLOW_ENGINE == rpcBased.getLogType() || (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType())) {
+//            return;
+//        }
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
         if (rpcBasedParser == null) {
             return;
