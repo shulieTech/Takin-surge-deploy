@@ -60,7 +60,6 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
         properties.put("bootstrap.servers", bootstraps);
         properties.put("group.id", "KafkaAggregationReceiver");
         properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
         properties.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 300000);
         properties.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30000);
