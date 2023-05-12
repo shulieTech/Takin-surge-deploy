@@ -30,12 +30,12 @@ public class Metric implements Serializable {
 
     private static final long serialVersionUID = -7824717738246876865L;
 
-    private static final ThreadLocal<char[]> tbuffer = new ThreadLocal<char[]>() {
-        @Override
-        protected char[] initialValue() {
-            return new char[4096];
-        }
-    };
+//    private static final ThreadLocal<char[]> tbuffer = new ThreadLocal<char[]>() {
+//        @Override
+//        protected char[] initialValue() {
+//            return new char[4096];
+//        }
+//    };
 
     /**
      * 统计编号
