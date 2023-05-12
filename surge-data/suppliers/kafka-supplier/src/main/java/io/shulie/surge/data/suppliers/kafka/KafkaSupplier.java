@@ -124,6 +124,15 @@ public final class KafkaSupplier extends DefaultSupplier {
     }
 
     private void fetchMessages() {
+        //如果队列不能完成一次push，先不进行拉取
+        while (!queue.canPublish(500)) {
+            try {
+                logger.info("queue is full. kafka message fetcher waiting for 10 ms...");
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         try {
             /**
              * 指定超时时间，通常情况下consumer拿到了足够多的可用数据，会立即从该方法返回，但若当前没有足够多数据
