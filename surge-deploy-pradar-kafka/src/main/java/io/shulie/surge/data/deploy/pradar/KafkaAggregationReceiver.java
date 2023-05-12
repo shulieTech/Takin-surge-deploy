@@ -71,7 +71,12 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
             properties.put("sasl.mechanism", saslMechanism);
             properties.put("sasl.jaas.config", saslJaasConfig);
         }
-        fastConsumer(properties);
+        ExecutorService executorService = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "kafka_aggregation_receiver");
+            t.setDaemon(true);
+            return t;
+        });
+        executorService.execute(() -> fastConsumer(properties));
     }
 
     private void normalConsumer(Properties properties) {
@@ -125,15 +130,11 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
                         continue;
                     }
                     for (TopicPartition partition : partitions) {
-                        ExecutorService executorService = Executors.newSingleThreadScheduledExecutor(r -> {
-                            Thread t = new Thread(r, "kafka_aggregation_receiver");
-                            t.setDaemon(true);
-                            return t;
-                        });
+                        ExecutorService partitionExecutorService = Executors.newSingleThreadScheduledExecutor();
                         List<ConsumerRecord<String, byte[]>> partitionRecords = records.records(partition);
                         for (ConsumerRecord<String, byte[]> record : partitionRecords) {
                             ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("kryo");
-                            executorService.submit(() -> execute(NumberUtils.toLong(record.key()), objectSerializer.deserialize(record.value())));
+                            partitionExecutorService.submit(() -> execute(NumberUtils.toLong(record.key()), objectSerializer.deserialize(record.value())));
                         }
                         if (!partitionRecords.isEmpty()) {
                             long lastOffset = partitionRecords.get(partitionRecords.size() - 1).offset();
