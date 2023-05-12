@@ -109,6 +109,9 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
 
         ApplicationMnt application = this.getApplicationByTenantIdAndName(applicationMnt.getApplicationName(), dealHeader);
         if (application != null) {
+            // 每次都根据探针上报的模块信息更新应用所属模块信息
+            application.setDeptId(dealHeader.getDeptId());
+            saveOrUpdate(application);
             return;
         }
 
@@ -218,7 +221,6 @@ public class ApplicationMntServiceImpl extends ServiceImpl<ApplicationMntMapper,
         tApplicationMnt.setTenantId(headers.getTenantId());
         tApplicationMnt.setEnvCode(headers.getEnvCode());
         this.save(tApplicationMnt);
-
     }
 
     private ApplicationMnt voToAppEntity(ApplicationVo param) {
