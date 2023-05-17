@@ -76,9 +76,8 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
             t.setDaemon(true);
             return t;
         });
-        executorService.execute(() -> fastConsumer(properties));
+        executorService.execute(() -> normalConsumer(properties));
     }
-
     private void normalConsumer(Properties properties) {
         KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(properties);
         consumer.subscribe(Lists.newArrayList(topic));
@@ -136,10 +135,6 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
                     }
                     for (TopicPartition partition : partitions) {
                         ExecutorService partitionExecutorService = threadMap.get(partition.partition());
-                        if (partitionExecutorService == null) {
-                            partitionExecutorService = Executors.newFixedThreadPool(3);
-                            threadMap.put(partition.partition(), partitionExecutorService);
-                        }
                         List<ConsumerRecord<String, byte[]>> partitionRecords = records.records(partition);
                         for (ConsumerRecord<String, byte[]> record : partitionRecords) {
                             ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("kryo");

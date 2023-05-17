@@ -231,7 +231,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
                 rotationBatch = old;
                 current.stop();
             } else {
-                rotationBatch.start();
+                rotationBatch.start(false);
             }
         }
 
