@@ -128,7 +128,6 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
             threadMap.put(partition.partition(),Executors.newFixedThreadPool(3));
         }
 
-
         try {
             while (true) {
                 try {
@@ -138,6 +137,10 @@ public class KafkaAggregationReceiver extends DefaultAggregationReceiver {
                     }
                     for (TopicPartition partition : partitions) {
                         ExecutorService executorService = threadMap.get(partition.partition());
+                        if (executorService == null) {
+                            executorService = Executors.newFixedThreadPool(3);
+                            threadMap.put(partition.partition(), executorService);
+                        }
                         List<ConsumerRecord<String, byte[]>> partitionRecords = records.records(partition);
                         for (ConsumerRecord<String, byte[]> record : partitionRecords) {
                             ObjectSerializer objectSerializer = ObjectSerializerFactory.getObjectSerializer("kryo");
