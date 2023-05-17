@@ -6,6 +6,7 @@ import io.shulie.surge.data.deploy.pradar.agg.DefaultAggregationReceiver;
 import io.shulie.surge.data.runtime.common.ObjectSerializer;
 import io.shulie.surge.data.runtime.common.ObjectSerializerFactory;
 import io.shulie.takin.sdk.kafka.util.PropertiesReader;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;

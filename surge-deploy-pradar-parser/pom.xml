@@ -46,6 +46,7 @@
         <dependency>
             <groupId>io.shulie.pradar</groupId>
             <artifactId>log-protocol</artifactId>
+            <version>${log.protocol.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>guava</artifactId>
