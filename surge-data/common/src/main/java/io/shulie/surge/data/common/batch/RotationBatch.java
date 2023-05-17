@@ -40,7 +40,7 @@ public class RotationBatch<T extends Serializable> {
 
     private Logger logger = LoggerFactory.getLogger(RotationBatch.class);
     private int maxRetries = 3;
-    private LinkedBlockingQueue<T> batchObjs = new LinkedBlockingQueue<>(100000);
+    private LinkedBlockingQueue<T> batchObjs = new LinkedBlockingQueue<>(200000);
     private List<RotationPolicy> rotationPolicies = Lists.newLinkedList();
     private ScheduledExecutorService executor;
     private BatchSaver batchSaver;
@@ -61,7 +61,7 @@ public class RotationBatch<T extends Serializable> {
     /**
      * 是否所有策略都满足时才执行，默认是
      */
-    private boolean allOfExecute = true;
+    private boolean allOfExecute = false;
 
     //结合 init 一起使用
     public RotationBatch() {
@@ -204,7 +204,7 @@ public class RotationBatch<T extends Serializable> {
         LinkedBlockingQueue<T> batch = null;
         synchronized (this) {
             batch = batchObjs;
-            batchObjs = new LinkedBlockingQueue<T>(100000);
+            batchObjs = new LinkedBlockingQueue<T>(200000);
             reset();
         }
         if (CollectionUtils.isEmpty(batch)) {
