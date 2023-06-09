@@ -18,13 +18,13 @@ package io.shulie.surge.data.deploy.pradar.digester;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
-import com.pamirs.pradar.log.parser.metrics.MetricsBased;
+import com.pamirs.pradar.log.parser.metrics.ThreadBased;
 import io.shulie.surge.data.common.aggregation.AggregateSlot;
 import io.shulie.surge.data.common.aggregation.DefaultAggregator;
 import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.common.aggregation.metrics.CallStat;
 import io.shulie.surge.data.common.aggregation.metrics.Metric;
-import io.shulie.surge.data.deploy.pradar.listener.MetricsResultListener;
+import io.shulie.surge.data.deploy.pradar.listener.ThreadResultListener;
 import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
 import io.shulie.surge.data.runtime.digest.DataDigester;
@@ -42,18 +42,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @Description:
  */
 @Singleton
-public class ThreadDigester implements DataDigester<MetricsBased> {
+public class ThreadDigester implements DataDigester<ThreadBased> {
     private static Logger logger = LoggerFactory.getLogger(ThreadDigester.class);
 
-    private static final String METRICS_ID = "tro_pradar";
+    private static final String METRICS_ID = "app_stat_thread";
 
     @Inject
     @DefaultValue("true")
-    @Named("/pradar/config/rt/metricsDisable")
-    private Remote<Boolean> monitorDisable;
+    @Named("/pradar/config/rt/threadMetricsDisable")
+    private Remote<Boolean> threadMetricsDisable;
 
     @Inject
-    private MetricsResultListener metricsResultListener;
+    private ThreadResultListener threadResultListener;
 
     private transient AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -62,8 +62,8 @@ public class ThreadDigester implements DataDigester<MetricsBased> {
     private Scheduler scheduler = new Scheduler(1);
 
     @Override
-    public void digest(DigestContext<MetricsBased> context) {
-        if (monitorDisable.get()) {
+    public void digest(DigestContext<ThreadBased> context) {
+        if (threadMetricsDisable.get()) {
             return;
         }
         if (isRunning.compareAndSet(false, true)) {
@@ -74,26 +74,29 @@ public class ThreadDigester implements DataDigester<MetricsBased> {
                 throw new RuntimeException(e);
             }
         }
-        MetricsBased metricsBased = context.getContent();
-        if (metricsBased == null) {
-            logger.warn("parse MetricsBased is null " + context.getContent());
+        ThreadBased threadBased = context.getContent();
+        if (threadBased == null) {
+            logger.warn("parse ThreadBased is null " + context.getContent());
             return;
         }
         // 拼接唯一值
-        String[] tags = new String[]{metricsBased.getAppName(), metricsBased.getEvent(), metricsBased.getType(), String.valueOf(metricsBased.isClusterTest()), metricsBased.getCallEvent(), metricsBased.getCallType()
-                , String.valueOf(metricsBased.isEntry()), metricsBased.getAgentId()};
-        long timeStamp = metricsBased.getTimestamp();
+        String[] tags = new String[]{threadBased.getAppName(), threadBased.getHostIp(), threadBased.getAgentId()};
+        long timeStamp = threadBased.getLogTime();
         AggregateSlot<Metric, CallStat> slot = defaultAggregator.getSlotByTimestamp(timeStamp);
-        // 冗余字段信息
-        String traceId = metricsBased.getTraceId();
-        // 总次数/成功次数/totalRt/错误次数/hitCount/totalQps/totalTps/total
-        CallStat callStat = new CallStat(traceId,
-                metricsBased.getTotalCount(), metricsBased.getSuccessCount(), metricsBased.getTotalRt(),
-                metricsBased.getFailureCount(), metricsBased.getHitCount(), metricsBased.getQps().longValue(),
-                metricsBased.getQps().longValue(), 1);
+        // 冗余字段信息threadCount,threadNewCount,threadDeadlockCount,threadRunnableCount,threadTerminatedCount,threadTimedWaitCount,threadWaitCount,threadBlockedCount
+        CallStat callStat = new CallStat(
+                threadBased.getThreadCount(),
+                threadBased.getThreadNewCount(),
+                threadBased.getThreadDeadlockCount(),
+                threadBased.getThreadRunnableCount(),
+                threadBased.getThreadTerminatedCount(),
+                threadBased.getThreadTimedWaitCount(),
+                threadBased.getThreadWaitCount(),
+                threadBased.getThreadBlockedCount()
+        );
 
         slot.addToSlot(Metric.of(METRICS_ID, tags, "", new String[]{}), callStat);
-        defaultAggregator.addListener(METRICS_ID, metricsResultListener);
+        defaultAggregator.addListener(METRICS_ID, threadResultListener);
     }
 
     @Override
