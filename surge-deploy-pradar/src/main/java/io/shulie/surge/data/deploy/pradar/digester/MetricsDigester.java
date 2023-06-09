@@ -50,7 +50,7 @@ public class MetricsDigester implements DataDigester<MetricsBased> {
     @Inject
     @DefaultValue("true")
     @Named("/pradar/config/rt/metricsDisable")
-    private Remote<Boolean> monitroDisable;
+    private Remote<Boolean> monitorDisable;
 
     @Inject
     private MetricsResultListener metricsResultListener;
@@ -63,7 +63,7 @@ public class MetricsDigester implements DataDigester<MetricsBased> {
 
     @Override
     public void digest(DigestContext<MetricsBased> context) {
-        if (monitroDisable.get()) {
+        if (monitorDisable.get()) {
             return;
         }
         if (isRunning.compareAndSet(false, true)) {
