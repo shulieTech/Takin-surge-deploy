@@ -163,6 +163,39 @@ public class PradarSupplierConfiguration {
     }
 
     /**
+     * gc 指标
+     *
+     * @param dataRuntime
+     * @return
+     */
+    public DataDigester[] buildGcProcess(DataRuntime dataRuntime) {
+        BaseDataDigester baseDataDigester = dataRuntime.getInstance(BaseDataDigester.class);
+        return new DataDigester[]{baseDataDigester};
+    }
+
+    /**
+     * 线程指标
+     *
+     * @param dataRuntime
+     * @return
+     */
+    public DataDigester[] buildThreadProcess(DataRuntime dataRuntime) {
+        BaseDataDigester baseDataDigester = dataRuntime.getInstance(BaseDataDigester.class);
+        return new DataDigester[]{baseDataDigester};
+    }
+
+    /**
+     * app stat log 指标
+     *
+     * @param dataRuntime
+     * @return
+     */
+    public DataDigester[] buildAppStatLogProcess(DataRuntime dataRuntime) {
+        BaseDataDigester baseDataDigester = dataRuntime.getInstance(BaseDataDigester.class);
+        return new DataDigester[]{baseDataDigester};
+    }
+
+    /**
      * agent日志处理
      *
      * @param dataRuntime
@@ -217,9 +250,40 @@ public class PradarSupplierConfiguration {
             baseProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
 
+
+            /**
+             * storm消费gc 指标
+             */
+            ProcessorConfigSpec<PradarProcessor> gcProcessorConfigSpec = new PradarProcessorConfigSpec();
+            gcProcessorConfigSpec.setName("gcMetrics");
+            gcProcessorConfigSpec.setDigesters(buildGcProcess(dataRuntime));
+            gcProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor gcProcessor = dataRuntime.createGenericInstance(gcProcessorConfigSpec);
+
+            /**
+             * storm消费thread指标
+             */
+            ProcessorConfigSpec<PradarProcessor> threadProcessorConfigSpec = new PradarProcessorConfigSpec();
+            threadProcessorConfigSpec.setName("threadMetrics");
+            threadProcessorConfigSpec.setDigesters(buildThreadProcess(dataRuntime));
+            threadProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor threadProcessor = dataRuntime.createGenericInstance(threadProcessorConfigSpec);
+
+            /**
+             * storm消费app stat log指标
+             */
+            ProcessorConfigSpec<PradarProcessor> appStatLogProcessorConfigSpec = new PradarProcessorConfigSpec();
+            appStatLogProcessorConfigSpec.setName("appStatLogMetrics");
+            appStatLogProcessorConfigSpec.setDigesters(buildThreadProcess(dataRuntime));
+            appStatLogProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor appStatLogProcessor = dataRuntime.createGenericInstance(appStatLogProcessorConfigSpec);
+
             Map<String, DataQueue> queueMap = Maps.newHashMap();
             queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
             queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
+            queueMap.put(String.valueOf(DataType.METRIC_GC), gcProcessor);
+            queueMap.put(String.valueOf(DataType.METRIC_THREAD), threadProcessor);
+            queueMap.put(String.valueOf(DataType.METRICS_LOG_METRICS), appStatLogProcessor);
             nettyRemotingSupplier.setQueue(queueMap);
             return nettyRemotingSupplier;
         } catch (Throwable e) {
