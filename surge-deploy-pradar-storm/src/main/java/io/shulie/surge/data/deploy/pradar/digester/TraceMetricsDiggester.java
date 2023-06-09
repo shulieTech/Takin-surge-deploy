@@ -24,6 +24,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.pamirs.pradar.log.parser.constant.TenantConstants;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
+import com.pamirs.pradar.log.parser.utils.ResultCodeUtils;
 import io.shulie.pradar.log.rule.RuleFactory;
 import io.shulie.pradar.log.rule.RuleFactory.Rule;
 import io.shulie.surge.data.common.aggregation.AggregateSlot;
@@ -114,7 +115,11 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
 
         RpcBased rpcBased = context.getContent();
         //客户端rpc日志不计算指标,只计算服务端日志,和链路拓扑图保持一致
-        if (PradarLogType.LOG_TYPE_FLOW_ENGINE == rpcBased.getLogType() || (PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType() && MiddlewareType.TYPE_RPC == rpcBased.getRpcType())) {
+        if (PradarLogType.LOG_TYPE_FLOW_ENGINE == rpcBased.getLogType()
+                || (
+                PradarLogType.LOG_TYPE_RPC_CLIENT == rpcBased.getLogType()
+                        && MiddlewareType.TYPE_RPC == rpcBased.getRpcType())
+        ) {
             return;
         }
         RpcBasedParser rpcBasedParser = RpcBasedParserFactory.getInstance(rpcBased.getLogType(), rpcBased.getRpcType());
@@ -123,7 +128,8 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         }
 
         //对于1.6以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
-        if (StringUtils.isBlank(rpcBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
+        if (StringUtils.isBlank(rpcBased.getUserAppKey())
+                || TenantConstants.DEFAULT_USER_APP_KEY.equals(rpcBased.getUserAppKey())) {
             rpcBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("tenantAppKey"));
         }
         if (StringUtils.isBlank(rpcBased.getEnvCode())) {
@@ -141,8 +147,11 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
             String appNameConfig = traceMetricsConfig.get();
             String tenantConfig = traceMetricsTenantConfig.get();
             //不在业务活动拓扑图中的边,如果需要提供服务监控接口性能查询,走应用配置和租户配置查询(客户端日志不计算)
-            if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_RPC_CLIENT || !(checkAppName(appNameConfig, appName) || checkTenant(tenantConfig, rpcBased.getUserAppKey(), rpcBased.getEnvCode()))) {
-
+            if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_RPC_CLIENT
+                    || !(
+                    checkAppName(appNameConfig, appName)
+                            || checkTenant(tenantConfig, rpcBased.getUserAppKey(), rpcBased.getEnvCode()))
+            ) {
                 //重复的边ID只打印一次
                 if (StringUtils.isBlank(cache.getIfPresent(edgeId))) {
                     cache.put(edgeId, edgeId);
@@ -161,7 +170,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         String parsedAppName = StringUtils.defaultString(rpcBasedParser.appNameParse(rpcBased), "");
         String parsedServiceName = StringUtils.defaultString(rpcBasedParser.serviceParse(rpcBased), "");
         String parsedMethod = StringUtils.defaultString(rpcBasedParser.methodParse(rpcBased), "");
-        String rpcType = rpcBased.getRpcType() + "";
+        String rpcType = String.valueOf(rpcBased.getRpcType());
         String nodeId = getNodeId(parsedAppName, parsedServiceName, parsedMethod, rpcType);
         //todo 验证取采样率是否兼容租户
         String userAppKey = rpcBased.getUserAppKey();
@@ -204,7 +213,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
          */
         //三种异常类型：exception、resultCode、assertCode
         List<String> exceptionTypeList = new ArrayList<>();
-        if (!"00".equals(rpcBased.getResultCode()) && !"200".equals(rpcBased.getResultCode())) {
+        if (!ResultCodeUtils.isOk(rpcBased.getResultCode())) {
             if (StringUtils.isNotBlank(rpcBased.getResponse()) && rpcBased.getResponse().split(":")[0].endsWith(
                     "Exception")) {
                 exceptionTypeList.add("exception-" + rpcBased.getResponse().split(":")[0]);
@@ -252,7 +261,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
 
         String sqlStatement = null;
         //如果是数据库调用,放入sql语句,否则放入null
-        if (rpcBased.getRpcType() == 4) {
+        if (rpcBased.getRpcType() == MiddlewareType.TYPE_DB) {
             //sql统计转大写,防止相同sql不同大小写导致的分组过多
             sqlStatement = StringUtils.isNotBlank(rpcBased.getCallbackMsg()) ? rpcBased.getCallbackMsg().toUpperCase() : "null";
         } else {
@@ -271,10 +280,27 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         // 冗余字段信息
         String traceId = traceMetrics.getTraceId();
         // 总次数/成功次数/totalRt/错误次数/hitCount/totalTps/总次数(不计算采样率)/e2e成功次数/e2e失败次数/最大耗时
-        CallStat callStat = new CallStat(traceId, sqlStatement,
-                traceMetrics.getTotalCount(), traceMetrics.getSuccessCount(), traceMetrics.getTotalRt(),
-                traceMetrics.getFailureCount(), traceMetrics.getHitCount(), traceMetrics.getQps().longValue(), 1, traceMetrics.getE2eSuccessCount(), traceMetrics.getE2eErrorCount(), traceMetrics.getMaxRt());
-        slot.addToSlot(Metric.of(PradarRtConstant.METRICS_ID_TRACE, tags.toArray(new String[tags.size()]), "", new String[]{}), callStat);
+        CallStat callStat = new CallStat(
+                traceId,
+                sqlStatement,
+                traceMetrics.getTotalCount(),
+                traceMetrics.getSuccessCount(),
+                traceMetrics.getTotalRt(),
+                traceMetrics.getFailureCount(),
+                traceMetrics.getHitCount(),
+                traceMetrics.getQps().longValue(),
+                1,
+                traceMetrics.getE2eSuccessCount(),
+                traceMetrics.getE2eErrorCount(),
+                traceMetrics.getMaxRt()
+        );
+
+        slot.addToSlot(Metric.of(
+                PradarRtConstant.METRICS_ID_TRACE,
+                tags.toArray(new String[tags.size()]),
+                "",
+                new String[]{}
+        ), callStat);
     }
 
     private boolean checkAppName(String appNameConfig, String appName) {
@@ -284,11 +310,13 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                 //如果含有百分号,启用前缀匹配
                 if (appNameArr[i].contains("%")) {
                     //前缀匹配
-                    if (StringUtils.isNotBlank(appNameArr[i].split("%")[0]) && appName.startsWith(appNameArr[i].split("%")[0])) {
+                    if (StringUtils.isNotBlank(appNameArr[i].split("%")[0])
+                            && appName.startsWith(appNameArr[i].split("%")[0])) {
                         return true;
                     }
                     //后缀匹配
-                    if (appNameArr[i].startsWith("%") && appName.endsWith(appNameArr[i].split("%")[1])) {
+                    if (appNameArr[i].startsWith("%")
+                            && appName.endsWith(appNameArr[i].split("%")[1])) {
                         return true;
                     }
                 } else {
@@ -314,7 +342,8 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         if (StringUtils.isNotBlank(config)) {
             String[] tenantArr = config.split(",");
             for (int i = 0; i < tenantArr.length; i++) {
-                if (tenantAppKey.equals(tenantArr[i]) && TenantEnvConstants.ENV_PROD.equalsIgnoreCase(envCode)) {
+                if (tenantAppKey.equals(tenantArr[i])
+                        && TenantEnvConstants.ENV_PROD.equalsIgnoreCase(envCode)) {
                     return true;
                 }
             }
