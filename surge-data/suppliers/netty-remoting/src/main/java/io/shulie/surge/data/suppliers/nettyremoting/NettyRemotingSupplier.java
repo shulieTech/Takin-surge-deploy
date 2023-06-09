@@ -155,7 +155,18 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
                 return responseCommand;
             }
 
-            @Override
+            public boolean reject(ChannelHandlerContext ctx, RemotingCommand request) {
+                try {
+                    for (DataQueue dataQueue : queueMap.values()) {
+                        dataQueue.canPublish(1000);
+                    }
+                    return false;
+                } catch (RingBufferIllegalStateException e) {
+                    logger.error(e.getMessage());
+                    return true;
+                }
+            }
+
             public boolean reject() {
                 try {
                     for (DataQueue dataQueue : queueMap.values()) {
