@@ -21,10 +21,7 @@ import com.pamirs.pradar.log.parser.DataType;
 import io.shulie.surge.data.JettySupplierModule;
 import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
-import io.shulie.surge.data.deploy.pradar.digester.AgentInfoDigester;
-import io.shulie.surge.data.deploy.pradar.digester.BaseDataDigester;
-import io.shulie.surge.data.deploy.pradar.digester.LogDigester;
-import io.shulie.surge.data.deploy.pradar.digester.MetricsDigester;
+import io.shulie.surge.data.deploy.pradar.digester.*;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.runtime.digest.DataDigester;
@@ -169,8 +166,8 @@ public class PradarSupplierConfiguration {
      * @return
      */
     public DataDigester[] buildGcProcess(DataRuntime dataRuntime) {
-        BaseDataDigester baseDataDigester = dataRuntime.getInstance(BaseDataDigester.class);
-        return new DataDigester[]{baseDataDigester};
+        GcDigester gcDigester = dataRuntime.getInstance(GcDigester.class);
+        return new DataDigester[]{gcDigester};
     }
 
     /**
@@ -180,8 +177,8 @@ public class PradarSupplierConfiguration {
      * @return
      */
     public DataDigester[] buildThreadProcess(DataRuntime dataRuntime) {
-        BaseDataDigester baseDataDigester = dataRuntime.getInstance(BaseDataDigester.class);
-        return new DataDigester[]{baseDataDigester};
+        ThreadDigester threadDigester = dataRuntime.getInstance(ThreadDigester.class);
+        return new DataDigester[]{threadDigester};
     }
 
     /**
@@ -191,8 +188,8 @@ public class PradarSupplierConfiguration {
      * @return
      */
     public DataDigester[] buildAppStatLogProcess(DataRuntime dataRuntime) {
-        BaseDataDigester baseDataDigester = dataRuntime.getInstance(BaseDataDigester.class);
-        return new DataDigester[]{baseDataDigester};
+        AppStatLogDigester appStatLogDigester = dataRuntime.getInstance(AppStatLogDigester.class);
+        return new DataDigester[]{appStatLogDigester};
     }
 
     /**
@@ -274,7 +271,7 @@ public class PradarSupplierConfiguration {
              */
             ProcessorConfigSpec<PradarProcessor> appStatLogProcessorConfigSpec = new PradarProcessorConfigSpec();
             appStatLogProcessorConfigSpec.setName("appStatLogMetrics");
-            appStatLogProcessorConfigSpec.setDigesters(buildThreadProcess(dataRuntime));
+            appStatLogProcessorConfigSpec.setDigesters(buildAppStatLogProcess(dataRuntime));
             appStatLogProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor appStatLogProcessor = dataRuntime.createGenericInstance(appStatLogProcessorConfigSpec);
 

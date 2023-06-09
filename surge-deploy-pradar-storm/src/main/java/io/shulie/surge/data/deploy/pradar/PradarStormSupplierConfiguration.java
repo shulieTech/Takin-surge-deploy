@@ -141,6 +141,33 @@ public class PradarStormSupplierConfiguration {
             PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
 
             /**
+             * storm消费gc 指标
+             */
+            ProcessorConfigSpec<PradarProcessor> gcProcessorConfigSpec = new PradarProcessorConfigSpec();
+            gcProcessorConfigSpec.setName("gcMetrics");
+            gcProcessorConfigSpec.setDigesters(conf.buildGcProcess(dataRuntime));
+            gcProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor gcProcessor = dataRuntime.createGenericInstance(gcProcessorConfigSpec);
+
+            /**
+             * storm消费thread 指标
+             */
+            ProcessorConfigSpec<PradarProcessor> threadProcessorConfigSpec = new PradarProcessorConfigSpec();
+            threadProcessorConfigSpec.setName("threadMetrics");
+            threadProcessorConfigSpec.setDigesters(conf.buildGcProcess(dataRuntime));
+            threadProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor threadProcessor = dataRuntime.createGenericInstance(threadProcessorConfigSpec);
+
+            /**
+             * storm消费log 指标
+             */
+            ProcessorConfigSpec<PradarProcessor> appStatLogProcessorConfigSpec = new PradarProcessorConfigSpec();
+            appStatLogProcessorConfigSpec.setName("logMetrics");
+            appStatLogProcessorConfigSpec.setDigesters(conf.buildGcProcess(dataRuntime));
+            appStatLogProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor appStatLogProcessor = dataRuntime.createGenericInstance(appStatLogProcessorConfigSpec);
+
+            /**
              * agent日志
              */
             ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
@@ -154,6 +181,9 @@ public class PradarStormSupplierConfiguration {
             queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
             queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
             queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
+            queueMap.put(String.valueOf(DataType.METRIC_GC), gcProcessor);
+            queueMap.put(String.valueOf(DataType.METRIC_THREAD), threadProcessor);
+            queueMap.put(String.valueOf(DataType.METRICS_LOG_METRICS), appStatLogProcessor);
 
             nettyRemotingSupplier.setQueue(queueMap);
             nettyRemotingSupplier.setInputPortMap(serverPortsMap);
