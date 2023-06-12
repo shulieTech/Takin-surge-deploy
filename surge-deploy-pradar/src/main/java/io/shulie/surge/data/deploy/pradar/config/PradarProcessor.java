@@ -54,7 +54,6 @@ public class PradarProcessor extends DefaultProcessor<String, DigestContext> {
 
     @Override
     public List<String> splitLog(String content, Byte dataType) {
-//        logger.info("recevie log {}", content);
         Iterable<String> iterator;
         if (dataType.equals(DataType.AGENT_LOG)) {
             iterator = Splitter.on("\n").omitEmptyStrings().split(content);

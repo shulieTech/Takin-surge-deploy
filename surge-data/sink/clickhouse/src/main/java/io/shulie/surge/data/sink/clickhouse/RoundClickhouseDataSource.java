@@ -79,20 +79,4 @@ public class RoundClickhouseDataSource extends BalancedClickhouseDataSource {
         return localEnabledUrls.get(index);
     }
 
-    public static void main(String[] args) throws SQLException {
-        ClickHouseProperties clickHouseProperties = new ClickHouseProperties();
-        RoundClickhouseDataSource clickHouseDataSource = new RoundClickhouseDataSource("jdbc:clickhouse://pradar.host.clickhouse01:8123,pradar.host.clickhouse02:8123,pradar.host.clickhouse03:8123/default", clickHouseProperties,false);
-        ExecutorService service = Executors.newFixedThreadPool(4);
-        while (true) {
-            service.execute(() -> {
-                try {
-                    if (Thread.currentThread().getName().endsWith("1")) {
-                        System.out.println(Thread.currentThread().getName() + "---" + clickHouseDataSource.getRoundUrl());
-                    }
-                } catch (Throwable e) {
-                }
-            });
-        }
-    }
-
 }

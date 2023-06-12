@@ -51,7 +51,7 @@ public interface DataQueue<IN extends Serializable, OUT extends Serializable> ex
      * @param data
      * @throws InterruptedException 阻塞期间被打断时抛出的异常
      */
-    void publish(OUT data) throws InterruptedException;
+    boolean publish(OUT data) throws InterruptedException;
 
     /**
      * 发布多个数据。如果队列已满，抛出异常
@@ -59,7 +59,7 @@ public interface DataQueue<IN extends Serializable, OUT extends Serializable> ex
      * @param data
      * @throws InterruptedException 阻塞期间被打断时抛出的异常
      */
-    void publish(List<OUT> data) throws InterruptedException;
+    boolean publish(List<OUT> data) throws InterruptedException;
 
 
     /**
@@ -68,7 +68,7 @@ public interface DataQueue<IN extends Serializable, OUT extends Serializable> ex
      * @param data
      * @throws InterruptedException 阻塞期间被打断时抛出的异常
      */
-    void publish(Map<String, Object> header, IN data) throws InterruptedException;
+    boolean publish(Map<String, Object> header, IN data) throws InterruptedException;
 
     /**
      * 发布多个数据。如果队列已满，抛出异常
@@ -76,7 +76,7 @@ public interface DataQueue<IN extends Serializable, OUT extends Serializable> ex
      * @param data
      * @throws InterruptedException 阻塞期间被打断时抛出的异常
      */
-    void publish(Map<String, Object> header, List<IN> data) throws InterruptedException;
+    boolean publish(Map<String, Object> header, List<IN> data) throws InterruptedException;
 
 
     /**

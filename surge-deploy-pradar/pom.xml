@@ -99,6 +99,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>io.shulie.surge.data.suppliers</groupId>
+            <artifactId>grpc-remoting</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
             <groupId>io.shulie.pradar</groupId>
             <artifactId>log-remoting</artifactId>
             <version>${log.remoting.version}</version>

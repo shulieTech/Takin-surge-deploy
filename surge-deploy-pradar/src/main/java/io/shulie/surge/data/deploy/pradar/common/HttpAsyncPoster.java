@@ -59,11 +59,4 @@ public class HttpAsyncPoster {
             logger.error(httpAsyncPosterId + ":队列已满，可调整采样率");
         }
     }
-
-    public static void main(String args[]) {
-        HttpAsyncPoster httpAsyncPoster = new HttpAsyncPoster("测试", 1, "http://www.baidu.com",3000);
-        for (int i = 0; i < 10; i++) {
-            httpAsyncPoster.sendPost("999999-" + i);
-        }
-    }
 }

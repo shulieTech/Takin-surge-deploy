@@ -38,9 +38,6 @@ public class PradarPaserFactory {
         dataParserMap.put(DataType.METRICS_LOG, new PradarMetricsParser());
         dataParserMap.put(DataType.MONITOR_LOG, new PradarBaseParser());
         dataParserMap.put(DataType.AGENT_LOG, new PradarAgentLogParser());
-        dataParserMap.put(DataType.METRIC_GC, new GcParser());
-        dataParserMap.put(DataType.METRIC_THREAD, new ThreadParser());
-        dataParserMap.put(DataType.METRICS_LOG_METRICS, new AppStatLogParser());
     }
 
     public static DataParser<String, DigestContext> getParser(Byte dataType) {

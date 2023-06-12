@@ -595,39 +595,4 @@ public class LinkProcessor extends AbstractProcessor {
         return linkCache;
     }
 
-
-    public static void main(String[] args) throws Exception {
-        // create clickhouse JDBCTemplate
-//        ClickHouseProperties clickHouseProperties = new ClickHouseProperties();
-//        String clickhouseUserName = "default";
-//        if (StringUtils.isNotBlank(clickhouseUserName)) {
-//            clickHouseProperties.setUser(clickhouseUserName);
-//        }
-//
-//        String clickhousePassword = "rU4zGjA/";
-//        if (StringUtils.isNotBlank(clickhousePassword)) {
-//            clickHouseProperties.setPassword(clickhousePassword);
-//        }
-//        String clickhouseUrl = "jdbc:clickhouse://pradar.host.clickhouse01:8123,pradar.host.clickhouse02:8123/default";
-//        DataSource clickHouseDataSource = new BalancedClickhouseDataSource(clickhouseUrl, clickHouseProperties);
-//        JdbcTemplate jdbcTemplate = new JdbcTemplate(clickHouseDataSource);
-//
-//        List<Map<String, Object>> resultList = jdbcTemplate.queryForList("select  appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,parsedServiceName,methodName,port,remoteIp,userAppKey,envCode,userId  from t_trace_all where traceId ='010011ac16463824055372022d58f4' and startDate>='2022-03-04 16:25:19' order by rpcId asc limit 500 union all select  appName,entranceId,entranceNodeId,traceId,rpcId,logType,rpcType,upAppName,middlewareName,serviceName,parsedServiceName,methodName,port,remoteIp,userAppKey,envCode,userId  from t_trace_all where traceId ='010011ac16463824055262021d58f4' and startDate>='2022-03-04 16:25:19' order by rpcId asc limit 500");
-//        List<TTrackClickhouseModel> modelList = resultList.stream().map(result -> JSONObject.parseObject(JSON.toJSON(result).toString(), TTrackClickhouseModel.class)).collect(Collectors.toList());
-//        Map<String, Object> linkConfig = new HashMap<>();
-//        linkConfig.put("rpcType", "1");
-//        linkConfig.put("appName", "Demo-dubbo-provider");
-//        linkConfig.put("service", "com.example.dubboproviderdemo.service.UserService");
-//        linkConfig.put("method", "hello()");
-//        linkConfig.put("userAppKey", "c55cf771-12b5-49e4-a566-c84723a5f6f3");
-//        linkConfig.put("envCode", "test");
-//        linkConfig.put("userId", "-1");
-//        Map<String, String> traceFilter = new HashMap<>();
-//        traceFilter.put("010011ac16463824055262021d58f4", "9#3");
-//        traceFilter.put("010011ac16463824055372022d58f4", "9#3");
-//        List<RpcBased> rpcBaseds = modelList.stream().map(TTrackClickhouseModel::getRpcBased).collect(Collectors.toList());
-//        Pair<Set<LinkNodeModel>, Set<LinkEdgeModel>> test = linkAnalysis("cd9628528a5c07d1b825102b8ea6be53", linkConfig, rpcBaseds, traceFilter);
-//
-
-    }
 }

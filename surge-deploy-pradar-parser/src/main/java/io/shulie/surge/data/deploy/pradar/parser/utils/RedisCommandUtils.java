@@ -282,11 +282,4 @@ public class RedisCommandUtils {
         logger.warn("current Redis trace log setting is error {},{}", serviceName, methodName);
         return "command";
     }
-
-    public static void main(String[] args) {
-        Assert.isTrue(parseMethod("SET", "").equals("SET"));
-        Assert.isTrue(parseMethod("", "GET").equals("GET"));
-        Assert.isTrue(parseMethod("", "").equals("redis_command"));
-        Assert.isTrue(parseMethod("xx", "yy").equals("redis_command"));
-    }
 }

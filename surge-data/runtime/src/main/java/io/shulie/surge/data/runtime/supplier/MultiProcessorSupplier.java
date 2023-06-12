@@ -16,8 +16,6 @@
 package io.shulie.surge.data.runtime.supplier;
 
 
-import io.shulie.surge.data.common.lifecycle.Lifecycle;
-import io.shulie.surge.data.common.lifecycle.LifecycleObservable;
 import io.shulie.surge.data.runtime.processor.DataQueue;
 
 import java.util.Map;

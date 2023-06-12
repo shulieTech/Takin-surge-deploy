@@ -38,18 +38,4 @@ public final class InsufficientCapacityException extends Exception
 	{
 		return this;
 	}
-
-	public static void main(String[] args) {
-		int j = 0;
-		long start = System.currentTimeMillis();
-		for (int i = 0; i < 100000000; i++) {
-			try {
-				throw new RuntimeException("sdfdsf");
-				//throw InsufficientCapacityException.INSTANCE;
-			} catch (Exception e) {
-				j++;
-			}
-		}
-		System.out.println(j + " " + (System.currentTimeMillis() - start));
-	}
 }

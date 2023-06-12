@@ -117,7 +117,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
         }
         String logText = processorConfig.getName() + "ringbuffer remaining capacity:" + ringBuffer.remainingCapacity() + " total capacity:" + ringBuffer.getBufferSize();
         logger.error(logText);
-        throw new RingBufferIllegalStateException(logText);
+        return false;
     }
 
     /**
@@ -127,16 +127,20 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      * @throws InterruptedException 阻塞期间被打断时抛出的异常
      */
     @Override
-    public void publish(DigestContext<OUT> data) throws InterruptedException {
-        canPublish(1);
+    public boolean publish(DigestContext<OUT> data) throws InterruptedException {
         if (data == null || removeDelay(null, data.getEventTime(), data.getProcessTime(), String.valueOf(data))) {
-            return;
+            return true;
+        }
+        boolean ret = canPublish(1);
+        if (!ret) {
+            return false;
         }
         long seq = ringBuffer.next();
         DigestJob job = ringBuffer.get(seq);
         job.context = data;
         ringBuffer.publish(seq);
         processCount.incrementAndGet();
+        return true;
     }
 
     /**
@@ -145,10 +149,14 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      * @throws InterruptedException 阻塞期间被打断时抛出的异常
      */
     @Override
-    public void publish(List<DigestContext<OUT>> datas) throws InterruptedException {
+    public boolean publish(List<DigestContext<OUT>> datas) throws InterruptedException {
         try {
             if (datas.isEmpty()) {
-                return;
+                return true;
+            }
+            boolean ret = canPublish(datas.size());
+            if (!ret) {
+                return false;
             }
             int size = datas.size();
             long seq = ringBuffer.tryNext(size);
@@ -158,6 +166,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
                 ringBuffer.publish(seq - i);
                 processCount.incrementAndGet();
             }
+            return true;
         } catch (InsufficientCapacityException e) {
             String logText = processorConfig.getName() + "ringbuffer remaining capacity:" + ringBuffer.remainingCapacity() + " total capacity:" + ringBuffer.getBufferSize();
             logger.error(logText);
@@ -172,7 +181,11 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      * @throws InterruptedException 阻塞期间被打断时抛出的异常
      */
     @Override
-    public void publish(Map<String, Object> header, IN data) throws InterruptedException {
+    public boolean publish(Map<String, Object> header, IN data) throws InterruptedException {
+        boolean ret = canPublish(1);
+        if (!ret) {
+            return false;
+        }
         DataParser<IN, OUT> dataParser = getDataParser(header);
         DigestContext<OUT> context = null;
         try {
@@ -180,7 +193,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
         } catch (Exception e) {
             //ignore
         }
-        publish(context);
+        return publish(context);
     }
 
     /**
@@ -190,9 +203,12 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
      * @throws InterruptedException 阻塞期间被打断时抛出的异常
      */
     @Override
-    public void publish(Map<String, Object> header, List<IN> datas) throws InterruptedException {
+    public boolean publish(Map<String, Object> header, List<IN> datas) throws InterruptedException {
 
-        canPublish(datas.size());
+        boolean ret = canPublish(datas.size());
+        if (!ret) {
+            return false;
+        }
         DataParser<IN, OUT> dataParser = getDataParser(header);
         List<DigestContext<OUT>> list = Lists.newArrayList();
         for (IN data : datas) {
@@ -210,7 +226,7 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
             }
             //publish(context);
         }
-        publish(list);
+        return publish(list);
     }
 
     private void monitor() {

@@ -31,6 +31,7 @@ import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseShardModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
+import io.shulie.surge.data.suppliers.grpc.remoting.GrpcSupplierModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplier;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplierSpec;
@@ -118,6 +119,7 @@ public class PradarSupplierConfiguration {
                 new PradarModule(workPort),
                 new NettyRemotingModule(),
                 new JettySupplierModule(),
+                new GrpcSupplierModule(),
                 new InfluxDBModule(),
                 new ClickHouseModule(),
                 new ClickHouseShardModule(),
@@ -165,31 +167,9 @@ public class PradarSupplierConfiguration {
      * @param dataRuntime
      * @return
      */
-    public DataDigester[] buildGcProcess(DataRuntime dataRuntime) {
-        GcDigester gcDigester = dataRuntime.getInstance(GcDigester.class);
-        return new DataDigester[]{gcDigester};
-    }
-
-    /**
-     * 线程指标
-     *
-     * @param dataRuntime
-     * @return
-     */
-    public DataDigester[] buildThreadProcess(DataRuntime dataRuntime) {
-        ThreadDigester threadDigester = dataRuntime.getInstance(ThreadDigester.class);
-        return new DataDigester[]{threadDigester};
-    }
-
-    /**
-     * app stat log 指标
-     *
-     * @param dataRuntime
-     * @return
-     */
-    public DataDigester[] buildAppStatLogProcess(DataRuntime dataRuntime) {
-        AppStatLogDigester appStatLogDigester = dataRuntime.getInstance(AppStatLogDigester.class);
-        return new DataDigester[]{appStatLogDigester};
+    public DataDigester[] buildNodeProcess(DataRuntime dataRuntime) {
+        NodeDigester NodeDigester = dataRuntime.getInstance(NodeDigester.class);
+        return new DataDigester[]{NodeDigester};
     }
 
     /**
@@ -251,36 +231,16 @@ public class PradarSupplierConfiguration {
             /**
              * storm消费gc 指标
              */
-            ProcessorConfigSpec<PradarProcessor> gcProcessorConfigSpec = new PradarProcessorConfigSpec();
-            gcProcessorConfigSpec.setName("gcMetrics");
-            gcProcessorConfigSpec.setDigesters(buildGcProcess(dataRuntime));
-            gcProcessorConfigSpec.setExecuteSize(coreSize);
-            PradarProcessor gcProcessor = dataRuntime.createGenericInstance(gcProcessorConfigSpec);
-
-            /**
-             * storm消费thread指标
-             */
-            ProcessorConfigSpec<PradarProcessor> threadProcessorConfigSpec = new PradarProcessorConfigSpec();
-            threadProcessorConfigSpec.setName("threadMetrics");
-            threadProcessorConfigSpec.setDigesters(buildThreadProcess(dataRuntime));
-            threadProcessorConfigSpec.setExecuteSize(coreSize);
-            PradarProcessor threadProcessor = dataRuntime.createGenericInstance(threadProcessorConfigSpec);
-
-            /**
-             * storm消费app stat log指标
-             */
-            ProcessorConfigSpec<PradarProcessor> appStatLogProcessorConfigSpec = new PradarProcessorConfigSpec();
-            appStatLogProcessorConfigSpec.setName("appStatLogMetrics");
-            appStatLogProcessorConfigSpec.setDigesters(buildAppStatLogProcess(dataRuntime));
-            appStatLogProcessorConfigSpec.setExecuteSize(coreSize);
-            PradarProcessor appStatLogProcessor = dataRuntime.createGenericInstance(appStatLogProcessorConfigSpec);
+            ProcessorConfigSpec<PradarProcessor> nodeProcessorConfigSpec = new PradarProcessorConfigSpec();
+            nodeProcessorConfigSpec.setName("nodeMetrics");
+            nodeProcessorConfigSpec.setDigesters(buildNodeProcess(dataRuntime));
+            nodeProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor nodeProcessor = dataRuntime.createGenericInstance(nodeProcessorConfigSpec);
 
             Map<String, DataQueue> queueMap = Maps.newHashMap();
             queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
             queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
-            queueMap.put(String.valueOf(DataType.METRIC_GC), gcProcessor);
-            queueMap.put(String.valueOf(DataType.METRIC_THREAD), threadProcessor);
-            queueMap.put(String.valueOf(DataType.METRICS_LOG_METRICS), appStatLogProcessor);
+            queueMap.put(String.valueOf(DataType.NODE_LOG), nodeProcessor);
             nettyRemotingSupplier.setQueue(queueMap);
             return nettyRemotingSupplier;
         } catch (Throwable e) {

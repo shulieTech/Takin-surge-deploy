@@ -140,7 +140,13 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
                     header.put("dataVersion", dataVersion);
                     header.put("dataType", dataType);
                     header.put("receiveHttpTime", receiveHttpTime);
-                    queue.publish(header, queue.splitLog(content, dataType));
+                    boolean ret = queue.publish(header, queue.splitLog(content, dataType));
+                    if (!ret) {
+                        logger.error("logProcessor failed, system busy. {}", content);
+                        response.setSuccess(false);
+                        response.setErrorMsg("System Busy.");
+                        responseCommand.setCode(CommandCode.SYSTEM_BUSY);
+                    }
                 } catch (RingBufferIllegalStateException e) {
                     logger.error(e.getMessage());
                     response.setSuccess(false);
@@ -155,6 +161,7 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
                 return responseCommand;
             }
 
+            @Override
             public boolean reject(ChannelHandlerContext ctx, RemotingCommand request) {
                 try {
                     for (DataQueue dataQueue : queueMap.values()) {

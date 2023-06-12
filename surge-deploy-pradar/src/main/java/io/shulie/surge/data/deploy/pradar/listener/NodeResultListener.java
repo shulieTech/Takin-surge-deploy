@@ -37,8 +37,8 @@ import java.util.Map;
  * @Description:
  */
 @Singleton
-public class AppStatLogResultListener implements DefaultAggregator.ResultListener {
-    private static Logger logger = LoggerFactory.getLogger(AppStatLogResultListener.class);
+public class NodeResultListener implements DefaultAggregator.ResultListener {
+    private static Logger logger = LoggerFactory.getLogger(NodeResultListener.class);
 
     @Inject
     private InfluxDBSupport influxDbSupport;
@@ -49,7 +49,7 @@ public class AppStatLogResultListener implements DefaultAggregator.ResultListene
 
     @Override
     public String metricId() {
-        return "app_stat_log";
+        return "app_stat_gc";
     }
 
     @Override
@@ -61,18 +61,33 @@ public class AppStatLogResultListener implements DefaultAggregator.ResultListene
             Map<String, String> influxdbTags = Maps.newHashMap();
             influxdbTags.put("appName", tags[0]);
             influxdbTags.put("ip", tags[1]);
-            influxdbTags.put("agentId", tags[2]);
+            influxdbTags.put("host", tags[2]);
+            influxdbTags.put("agentId", tags[3]);
+            influxdbTags.put("tenantCode", tags[4]);
+            influxdbTags.put("envCode", tags[5]);
 
-            // 总次数/成功次数/totalRt/错误次数/hitCount/totalQps/totalTps/total
+            // 堆使用/eden 使用/survivor使用/old 区使用/metaspace 使用/codeCache 使用/nonHeap 使用/cpu 使用率/younggc次数/younggc 耗时
+            // fullGc 次数/fullGc耗时/内存使用/ 新建线程数/运行中线程数/blocked 线程数/等待线程数/timed 等待线程数/terminated 线程数
             Map<String, Object> fields = Maps.newHashMap();
-            fields.put("threadCount", callStat.get(0));
-            fields.put("threadNewCount", callStat.get(1));
-            fields.put("threadDeadlockCount", callStat.get(2));
-            fields.put("threadRunnableCount", callStat.get(3));
-            fields.put("threadTerminatedCount", callStat.get(3));
-            fields.put("threadTimedWaitCount", callStat.get(3));
-            fields.put("threadWaitCount", callStat.get(3));
-            fields.put("threadBlockedCount", callStat.get(3));
+            fields.put("heapUsed", callStat.get(0));
+            fields.put("edenUsed", callStat.get(1));
+            fields.put("survivorUsed", callStat.get(2));
+            fields.put("oldUsed", callStat.get(3));
+            fields.put("metaspaceUsed", callStat.get(4));
+            fields.put("codeCacheUsed", callStat.get(5));
+            fields.put("nonHeapUsed", callStat.get(6));
+            fields.put("coresPercent", callStat.get(7));
+            fields.put("youngGcCount", callStat.get(8));
+            fields.put("youngGcCost", callStat.get(9));
+            fields.put("fullGcCount", callStat.get(10));
+            fields.put("fullGcCost", callStat.get(11));
+            fields.put("memoryUsed", callStat.get(12));
+            fields.put("newThreadCount", callStat.get(13));
+            fields.put("runnableThreadCount", callStat.get(14));
+            fields.put("blockedThreadCount", callStat.get(15));
+            fields.put("waitingThreadCount", callStat.get(16));
+            fields.put("timedWaitingThreadCount", callStat.get(17));
+            fields.put("terminatedThreadCount", callStat.get(18));
             influxDbSupport.write(metricsDataBase, metricsId, influxdbTags, fields, slotKey * 1000);
         } catch (Throwable e) {
             logger.error("write fail influxdb " + ExceptionUtils.getStackTrace(e));

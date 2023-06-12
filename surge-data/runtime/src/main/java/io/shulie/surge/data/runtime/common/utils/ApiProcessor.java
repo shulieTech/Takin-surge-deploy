@@ -767,19 +767,4 @@ final class Matcher {
         CONNECTION
 
     }
-
-    public static void main(String[] args) {
-        Map<String, List<String>> newApiMap = Maps.newHashMap();
-        newApiMap.put("PUT", Arrays.asList("/hello/{name}", "/gxp-data-hub/{topic}/{year}/{month}/{day}/{json}", "/{id}/{name}", "/path/{id}/test", "/path/{id}/test/{num}", "/path/{id}", "/{id}/{name}/test", "/{id}"));
-        ApiProcessor.API_COLLECTION.put("test", newApiMap);
-        System.out.println(ApiProcessor.merge("test", "/gxp-data-hub/sto_package_trace_send_dflow&210/20211124/19/41/{sto_package_trace_send_dflow&210}_87fadf313e9744bba57698fd7899f565.json", "PUT"));
-        System.out.println(ApiProcessor.merge("test", "/hello/sdsds/dsds", "GET"));
-        System.out.println(ApiProcessor.merge("test", "/hello/yyy", "GET"));
-        System.out.println(ApiProcessor.merge("test", "/mmm/nnn", "GET"));
-        System.out.println(ApiProcessor.merge("test", "/path/321/test", "GET"));
-        System.out.println(ApiProcessor.merge("test", "/path/321/test/654", "GET"));
-        System.out.println(ApiProcessor.merge("test", "/path/123", "GET"));
-        System.out.println(ApiProcessor.merge("test", "/123/haha/test", "GET"));
-        System.out.println(ApiProcessor.merge("test", "/123", "GET"));
-    }
 }

@@ -15,8 +15,6 @@
 
 package io.shulie.surge.data.common.utils;
 
-import sun.net.util.IPAddressUtil;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
@@ -114,12 +112,12 @@ public class UrlUtils {
      * @return
      */
     public static boolean internalIp(String ip) {
-        boolean iPv6LiteralAddress = IPAddressUtil.isIPv6LiteralAddress(ip);
-        boolean isIPv4LiteralAddress = IPAddressUtil.isIPv4LiteralAddress(ip);
+        boolean iPv6LiteralAddress = IpAddressUtils.isIPv6LiteralAddress(ip);
+        boolean isIPv4LiteralAddress = IpAddressUtils.isIPv4LiteralAddress(ip);
         if (iPv6LiteralAddress) {
             return false;
         } else if (isIPv4LiteralAddress) {
-            byte[] addr = IPAddressUtil.textToNumericFormatV4(ip);
+            byte[] addr = IpAddressUtils.textToNumericFormatV4(ip);
             return internalIp(addr);
         } else {
             return true;

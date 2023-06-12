@@ -31,5 +31,6 @@
     <modules>
         <module>netty-remoting</module>
         <module>jetty-supplier</module>
+        <module>grpc-remoting</module>
     </modules>
 </project>

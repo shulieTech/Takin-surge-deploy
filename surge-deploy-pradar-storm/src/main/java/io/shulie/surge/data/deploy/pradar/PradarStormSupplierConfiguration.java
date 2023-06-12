@@ -40,6 +40,9 @@ import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseShardModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
+import io.shulie.surge.data.suppliers.grpc.remoting.GrpcSupplier;
+import io.shulie.surge.data.suppliers.grpc.remoting.GrpcSupplierModule;
+import io.shulie.surge.data.suppliers.grpc.remoting.GrpcSupplierSpec;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplier;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplierSpec;
@@ -141,31 +144,14 @@ public class PradarStormSupplierConfiguration {
             PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
 
             /**
-             * storm消费gc 指标
+             * storm消费node 指标
              */
-            ProcessorConfigSpec<PradarProcessor> gcProcessorConfigSpec = new PradarProcessorConfigSpec();
-            gcProcessorConfigSpec.setName("gcMetrics");
-            gcProcessorConfigSpec.setDigesters(conf.buildGcProcess(dataRuntime));
-            gcProcessorConfigSpec.setExecuteSize(coreSize);
-            PradarProcessor gcProcessor = dataRuntime.createGenericInstance(gcProcessorConfigSpec);
+            ProcessorConfigSpec<PradarProcessor> nodeProcessorConfigSpec = new PradarProcessorConfigSpec();
+            nodeProcessorConfigSpec.setName("nodeMetrics");
+            nodeProcessorConfigSpec.setDigesters(conf.buildNodeProcess(dataRuntime));
+            nodeProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor nodeProcessor = dataRuntime.createGenericInstance(nodeProcessorConfigSpec);
 
-            /**
-             * storm消费thread 指标
-             */
-            ProcessorConfigSpec<PradarProcessor> threadProcessorConfigSpec = new PradarProcessorConfigSpec();
-            threadProcessorConfigSpec.setName("threadMetrics");
-            threadProcessorConfigSpec.setDigesters(conf.buildGcProcess(dataRuntime));
-            threadProcessorConfigSpec.setExecuteSize(coreSize);
-            PradarProcessor threadProcessor = dataRuntime.createGenericInstance(threadProcessorConfigSpec);
-
-            /**
-             * storm消费log 指标
-             */
-            ProcessorConfigSpec<PradarProcessor> appStatLogProcessorConfigSpec = new PradarProcessorConfigSpec();
-            appStatLogProcessorConfigSpec.setName("logMetrics");
-            appStatLogProcessorConfigSpec.setDigesters(conf.buildGcProcess(dataRuntime));
-            appStatLogProcessorConfigSpec.setExecuteSize(coreSize);
-            PradarProcessor appStatLogProcessor = dataRuntime.createGenericInstance(appStatLogProcessorConfigSpec);
 
             /**
              * agent日志
@@ -181,9 +167,7 @@ public class PradarStormSupplierConfiguration {
             queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
             queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
             queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
-            queueMap.put(String.valueOf(DataType.METRIC_GC), gcProcessor);
-            queueMap.put(String.valueOf(DataType.METRIC_THREAD), threadProcessor);
-            queueMap.put(String.valueOf(DataType.METRICS_LOG_METRICS), appStatLogProcessor);
+            queueMap.put(String.valueOf(DataType.NODE_LOG), nodeProcessor);
 
             nettyRemotingSupplier.setQueue(queueMap);
             nettyRemotingSupplier.setInputPortMap(serverPortsMap);
@@ -192,6 +176,55 @@ public class PradarStormSupplierConfiguration {
         } catch (Throwable e) {
             logger.error("netty fail " + ExceptionUtils.getStackTrace(e));
             throw new RuntimeException("netty fail");
+        }
+    }
+
+    public GrpcSupplier buildGrpcSupplier(DataRuntime dataRuntime, Boolean isDistributed) {
+        try {
+            PradarSupplierConfiguration conf = new PradarSupplierConfiguration("", dataSourceType);
+            GrpcSupplierSpec grpcSupplierSpec = new GrpcSupplierSpec();
+            GrpcSupplier grpcSupplier = dataRuntime.createGenericInstance(grpcSupplierSpec);
+
+            /**
+             * storm消费trace日志
+             */
+            ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
+            traceLogProcessorConfigSpec.setName("trace-log");
+            traceLogProcessorConfigSpec.setDigesters(
+                    ArrayUtils.addAll(conf.buildTraceLogProcess(dataRuntime),
+                            isDistributed ? buildTraceLogComplexProcess(dataRuntime) : buildE2EProcessByStandadlone(dataRuntime)));
+            traceLogProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
+
+            /**
+             * storm消费monitor日志
+             */
+            ProcessorConfigSpec<PradarProcessor> baseProcessorConfigSpec = new PradarProcessorConfigSpec();
+            baseProcessorConfigSpec.setName("base");
+            baseProcessorConfigSpec.setDigesters(conf.buildMonitorProcess(dataRuntime));
+            baseProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
+
+            /**
+             * agent日志
+             */
+            ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
+            agentProcessorConfigSpec.setName("agent-log");
+            agentProcessorConfigSpec.setDigesters(conf.buildAgentProcess(dataRuntime));
+            agentProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor agentProcessor = dataRuntime.createGenericInstance(agentProcessorConfigSpec);
+
+
+            Map<String, DataQueue> queueMap = Maps.newHashMap();
+            queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
+            queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
+            queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
+
+            grpcSupplier.setQueue(queueMap);
+            return grpcSupplier;
+        } catch (Throwable e) {
+            logger.error("jetty fail " + ExceptionUtils.getStackTrace(e));
+            throw new RuntimeException("jetty fail");
         }
     }
 
@@ -301,6 +334,7 @@ public class PradarStormSupplierConfiguration {
         bootstrap.install(
                 new PradarModule(workPort),
                 new NettyRemotingModule(),
+                new GrpcSupplierModule(),
                 new InfluxDBModule(),
                 new ClickHouseModule(),
                 new ClickHouseShardModule(),

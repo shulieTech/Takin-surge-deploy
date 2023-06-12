@@ -133,12 +133,4 @@ public class MetricsReduceDigester implements DataDigester<MetricsBased> {
         } catch (Throwable e) {
         }
     }
-
-    public static void main(String[] args) {
-        MetricsBased metricsBased = new MetricsBased();
-        metricsBased.setType("entry-rocketmq");
-        metricsBased.setEvent("trace_except_package_info#MQ_INST_1942653734864712_GOhQcxxx%GID_sto_oms_trace_sync:123");
-        format(metricsBased);
-        System.out.println(metricsBased.getEvent());
-    }
 }

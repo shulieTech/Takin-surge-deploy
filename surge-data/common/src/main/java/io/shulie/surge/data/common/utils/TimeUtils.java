@@ -78,13 +78,4 @@ public class TimeUtils {
         return instance;
     }
 
-
-    public static void main(String[] args) {
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        long now = System.currentTimeMillis();
-        System.out.println(format.format(now));
-        System.out.println(format.format(((Calendar) getTimeWindow(now, 1)).getTime()));
-        System.out.println(format.format(((Calendar) getTimeWindow(now, 2)).getTime()));
-        System.out.println(format.format(((Calendar) getTimeWindow(now, 3)).getTime()));
-    }
 }

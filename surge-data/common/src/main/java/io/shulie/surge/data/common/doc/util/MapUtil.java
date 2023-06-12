@@ -67,12 +67,4 @@ public class MapUtil {
         }
         return value;
     }
-
-    public static void main(String[] args) throws Exception {
-        Trace trace = new Trace();
-        trace.setAgentId("agentId");
-        Map<String, Object> map = mapToObj(trace);
-
-        System.out.println(JSON.toJSONString(map));
-    }
 }
