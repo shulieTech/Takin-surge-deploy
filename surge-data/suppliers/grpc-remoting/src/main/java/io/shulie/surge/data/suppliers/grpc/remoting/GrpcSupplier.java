@@ -20,7 +20,6 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.pamirs.pradar.log.parser.DataType;
 import io.shulie.surge.data.common.lifecycle.LifecycleObserver;
-import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.supplier.DefaultMultiProcessorSupplier;
 import io.shulie.surge.data.runtime.supplier.Supplier;
 import io.shulie.surge.data.suppliers.grpc.remoting.services.MetricsAcceptorProtoImpl;
@@ -135,9 +134,9 @@ public class GrpcSupplier extends DefaultMultiProcessorSupplier {
         GrpcServerConfig grpcServerConfig = buildGrpcServerConfig(port);
         this.server = new GrpcServer(
                 grpcServerConfig,
-                new TraceAcceptorProtoImpl(queueMap.get(DataType.TRACE_LOG)),
+                new TraceAcceptorProtoImpl(queueMap.get(String.valueOf(DataType.TRACE_LOG))),
                 new MetricsAcceptorProtoImpl(),
-                new NodeAcceptorProtoImpl(queueMap.get(DataType.NODE_LOG))
+                new NodeAcceptorProtoImpl(queueMap.get(String.valueOf(DataType.NODE_LOG)))
 
         );
         return server;
