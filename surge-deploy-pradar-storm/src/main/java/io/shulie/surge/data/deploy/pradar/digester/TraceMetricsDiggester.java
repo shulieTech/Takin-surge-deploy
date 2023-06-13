@@ -44,6 +44,7 @@ import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.sink.mysql.MysqlSupport;
+import io.shulie.surge.data.suppliers.grpc.remoting.TenantCodeCache;
 import io.shulie.surge.deploy.pradar.constants.TenantEnvConstants;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -174,6 +175,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         String nodeId = getNodeId(parsedAppName, parsedServiceName, parsedMethod, rpcType);
         //todo 验证取采样率是否兼容租户
         String userAppKey = rpcBased.getUserAppKey();
+        String tenantCode = TenantCodeCache.getInstance().get(userAppKey);
         String envCode = rpcBased.getEnvCode();
         //获取每个应用的采样率
         int sampling = 1;
@@ -243,7 +245,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
             long errorCount = 1;
             String[] tags = new String[]{edgeId, parsedAppName, parsedServiceName, parsedMethod, rpcType,
                     rpcBased.isClusterTest() ? "1" : "0",
-                    exceptionType, userAppKey, envCode};
+                    exceptionType, userAppKey, tenantCode, envCode};
             CallStat callStat = new CallStat(rpcBased.getTraceId(),
                     sampling * 1L, sampling * successCount, sampling * rpcBased.getCost(),
                     sampling * errorCount, sampling);
@@ -269,6 +271,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         }
         tags.add(Md5Utils.md5(sqlStatement));
         tags.add(userAppKey);
+        tags.add(tenantCode);
         tags.add(envCode);
 
         //如果sql长度超过1024,做截取,必须要在生成md5后做处理

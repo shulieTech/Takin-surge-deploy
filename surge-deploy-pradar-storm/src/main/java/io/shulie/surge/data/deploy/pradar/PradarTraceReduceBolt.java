@@ -130,8 +130,9 @@ public class PradarTraceReduceBolt extends BaseBasicBolt {
                     //influxdbTags.put("sqlStatementMd5", tags[13]);
                     //放入租户标识
                     influxdbTags.put("tenantAppKey", tags[14]);
+                    influxdbTags.put("tenantCode", tags[15]);
                     //放入环境标识
-                    influxdbTags.put("envCode", tags[15]);
+                    influxdbTags.put("envCode", tags[16]);
 
                     // 总次数/成功次数/totalRt/错误次数/hitCount/totalQps/totalTps/总次数(不计算采样率)/e2e成功次数/e2e失败次数/maxRt
                     Map<String, Object> fields = Maps.newHashMap();
