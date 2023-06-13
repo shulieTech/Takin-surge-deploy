@@ -53,7 +53,7 @@ public class TraceAcceptorProtoImpl implements TraceAcceptorProto {
             rpcBased.setRequest(message.getRequest());
             rpcBased.setResponse(message.getResponse());
             rpcBased.setClusterTest(message.getClusterTest() == 0 ? false : true);
-            rpcBased.setInvokeType(message.getServiceType());
+            rpcBased.setInvokeType(String.valueOf(message.getMiddlewareType()));
 
 
             String middleWareName = message.getMiddlewareName();
