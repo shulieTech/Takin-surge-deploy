@@ -50,7 +50,7 @@ public class NodeDigester implements DataDigester<NodeInfo> {
     private static final String METRICS_ID = "app_node_info";
 
     @Inject
-    @DefaultValue("true")
+    @DefaultValue("false")
     @Named("/pradar/config/rt/nodeMetricsDisable")
     private Remote<Boolean> nodeMetricsDisable;
 
