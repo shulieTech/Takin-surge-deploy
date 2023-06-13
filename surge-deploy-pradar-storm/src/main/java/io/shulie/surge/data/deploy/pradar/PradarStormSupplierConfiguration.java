@@ -206,6 +206,15 @@ public class PradarStormSupplierConfiguration {
             PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
 
             /**
+             * storm消费node日志
+             */
+            ProcessorConfigSpec<PradarProcessor> nodeProcessorConfigSpec = new PradarProcessorConfigSpec();
+            nodeProcessorConfigSpec.setName("nodeMetrics");
+            nodeProcessorConfigSpec.setDigesters(conf.buildNodeProcess(dataRuntime));
+            nodeProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor nodeProcessor = dataRuntime.createGenericInstance(nodeProcessorConfigSpec);
+
+            /**
              * agent日志
              */
             ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
@@ -219,6 +228,7 @@ public class PradarStormSupplierConfiguration {
             queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
             queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
             queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
+            queueMap.put(String.valueOf(DataType.NODE_LOG), nodeProcessor);
 
             grpcSupplier.setQueue(queueMap);
             return grpcSupplier;
@@ -261,6 +271,15 @@ public class PradarStormSupplierConfiguration {
             PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
 
             /**
+             * storm消费node日志
+             */
+            ProcessorConfigSpec<PradarProcessor> nodeProcessorConfigSpec = new PradarProcessorConfigSpec();
+            nodeProcessorConfigSpec.setName("nodeMetrics");
+            nodeProcessorConfigSpec.setDigesters(conf.buildNodeProcess(dataRuntime));
+            nodeProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor nodeProcessor = dataRuntime.createGenericInstance(nodeProcessorConfigSpec);
+
+            /**
              * agent日志
              */
             ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
@@ -274,6 +293,7 @@ public class PradarStormSupplierConfiguration {
             queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
             queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
             queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
+            queueMap.put(String.valueOf(DataType.NODE_LOG), nodeProcessor);
 
             jettySupplier.setQueue(queueMap);
             jettySupplier.addServlet("/takin-surge/log/engine/metrics/upload", dataRuntime.getInstance(EngineDataWriteServlet.class));

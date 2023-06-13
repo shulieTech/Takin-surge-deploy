@@ -229,7 +229,7 @@ public class PradarSupplierConfiguration {
 
 
             /**
-             * storm消费gc 指标
+             * storm消费node 指标
              */
             ProcessorConfigSpec<PradarProcessor> nodeProcessorConfigSpec = new PradarProcessorConfigSpec();
             nodeProcessorConfigSpec.setName("nodeMetrics");
