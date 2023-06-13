@@ -60,6 +60,7 @@ public class TraceAcceptorProtoImpl implements TraceAcceptorProto {
             flagBased.setEntrance(StringUtils.equals(message.getInvokeId(),"0"));
             flagBased.setServer(message.getKind() == 3 || message.getKind() == 5);
             flagBased.setPressureTest(message.getClusterTest() == 1);
+            rpcBased.setFlags(flagBased);
 
 
             String middleWareName = message.getMiddlewareName();
