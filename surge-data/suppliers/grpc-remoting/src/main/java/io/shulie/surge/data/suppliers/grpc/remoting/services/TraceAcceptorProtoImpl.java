@@ -1,5 +1,6 @@
 package io.shulie.surge.data.suppliers.grpc.remoting.services;
 
+import com.pamirs.pradar.log.parser.trace.FlagBased;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.runtime.processor.DataQueue;
@@ -9,6 +10,7 @@ import io.shulie.surge.data.suppliers.grpc.remoting.AcceptorResultCodeEnum;
 import io.shulie.surge.data.suppliers.grpc.remoting.trace.TraceAcceptorProto;
 import io.shulie.surge.data.suppliers.grpc.remoting.trace.TraceProtoBean;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;
 
 import java.time.ZoneOffset;
@@ -54,6 +56,10 @@ public class TraceAcceptorProtoImpl implements TraceAcceptorProto {
             rpcBased.setResponse(message.getResponse());
             rpcBased.setClusterTest(message.getClusterTest() == 0 ? false : true);
             rpcBased.setInvokeType(String.valueOf(message.getMiddlewareType()));
+            FlagBased flagBased = new FlagBased();
+            flagBased.setEntrance(StringUtils.equals(message.getInvokeId(),"0"));
+            flagBased.setServer(message.getKind() == 3 || message.getKind() == 5);
+            flagBased.setPressureTest(message.getClusterTest() == 1);
 
 
             String middleWareName = message.getMiddlewareName();
