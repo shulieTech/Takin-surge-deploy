@@ -97,7 +97,7 @@ public class GrpcSupplier extends DefaultMultiProcessorSupplier {
             // 启动成功以后就停止掉
             break;
         }
-
+        this.server.start();
         super.start();
 
         logger.info("JETTY supplier started success.port is {}", port);
