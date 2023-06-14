@@ -239,6 +239,80 @@ public class PradarStormSupplierConfiguration {
     }
 
     /**
+     * 启动 grpc 和 netty 两种端口
+     *
+     * @param dataRuntime
+     * @param isDistributed
+     * @return
+     */
+    public GrpcSupplier buildMixedSupplier(DataRuntime dataRuntime, Boolean isDistributed) {
+        try {
+            PradarSupplierConfiguration conf = new PradarSupplierConfiguration("", dataSourceType);
+            GrpcSupplierSpec grpcSupplierSpec = new GrpcSupplierSpec();
+            GrpcSupplier grpcSupplier = dataRuntime.createGenericInstance(grpcSupplierSpec);
+
+            NettyRemotingSupplierSpec nettyRemotingSupplierSpec = new NettyRemotingSupplierSpec();
+            nettyRemotingSupplierSpec.setNetMap(netMap);
+            nettyRemotingSupplierSpec.setHostNameMap(hostNameMap);
+            nettyRemotingSupplierSpec.setRegisterZk(registerZk);
+            NettyRemotingSupplier nettyRemotingSupplier = dataRuntime.createGenericInstance(nettyRemotingSupplierSpec);
+
+            /**
+             * storm消费trace日志
+             */
+            ProcessorConfigSpec<PradarProcessor> traceLogProcessorConfigSpec = new PradarProcessorConfigSpec();
+            traceLogProcessorConfigSpec.setName("trace-log");
+            traceLogProcessorConfigSpec.setDigesters(
+                    ArrayUtils.addAll(conf.buildTraceLogProcess(dataRuntime),
+                            isDistributed ? buildTraceLogComplexProcess(dataRuntime) : buildE2EProcessByStandadlone(dataRuntime)));
+            traceLogProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
+
+            /**
+             * storm消费monitor日志
+             */
+            ProcessorConfigSpec<PradarProcessor> baseProcessorConfigSpec = new PradarProcessorConfigSpec();
+            baseProcessorConfigSpec.setName("base");
+            baseProcessorConfigSpec.setDigesters(conf.buildMonitorProcess(dataRuntime));
+            baseProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor baseProcessor = dataRuntime.createGenericInstance(baseProcessorConfigSpec);
+
+            /**
+             * storm消费node日志
+             */
+            ProcessorConfigSpec<PradarProcessor> nodeProcessorConfigSpec = new PradarProcessorConfigSpec();
+            nodeProcessorConfigSpec.setName("nodeMetrics");
+            nodeProcessorConfigSpec.setDigesters(conf.buildNodeProcess(dataRuntime));
+            nodeProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor nodeProcessor = dataRuntime.createGenericInstance(nodeProcessorConfigSpec);
+
+            /**
+             * agent日志
+             */
+            ProcessorConfigSpec<PradarProcessor> agentProcessorConfigSpec = new PradarProcessorConfigSpec();
+            agentProcessorConfigSpec.setName("agent-log");
+            agentProcessorConfigSpec.setDigesters(conf.buildAgentProcess(dataRuntime));
+            agentProcessorConfigSpec.setExecuteSize(coreSize);
+            PradarProcessor agentProcessor = dataRuntime.createGenericInstance(agentProcessorConfigSpec);
+
+
+            Map<String, DataQueue> queueMap = Maps.newHashMap();
+            queueMap.put(String.valueOf(DataType.TRACE_LOG), traceLogProcessor);
+            queueMap.put(String.valueOf(DataType.MONITOR_LOG), baseProcessor);
+            queueMap.put(String.valueOf(DataType.AGENT_LOG), agentProcessor);
+            queueMap.put(String.valueOf(DataType.NODE_LOG), nodeProcessor);
+
+            nettyRemotingSupplier.setQueue(queueMap);
+            nettyRemotingSupplier.setInputPortMap(serverPortsMap);
+            grpcSupplier.setQueue(queueMap);
+            return grpcSupplier;
+        } catch (Throwable e) {
+            logger.error("jetty fail " + ExceptionUtils.getStackTrace(e));
+            throw new RuntimeException("jetty fail");
+        }
+    }
+
+    /**
      * 创建jetty订阅器
      *
      * @param dataRuntime

@@ -30,8 +30,8 @@ import java.util.Map;
  * @description 不依赖storm, 支持java -cp方式启动
  * @datetime 2021-08-04 6:59 下午
  */
-public class GrpcBootStrap {
-    private final static Logger logger = LoggerFactory.getLogger(GrpcBootStrap.class);
+public class BootStrap {
+    private final static Logger logger = LoggerFactory.getLogger(BootStrap.class);
 
     public static void main(String[] args) {
         //读取启动命令参数
@@ -52,7 +52,7 @@ public class GrpcBootStrap {
                         inputMap.get(ParamUtil.PORTS));
         try {
             DataRuntime dataRuntime = pradarStormSupplierConfiguration.initDataRuntime();
-            pradarStormSupplierConfiguration.buildGrpcSupplier(dataRuntime, false).start();
+            pradarStormSupplierConfiguration.buildMixedSupplier(dataRuntime, false).start();
         } catch (Throwable e) {
             throw new RuntimeException("fail to start PradarLog", e);
         }
