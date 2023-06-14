@@ -103,6 +103,27 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
     private Cache<String, String> cache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(1, TimeUnit.HOURS).build();
 
 
+    private int getSampling(RpcBased rpcBased) {
+        //获取每个应用的采样率
+        Integer sampling = null;
+        String traceId = rpcBased.getTraceId();
+        if (StringUtils.length(traceId) >= 35) {
+            try {
+                sampling = Integer.valueOf(StringUtils.substring(traceId, 30, 34));
+            } catch (NumberFormatException e) {
+            }
+        }
+
+        if (sampling == null) {
+            //对于调试流量,agent不采样,采样率默认为1
+            if (!rpcBased.getFlags().isDebugTest()) {
+                sampling = appConfigUtil.getAppSamplingByAppName(rpcBased.getUserAppKey(), rpcBased.getEnvCode()
+                        , rpcBased.getAppName(), String.valueOf(rpcBased.isClusterTest()));
+            }
+        }
+        return sampling == null ? 1 : sampling;
+    }
+
     /**
      * 处理trace日志计算metrics
      *
@@ -178,11 +199,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
         String tenantCode = TenantCodeCache.getInstance().get(userAppKey);
         String envCode = rpcBased.getEnvCode();
         //获取每个应用的采样率
-        int sampling = 1;
-        //对于调试流量,agent不采样,采样率默认为1
-        if (!rpcBased.getFlags().isDebugTest()) {
-            sampling = appConfigUtil.getAppSamplingByAppName(userAppKey, envCode, rpcBased.getAppName(), clusterTest);
-        }
+        int sampling = getSampling(rpcBased);
 
         // 断言列表,兼容老的nodeId查询
         Map<String, Rule> nodeAssertListMap = Maps.newHashMap();
