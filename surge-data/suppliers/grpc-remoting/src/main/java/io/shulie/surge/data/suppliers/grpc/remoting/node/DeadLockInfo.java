@@ -1,6 +1,7 @@
 package io.shulie.surge.data.suppliers.grpc.remoting.node;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * @Description
@@ -47,6 +48,24 @@ public class DeadLockInfo implements Serializable {
 
     public void setDeadLockInfo(String deadLockInfo) {
         this.deadLockInfo = deadLockInfo;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        DeadLockInfo that = (DeadLockInfo) o;
+
+        if (!Objects.equals(threadId, that.threadId)) return false;
+        return Objects.equals(lockOwnerId, that.lockOwnerId);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = threadId != null ? threadId.hashCode() : 0;
+        result = 31 * result + (lockOwnerId != null ? lockOwnerId.hashCode() : 0);
+        return result;
     }
 
     @Override

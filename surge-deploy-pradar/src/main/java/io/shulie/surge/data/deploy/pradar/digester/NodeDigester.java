@@ -28,12 +28,15 @@ import io.shulie.surge.data.runtime.common.remote.DefaultValue;
 import io.shulie.surge.data.runtime.common.remote.Remote;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
+import io.shulie.surge.data.suppliers.grpc.remoting.node.DeadLockInfo;
 import io.shulie.surge.data.suppliers.grpc.remoting.node.NodeInfo;
 import io.shulie.surge.data.suppliers.grpc.remoting.node.ThreadStat;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -95,7 +98,8 @@ public class NodeDigester implements DataDigester<NodeInfo> {
 
         // 堆使用/eden 使用/survivor使用/old 区使用/metaspace 使用/codeCache 使用/nonHeap 使用/cpu 使用率/younggc次数/younggc 耗时
         // fullGc 次数/fullGc耗时/内存使用/ 新建线程数/运行中线程数/blocked 线程数/等待线程数/timed 等待线程数/terminated 线程数
-        long newCount = 0, runnableCount = 0, blockedCount = 0, waitingCount = 0, timedWaitingCount = 0, terminatedCount = 0;
+        long newCount = 0, runnableCount = 0, blockedCount = 0, waitingCount = 0, timedWaitingCount = 0, terminatedCount = 0,
+                threadCount = nodeInfo.getThread().getThreadInfo().size();
         for (ThreadStat threadStat : nodeInfo.getThread().getThreadInfo()) {
             if (StringUtils.equalsIgnoreCase(Thread.State.NEW.name(), threadStat.getState())) {
                 newCount++;
@@ -111,6 +115,9 @@ public class NodeDigester implements DataDigester<NodeInfo> {
                 terminatedCount++;
             }
         }
+
+        Set<DeadLockInfo> locks = new HashSet<>(nodeInfo.getThread().getDeadLockInfo());
+        int threadDeadlockCount = (int) locks.stream().map(DeadLockInfo::getThreadId).distinct().count();
 
         CallStat callStat = new CallStat(
                 nodeInfo.getJvmInfo().getHeapUsed(),
@@ -130,7 +137,9 @@ public class NodeDigester implements DataDigester<NodeInfo> {
 
                 nodeInfo.getMemory().getMemoryUsed(),
 
+                threadCount,
                 newCount,
+                threadDeadlockCount,
                 runnableCount,
                 blockedCount,
                 waitingCount,

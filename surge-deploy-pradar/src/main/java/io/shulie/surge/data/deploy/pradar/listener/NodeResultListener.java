@@ -82,12 +82,14 @@ public class NodeResultListener implements DefaultAggregator.ResultListener {
             fields.put("fullGcCount", callStat.get(10));
             fields.put("fullGcCost", callStat.get(11));
             fields.put("memoryUsed", callStat.get(12));
-            fields.put("newThreadCount", callStat.get(13));
-            fields.put("runnableThreadCount", callStat.get(14));
-            fields.put("blockedThreadCount", callStat.get(15));
-            fields.put("waitingThreadCount", callStat.get(16));
-            fields.put("timedWaitingThreadCount", callStat.get(17));
-            fields.put("terminatedThreadCount", callStat.get(18));
+            fields.put("threadCount", callStat.get(13));
+            fields.put("threadNewCount", callStat.get(14));
+            fields.put("threadDeadlockCount", callStat.get(15));
+            fields.put("threadRunnableCount", callStat.get(16));
+            fields.put("threadBlockedCount", callStat.get(17));
+            fields.put("threadWaitCount", callStat.get(18));
+            fields.put("threadTimedWaitCount", callStat.get(19));
+            fields.put("threadTerminatedCount", callStat.get(20));
             influxDbSupport.write(metricsDataBase, metricsId, influxdbTags, fields, slotKey * 1000);
         } catch (Throwable e) {
             logger.error("write fail influxdb " + ExceptionUtils.getStackTrace(e));
