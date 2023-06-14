@@ -43,6 +43,7 @@ import io.shulie.surge.data.sink.mysql.MysqlModule;
 import io.shulie.surge.data.suppliers.grpc.remoting.GrpcSupplier;
 import io.shulie.surge.data.suppliers.grpc.remoting.GrpcSupplierModule;
 import io.shulie.surge.data.suppliers.grpc.remoting.GrpcSupplierSpec;
+import io.shulie.surge.data.suppliers.grpc.remoting.MixedSupplier;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplier;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplierSpec;
@@ -245,7 +246,7 @@ public class PradarStormSupplierConfiguration {
      * @param isDistributed
      * @return
      */
-    public GrpcSupplier buildMixedSupplier(DataRuntime dataRuntime, Boolean isDistributed) {
+    public MixedSupplier buildMixedSupplier(DataRuntime dataRuntime, Boolean isDistributed) {
         try {
             PradarSupplierConfiguration conf = new PradarSupplierConfiguration("", dataSourceType);
             GrpcSupplierSpec grpcSupplierSpec = new GrpcSupplierSpec();
@@ -305,7 +306,7 @@ public class PradarStormSupplierConfiguration {
             nettyRemotingSupplier.setQueue(queueMap);
             nettyRemotingSupplier.setInputPortMap(serverPortsMap);
             grpcSupplier.setQueue(queueMap);
-            return grpcSupplier;
+            return new MixedSupplier(grpcSupplier, nettyRemotingSupplier);
         } catch (Throwable e) {
             logger.error("jetty fail " + ExceptionUtils.getStackTrace(e));
             throw new RuntimeException("jetty fail");

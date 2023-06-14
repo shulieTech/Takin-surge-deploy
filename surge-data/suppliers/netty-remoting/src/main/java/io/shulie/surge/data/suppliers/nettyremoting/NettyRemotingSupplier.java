@@ -83,7 +83,7 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
         for (int index = parsePortRange.get(MIN); index <= parsePortRange.get(MAX); index++) {
             try {
                 port = index;
-                remotingServer = getRemotingServer(port);
+                remotingServer = createRemotingServerAndStart(port);
             } catch (Throwable e) {
                 logger.error("next port start " + index);
                 continue;
@@ -96,11 +96,11 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
     }
 
     /**
-     * 初始化remoting server
+     * 初始化remoting server并且启动
      *
      * @return
      */
-    private RemotingServer getRemotingServer(int port) {
+    private RemotingServer createRemotingServerAndStart(int port) {
         ProtocolFactorySelector selector = new DefaultProtocolFactorySelector();
         NettyServerConfigurator config = new NettyServerConfigurator();
         config.setListenPort(port);

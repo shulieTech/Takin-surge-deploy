@@ -99,7 +99,7 @@ public class GrpcSupplier extends DefaultMultiProcessorSupplier {
         for (int index = port; index <= maxPort; index++) {
             try {
                 port = index;
-                server = getServer(port);
+                server = createServerAndStart(port);
                 logger.info("current started port is {}", port);
                 registedPort.add(port);
             } catch (Throwable e) {
@@ -110,7 +110,6 @@ public class GrpcSupplier extends DefaultMultiProcessorSupplier {
             break;
         }
         TenantCodeCache.getInstance().init(takinHost, takinPort, takinTenantPath);
-        this.server.start();
         super.start();
 
         logger.info("JETTY supplier started success.port is {}", port);
@@ -144,7 +143,7 @@ public class GrpcSupplier extends DefaultMultiProcessorSupplier {
      * @return
      * @throws Exception
      */
-    private GrpcServer getServer(int port) throws Exception {
+    private GrpcServer createServerAndStart(int port) throws Exception {
         GrpcServerConfig grpcServerConfig = buildGrpcServerConfig(port);
         this.server = new GrpcServer(
                 grpcServerConfig,
@@ -153,6 +152,7 @@ public class GrpcSupplier extends DefaultMultiProcessorSupplier {
                 new NodeAcceptorProtoImpl(queueMap.get(String.valueOf(DataType.NODE_LOG)))
 
         );
+        this.server.start();
         return server;
     }
 

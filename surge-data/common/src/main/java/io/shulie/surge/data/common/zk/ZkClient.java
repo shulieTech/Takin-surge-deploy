@@ -15,7 +15,7 @@
 
 package io.shulie.surge.data.common.zk;
 
-import com.netflix.curator.framework.recipes.locks.InterProcessMutex;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import io.shulie.surge.data.common.lifecycle.Stoppable;
 
 import java.util.List;
