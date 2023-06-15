@@ -22,6 +22,8 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.Map;
 
 public class TTrackClickhouseModel extends LinkPublicModel{
+    private String chainCode;
+    private String serviceCode;
     private String appName;
     private String traceId;
     private String entranceNodeId;
@@ -76,6 +78,8 @@ public class TTrackClickhouseModel extends LinkPublicModel{
 
     public RpcBased getRpcBased() {
         RpcBased rpcBased = new RpcBased();
+        rpcBased.setChainCode(chainCode);
+        rpcBased.setServiceCode(serviceCode);
         rpcBased.setAppName(appName);
         rpcBased.setTraceId(traceId);
         rpcBased.setEntranceNodeId(entranceNodeId);
@@ -114,6 +118,7 @@ public class TTrackClickhouseModel extends LinkPublicModel{
         rpcBased.setUserId(getUserId());
         rpcBased.setUserAppKey(getUserAppKey());
         rpcBased.setEnvCode(getEnvCode());
+        rpcBased.setTenantCode(getTenantCode());
         String middleWareName = StringUtils.defaultString(rpcBased.getMiddlewareName()).toLowerCase();
         if (middleWareName.contains("feign") || middleWareName.contains("dubbo")) {
             rpcBased.setTrackMethod(rpcBased.getServiceName() + "#" + rpcBased.getMethodName());
@@ -487,5 +492,21 @@ public class TTrackClickhouseModel extends LinkPublicModel{
 
     public void setAgentId(String agentId) {
         this.agentId = agentId;
+    }
+
+    public String getChainCode() {
+        return chainCode;
+    }
+
+    public void setChainCode(String chainCode) {
+        this.chainCode = chainCode;
+    }
+
+    public String getServiceCode() {
+        return serviceCode;
+    }
+
+    public void setServiceCode(String serviceCode) {
+        this.serviceCode = serviceCode;
     }
 }

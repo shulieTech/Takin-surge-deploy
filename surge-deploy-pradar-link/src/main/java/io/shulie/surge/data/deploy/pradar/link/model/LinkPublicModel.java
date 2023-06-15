@@ -7,6 +7,11 @@ public class LinkPublicModel {
     private String userAppKey;
 
     /**
+     * tenantCode
+     */
+    private String tenantCode;
+
+    /**
      * envCode
      */
     private String envCode;
@@ -15,6 +20,14 @@ public class LinkPublicModel {
      * userId
      */
     private String userId;
+
+    public String getTenantCode() {
+        return tenantCode;
+    }
+
+    public void setTenantCode(String tenantCode) {
+        this.tenantCode = tenantCode;
+    }
 
     public String getUserAppKey() {
         return userAppKey;

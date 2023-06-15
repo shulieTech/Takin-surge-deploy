@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 public class LinkEntranceModel extends LinkPublicModel {
+    private String chainCode;
+    private String serviceCode;
     String entranceId;
     String appName;
     String serviceName;
@@ -186,10 +188,28 @@ public class LinkEntranceModel extends LinkPublicModel {
         this.defaultWhiteInfo = defaultWhiteInfo;
     }
 
+    public String getChainCode() {
+        return chainCode;
+    }
+
+    public void setChainCode(String chainCode) {
+        this.chainCode = chainCode;
+    }
+
+    public String getServiceCode() {
+        return serviceCode;
+    }
+
+    public void setServiceCode(String serviceCode) {
+        this.serviceCode = serviceCode;
+    }
+
     @Override
     public String toString() {
         return "LinkEntranceModel{" +
                 "entranceId='" + entranceId + '\'' +
+                ", chainCode='" + chainCode + '\'' +
+                ", serviceCode='" + serviceCode + '\'' +
                 ", appName='" + appName + '\'' +
                 ", serviceName='" + serviceName + '\'' +
                 ", methodName='" + methodName + '\'' +
