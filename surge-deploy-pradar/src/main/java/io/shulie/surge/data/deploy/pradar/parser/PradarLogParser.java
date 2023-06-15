@@ -17,8 +17,10 @@ package io.shulie.surge.data.deploy.pradar.parser;
 
 import com.pamirs.pradar.log.parser.ProtocolParserFactory;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
+import io.shulie.surge.data.deploy.pradar.parser.utils.Md5Utils;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.runtime.parser.DataParser;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +58,12 @@ public class PradarLogParser implements DataParser<String, RpcBased> {
 
         DigestContext<RpcBased> context = new DigestContext<>();
         context.setContent(rpcBased);
+        if (StringUtils.isBlank(rpcBased.getChainCode())) {
+            rpcBased.setChainCode(rpcBased.getEntranceId());
+        }
+        if (StringUtils.isBlank(rpcBased.getServiceCode())) {
+            rpcBased.setServiceCode(Md5Utils.md5(rpcBased.getServiceId()));
+        }
         context.setHeader(header);
         context.setProcessTime(now);
         context.setEventTime(rpcBased.getLogTime());

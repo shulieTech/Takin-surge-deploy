@@ -37,6 +37,8 @@ public class BaseCommand implements ClickhouseCommand {
      */
     public LinkedHashSet<String> meta() {
         LinkedHashSet<String> meta = Sets.newLinkedHashSet();
+        meta.add("chainCode");
+        meta.add("serviceCode");
         meta.add("appName");
         meta.add("entranceId");
         meta.add("entranceNodeId");
@@ -88,6 +90,8 @@ public class BaseCommand implements ClickhouseCommand {
     @Override
     public LinkedHashMap<String, Object> action(RpcBased rpcBased) {
         LinkedHashMap<String, Object> map = Maps.newLinkedHashMap();
+        map.put("chainCode", rpcBased.getChainCode());
+        map.put("serviceCode", rpcBased.getServiceCode());
         map.put("appName", rpcBased.getAppName());
         map.put("entranceId", rpcBased.getEntranceId());
         map.put("entranceNodeId", rpcBased.getEntranceNodeId());
