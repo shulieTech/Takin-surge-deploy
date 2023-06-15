@@ -39,6 +39,8 @@ public class TraceAcceptorProtoImpl implements TraceAcceptorProto {
             rpcBased.setAppName(message.getAppName());
             rpcBased.setTraceId(message.getTraceId());
             rpcBased.setTenantCode(message.getTenantCode());
+            rpcBased.setChainCode(message.getChainCode());
+            rpcBased.setServiceCode(message.getServiceCode());
             rpcBased.setEnvCode(message.getEnvCode());
             rpcBased.setInvokeId(message.getInvokeId());
             rpcBased.setRpcType(message.getMiddlewareType());

@@ -109,7 +109,6 @@ public class GrpcSupplier extends DefaultMultiProcessorSupplier {
             // 启动成功以后就停止掉
             break;
         }
-        TenantCodeCache.getInstance().init(takinHost, takinPort, takinTenantPath);
         super.start();
 
         logger.info("JETTY supplier started success.port is {}", port);
