@@ -28,6 +28,7 @@ import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
+import io.shulie.surge.data.sink.rocketmq.RocketMQModule;
 import io.shulie.surge.deploy.pradar.common.CommonStat;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
@@ -71,7 +72,7 @@ public class PradarLinkConfiguration {
     public DataRuntime initDataRuntime() {
         DataBootstrap bootstrap = DataBootstrap.create("deploy.properties");
         DataBootstrapEnhancer.enhancer(bootstrap);
-        bootstrap.install(new PradarModule(), new ClickHouseModule(), new MysqlModule());
+        bootstrap.install(new PradarModule(), new ClickHouseModule(), new MysqlModule(), new RocketMQModule());
         return bootstrap.startRuntime();
     }
 

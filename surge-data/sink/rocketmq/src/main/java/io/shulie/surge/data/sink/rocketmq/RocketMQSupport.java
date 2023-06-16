@@ -18,10 +18,15 @@ package io.shulie.surge.data.sink.rocketmq;
 
 import com.google.inject.ImplementedBy;
 import io.shulie.surge.data.common.lifecycle.Stoppable;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+
+import java.util.List;
 
 /**
- * 封装 InfluxDB 的服务的写实现
+ * 封装 rocketmq 的服务的写实现
  *
  * @author xingchen
  */
@@ -33,6 +38,15 @@ public interface RocketMQSupport extends Stoppable {
      * @param msg 发送消息
      */
     void sendMq(String topic, String tag, String key, String msg, SendCallback sendCallback) throws Exception;
+
+    /**
+     * 批量发送消息
+     *
+     * @param topic
+     * @param messages
+     * @param sendCallback
+     */
+    void batchSendMq(String topic, List<Message> messages, SendCallback sendCallback) throws Exception;
 
     /**
      * 单向发送

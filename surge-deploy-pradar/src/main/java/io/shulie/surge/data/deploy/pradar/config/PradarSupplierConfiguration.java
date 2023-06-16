@@ -31,6 +31,7 @@ import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseShardModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
+import io.shulie.surge.data.sink.rocketmq.RocketMQModule;
 import io.shulie.surge.data.suppliers.grpc.remoting.GrpcSupplierModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplier;
@@ -123,7 +124,9 @@ public class PradarSupplierConfiguration {
                 new InfluxDBModule(),
                 new ClickHouseModule(),
                 new ClickHouseShardModule(),
-                new MysqlModule());
+                new MysqlModule(),
+                new RocketMQModule()
+        );
         DataRuntime dataRuntime = bootstrap.startRuntime();
         return dataRuntime;
     }
@@ -146,7 +149,8 @@ public class PradarSupplierConfiguration {
     public DataDigester[] buildTraceLogProcess(DataRuntime dataRuntime) {
         LogDigester logDigester = dataRuntime.getInstance(LogDigester.class);
         logDigester.setDataSourceType(this.dataSourceType);
-        return new DataDigester[]{logDigester};
+        RocketMqDigester rocketMqDigester = dataRuntime.getInstance(RocketMqDigester.class);
+        return new DataDigester[]{logDigester, rocketMqDigester};
     }
 
 

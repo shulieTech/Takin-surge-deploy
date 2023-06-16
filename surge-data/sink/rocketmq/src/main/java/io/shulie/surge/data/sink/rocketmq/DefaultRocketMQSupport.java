@@ -21,9 +21,12 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
  * 基于 RocketMQSupport
@@ -59,6 +62,12 @@ public class DefaultRocketMQSupport implements RocketMQSupport {
     @Override
     public void sendMq(String topic, String tag, String key, String msg, SendCallback sendCallback) throws Exception {
         this.defaultMQProducer.send(new Message(topic, tag, key, msg.getBytes(RemotingHelper.DEFAULT_CHARSET)), sendCallback);
+    }
+
+    @Override
+    public void batchSendMq(String topic, List<Message> messages, SendCallback sendCallback) throws Exception {
+        MessageBatch batch = MessageBatch.generateFromList(messages);
+        this.defaultMQProducer.send(batch, sendCallback);
     }
 
     /**
