@@ -48,9 +48,9 @@ public class OpentelemetryMetricsBaseConverter {
             throw new IllegalArgumentException(AGENT_ID + " is null" + resource);
         }
         if (attributes.containsKey(USER_APP_KEY)) {
-            String tenantCode = attributes.get(USER_APP_KEY);
+            String tenantCode = TenantCodeCache.getInstance().get(attributes.get(USER_APP_KEY));
             if (StringUtils.isBlank(tenantCode)) {
-                throw new IllegalArgumentException("Tenant code is empty");
+                throw new IllegalArgumentException("Tenant code is not register.UserAppKey:" + attributes.get(USER_APP_KEY));
             }
             metricsProtoBean.setTenantCode(tenantCode);
         } else {

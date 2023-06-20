@@ -7,6 +7,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.util.Objects;
@@ -66,9 +67,14 @@ public class TenantCodeCache {
      */
     public String get(String userAppKey) {
         if (!inited.get()) {
-            throw new IllegalStateException("TenantCodeCache is not inited");
+            log.error("TenantCodeCache is not inited");
+            return userAppKey;
         }
-        return tenantCodeCache.getIfPresent(userAppKey);
+        String value = tenantCodeCache.getIfPresent(userAppKey);
+        if (StringUtils.isBlank(value)) {
+            return userAppKey;
+        }
+        return value;
     }
 
     private void loadTenantCodeMap(String host, int port, String path) {
