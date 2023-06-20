@@ -70,18 +70,6 @@ public class GrpcSupplier extends DefaultMultiProcessorSupplier {
     @Named("takin.acceptor.grpc.skipSilentLog")
     private Boolean skipSilentLog = false;
 
-    @Inject
-    @Named("takin.host")
-    private String takinHost;
-
-    @Inject
-    @Named("takin.port")
-    private int takinPort = 10008;
-
-    @Inject
-    @Named("takin.tenant.path")
-    private String takinTenantPath = "/takin-web/api/sso/getTenantList";
-
 
     private int port = 39900;
 
