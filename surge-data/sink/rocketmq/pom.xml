@@ -20,18 +20,17 @@
     <parent>
         <groupId>io.shulie.surge.data</groupId>
         <artifactId>sink</artifactId>
-        <version>${surge.data.version}</version>
+        <version>1.3</version>
 </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>rocketmq</artifactId>
-    <version>${surge.data.version}</version>
 
     <dependencies>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>runtime</artifactId>
-            <version>${surge.data.version}</version>
+            <version>${project.verion}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.rocketmq</groupId>

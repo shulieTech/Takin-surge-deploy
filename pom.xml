@@ -22,7 +22,6 @@
     <packaging>pom</packaging>
     <groupId>io.shulie.surge.data</groupId>
     <artifactId>surge-deploy</artifactId>
-    <version>${surge.data.version}</version>
     <properties>
         <surge.data.version>1.3</surge.data.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
