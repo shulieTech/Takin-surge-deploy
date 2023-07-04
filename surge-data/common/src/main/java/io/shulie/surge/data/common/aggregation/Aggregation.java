@@ -18,8 +18,9 @@ package io.shulie.surge.data.common.aggregation;
 import com.google.common.collect.Maps;
 import io.shulie.surge.data.common.lifecycle.Stoppable;
 import io.shulie.surge.data.common.utils.FormatUtils;
-import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.NonBlockingHashMapLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,7 +40,7 @@ public class Aggregation<K, A extends AggregateSupport<A>> implements Stoppable 
 
     private static final int MILLIS_PER_SECOND = 1000;
 
-    private static final Logger logger = Logger.getLogger(Aggregation.class);
+    private static final Logger logger = LoggerFactory.getLogger(Aggregation.class);
 
     /**
      * 聚集间隔，也是聚集的数据的时间粒度，最小粒度为秒，也就是最小每秒提交一次聚集结果

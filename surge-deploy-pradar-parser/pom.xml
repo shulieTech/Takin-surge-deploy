@@ -37,11 +37,13 @@
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
+            <version>${surge.data.version}</version>
             <artifactId>common</artifactId>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>runtime</artifactId>
+            <version>${surge.data.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

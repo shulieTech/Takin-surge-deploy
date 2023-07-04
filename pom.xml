@@ -24,7 +24,7 @@
     <artifactId>surge-deploy</artifactId>
     <version>1.0</version>
     <properties>
-        <surge.data.version>1.0</surge.data.version>
+        <surge.data.version>1.3</surge.data.version>
         <surge.deploy.version>1.0</surge.deploy.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <encoding>UTF-8</encoding>
@@ -35,6 +35,8 @@
         <log.remoting.version>2.0.5</log.remoting.version>
         <log.assembler.version>2.0.4</log.assembler.version>
         <surge.deploy.pradar.link.version>1.0.2.7</surge.deploy.pradar.link.version>
+        <curator.version>5.5.0</curator.version>
+        <guava.version>30.1.1-jre</guava.version>
     </properties>
     <modules>
         <module>surge-deploy-pradar</module>

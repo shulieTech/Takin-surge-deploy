@@ -15,11 +15,11 @@
 
 package io.shulie.surge.data.common.zk.impl;
 
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.state.ConnectionState;
-import com.netflix.curator.framework.state.ConnectionStateListener;
-import com.netflix.curator.utils.ZKPaths;
 import io.shulie.surge.data.common.zk.ZkHeartbeatNode;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.framework.state.ConnectionStateListener;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -32,6 +32,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.curator.framework.state.ConnectionState.LOST;
+import static org.apache.curator.framework.state.ConnectionState.RECONNECTED;
 
 /**
  * zk 心跳节点的实现
