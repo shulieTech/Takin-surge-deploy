@@ -31,7 +31,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>mysql</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-beanutils</groupId>
@@ -48,17 +48,17 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>common</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>clickhouse</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-parser</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>asm</artifactId>
@@ -73,7 +73,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-common</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
         <!-- mockito-->

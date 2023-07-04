@@ -37,7 +37,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>common</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

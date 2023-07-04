@@ -52,7 +52,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>asm-all</artifactId>
@@ -83,7 +83,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-parser</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>jline</artifactId>

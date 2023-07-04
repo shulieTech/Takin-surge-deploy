@@ -37,12 +37,12 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>runtime</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>common</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>

@@ -32,13 +32,13 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-common</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>runtime</artifactId>
-            <version>${project.verion}</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
