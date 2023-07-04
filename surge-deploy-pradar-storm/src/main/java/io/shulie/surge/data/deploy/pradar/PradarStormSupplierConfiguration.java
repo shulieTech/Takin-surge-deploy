@@ -69,6 +69,7 @@ public class PradarStormSupplierConfiguration {
     private String work = "";
     private Map<String, String> serverPortsMap = Maps.newHashMap();
     private String dataSourceType;
+    private String openMqConsumer;
     private boolean registerZk;
     private boolean generalVersion;
     private int coreSize;
@@ -76,7 +77,8 @@ public class PradarStormSupplierConfiguration {
     public PradarStormSupplierConfiguration(Map<String, String> netMap, Map<String, String> hostNameMap,
                                             boolean registerZk, int coreSize, String dataSourceType,
                                             Map<String, String> serverPortsMap,
-                                            boolean generalVersion, String host, String work) {
+                                            boolean generalVersion, String host, String work,
+                                            String openMqConsumer) {
         this.netMap = netMap;
         this.hostNameMap = hostNameMap;
         this.registerZk = registerZk;
@@ -86,6 +88,7 @@ public class PradarStormSupplierConfiguration {
         this.generalVersion = generalVersion;
         this.host = host;
         this.work = work;
+        this.openMqConsumer = openMqConsumer;
     }
 
 
@@ -126,7 +129,7 @@ public class PradarStormSupplierConfiguration {
      */
     public NettyRemotingSupplier buildSupplier(DataRuntime dataRuntime, Boolean isDistributed) {
         try {
-            PradarSupplierConfiguration conf = new PradarSupplierConfiguration("", dataSourceType);
+            PradarSupplierConfiguration conf = new PradarSupplierConfiguration("", dataSourceType, openMqConsumer);
             NettyRemotingSupplierSpec nettyRemotingSupplierSpec = new NettyRemotingSupplierSpec();
             nettyRemotingSupplierSpec.setNetMap(netMap);
             nettyRemotingSupplierSpec.setHostNameMap(hostNameMap);
@@ -188,7 +191,7 @@ public class PradarStormSupplierConfiguration {
      */
     public JettySupplier buildJettySupplier(DataRuntime dataRuntime, Boolean isDistributed) {
         try {
-            PradarSupplierConfiguration conf = new PradarSupplierConfiguration("", dataSourceType);
+            PradarSupplierConfiguration conf = new PradarSupplierConfiguration("", dataSourceType, openMqConsumer);
             JettySupplierSpec jettySupplierSpec = new JettySupplierSpec();
             JettySupplier jettySupplier = dataRuntime.createGenericInstance(jettySupplierSpec);
 

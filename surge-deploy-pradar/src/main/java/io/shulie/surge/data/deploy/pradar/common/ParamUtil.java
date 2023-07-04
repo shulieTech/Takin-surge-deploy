@@ -52,6 +52,12 @@ public class ParamUtil {
     public static final String EXTERNAL_ALIAS_FILE_KEY = "-DExternal.alias.file";
     //配置storm任务拓扑名称
     public static final String TOPOLOGY_NAME = "-DTopologyName=";
+    //配置是否开启jetty,不需要的话，需要主动关闭
+    public static final String HTTP = "-DHttp=";
+    //配置是否开启mq消费,不需要的话，需要主动关闭
+    public static final String MQConsumer = "-DMqConsumer=";
+    // 是否开启cpu亲和性
+    public static final String AffinityLock = "-DLock=";
 
     /**
      * 读取系统参数，是否设置ip映射
@@ -91,6 +97,12 @@ public class ParamUtil {
                     conf.put(ParamUtil.HOST, param.replace(ParamUtil.HOST, ""));
                 } else if (param.startsWith(ParamUtil.WORK)) {
                     conf.put(ParamUtil.WORK, param.replace(ParamUtil.WORK, ""));
+                } else if (param.startsWith(ParamUtil.AffinityLock)) {
+                    conf.put(ParamUtil.AffinityLock, param.replace(ParamUtil.AffinityLock, ""));
+                } else if (param.startsWith(ParamUtil.MQConsumer)) {
+                    conf.put(ParamUtil.MQConsumer, param.replace(ParamUtil.MQConsumer, ""));
+                } else if (param.startsWith(ParamUtil.HTTP)) {
+                    conf.put(ParamUtil.HTTP, param.replace(ParamUtil.HTTP, ""));
                 } else if (param.startsWith("-D")) {
                     String[] split = param.split("=");
                     conf.put(split[0], split[1]);
