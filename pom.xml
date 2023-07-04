@@ -22,10 +22,9 @@
     <packaging>pom</packaging>
     <groupId>io.shulie.surge.data</groupId>
     <artifactId>surge-deploy</artifactId>
-    <version>1.0</version>
+    <version>${surge.data.version}</version>
     <properties>
         <surge.data.version>1.3</surge.data.version>
-        <surge.deploy.version>1.0</surge.deploy.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <encoding>UTF-8</encoding>
         <java.version>1.8</java.version>
@@ -34,7 +33,6 @@
         <log.protocol.version>2.0.7.5</log.protocol.version>
         <log.remoting.version>2.0.5</log.remoting.version>
         <log.assembler.version>2.0.4</log.assembler.version>
-        <surge.deploy.pradar.link.version>1.0.2.7</surge.deploy.pradar.link.version>
         <curator.version>5.5.0</curator.version>
         <guava.version>30.1.1-jre</guava.version>
     </properties>
@@ -50,44 +48,24 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid</artifactId>
+                <version>1.1.21</version>
+            </dependency>
+            <dependency>
                 <groupId>io.shulie.pradar</groupId>
                 <artifactId>log-protocol</artifactId>
                 <version>${log.protocol.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.shulie.pradar</groupId>
                 <artifactId>log-remoting</artifactId>
                 <version>${log.remoting.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.shulie.surge.data</groupId>
-                <artifactId>surge-deploy-pradar-common</artifactId>
-                <version>1.1</version>
-            </dependency>
-            <dependency>
-                <groupId>io.shulie.surge.data</groupId>
-                <artifactId>surge-deploy-pradar-parser</artifactId>
-                <version>1.0.2</version>
-            </dependency>
-            <dependency>
-                <groupId>io.shulie.surge.data</groupId>
-                <artifactId>surge-deploy-pradar-link</artifactId>
-                <version>${surge.deploy.pradar.link.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.shulie.surge.data</groupId>
-                <artifactId>common</artifactId>
-                <version>1.1</version>
-            </dependency>
-            <dependency>
-                <groupId>io.shulie.surge.data</groupId>
-                <artifactId>runtime</artifactId>
-                <version>1.2</version>
-            </dependency>
-            <dependency>
-                <groupId>io.shulie.surge.data</groupId>
-                <artifactId>clickhouse</artifactId>
-                <version>1.0</version>
             </dependency>
             <!-- log core-->
             <dependency>

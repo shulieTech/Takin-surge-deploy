@@ -20,12 +20,12 @@
     <parent>
         <artifactId>surge-deploy</artifactId>
         <groupId>io.shulie.surge.data</groupId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>surge-deploy-pradar-parser</artifactId>
-    <version>1.0.2</version>
+    <version>${surge.data.version}</version>
 
     <dependencies>
 
@@ -33,18 +33,18 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-common</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.shulie.surge.data</groupId>
             <version>${surge.data.version}</version>
-            <artifactId>common</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>runtime</artifactId>
             <version>${surge.data.version}</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
         </dependency>
         <dependency>
             <groupId>io.shulie.pradar</groupId>

@@ -22,11 +22,11 @@
     <parent>
         <groupId>io.shulie.surge.data</groupId>
         <artifactId>sink</artifactId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
     </parent>
 
     <artifactId>elasticsearch</artifactId>
-
+    <version>${surge.data.version}</version>
     <name>elasticsearch</name>
 
     <properties>
@@ -36,6 +36,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>runtime</artifactId>
+            <version>${surge.data.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>elasticsearch-rest-high-level-client</artifactId>

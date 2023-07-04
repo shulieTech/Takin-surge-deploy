@@ -22,7 +22,7 @@
     <parent>
         <artifactId>surge-data</artifactId>
         <groupId>io.shulie.surge.data</groupId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
     </parent>
 
     <artifactId>runtime</artifactId>
@@ -38,6 +38,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>common</artifactId>
+            <version>${surge.data.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

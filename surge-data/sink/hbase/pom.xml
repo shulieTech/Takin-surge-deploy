@@ -20,11 +20,12 @@
     <parent>
         <groupId>io.shulie.surge.data</groupId>
         <artifactId>sink</artifactId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
 </parent>
     <modelVersion>4.0.0</modelVersion>
-
     <artifactId>hbase</artifactId>
+    <version>${surge.data.version}</version>
+
     <repositories>
         <repository>
             <id>hdp</id>
@@ -157,6 +158,11 @@
                     <groupId>org.jboss.netty</groupId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>runtime</artifactId>
+            <version>${surge.data.version}</version>
         </dependency>
         <dependency>
             <groupId>com.stumbleupon</groupId>

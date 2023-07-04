@@ -22,11 +22,40 @@
     <parent>
         <groupId>io.shulie.surge.data</groupId>
         <artifactId>suppliers</artifactId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
     </parent>
     <groupId>io.shulie.surge.data.suppliers</groupId>
     <artifactId>jetty-supplier</artifactId>
-    <version>1.0</version>
+    <version>${surge.data.version}</version>
+
+    <name>jetty-supplier</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>runtime</artifactId>
+            <version>${surge.data.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>common</artifactId>
+            <version>${surge.data.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>9.4.32.v20200930</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+            <version>9.4.32.v20200930</version>
+        </dependency>
+    </dependencies>
     <build>
         <plugins>
             <plugin>
@@ -40,30 +69,5 @@
             </plugin>
         </plugins>
     </build>
-    <name>jetty-supplier</name>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>io.shulie.surge.data</groupId>
-            <artifactId>runtime</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.shulie.surge.data</groupId>
-            <artifactId>common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-server</artifactId>
-            <version>9.4.32.v20200930</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
-            <version>9.4.32.v20200930</version>
-        </dependency>
-    </dependencies>
 </project>

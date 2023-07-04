@@ -20,18 +20,24 @@
     <parent>
         <groupId>io.shulie.surge.data</groupId>
         <artifactId>sink</artifactId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>clickhouse</artifactId>
+    <version>${surge.data.version}</version>
 
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.30</version>
+        </dependency>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>runtime</artifactId>
+            <version>${surge.data.version}</version>
         </dependency>
         <dependency>
             <groupId>ru.yandex.clickhouse</groupId>

@@ -20,11 +20,13 @@
     <parent>
         <artifactId>surge-deploy</artifactId>
         <groupId>io.shulie.surge.data</groupId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>surge-deploy-pradar-storm</artifactId>
+    <version>${surge.data.version}</version>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <encoding>UTF-8</encoding>
@@ -45,9 +47,13 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar</artifactId>
-            <version>1.0.2</version>
+            <version>${surge.data.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>asm-all</artifactId>
@@ -78,6 +84,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-parser</artifactId>
+            <version>${surge.data.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>jline</artifactId>

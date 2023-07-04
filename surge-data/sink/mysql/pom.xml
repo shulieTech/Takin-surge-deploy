@@ -20,7 +20,7 @@
     <parent>
         <groupId>io.shulie.surge.data</groupId>
         <artifactId>sink</artifactId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -28,6 +28,11 @@
     <version>${surge.data.version}</version>
 
     <dependencies>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>runtime</artifactId>
+            <version>${surge.data.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -46,7 +51,6 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid</artifactId>
-            <version>1.1.21</version>
         </dependency>
     </dependencies>
 

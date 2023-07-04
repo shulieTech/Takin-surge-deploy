@@ -20,19 +20,19 @@
     <parent>
         <artifactId>surge-deploy</artifactId>
         <groupId>io.shulie.surge.data</groupId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>surge-deploy-pradar</artifactId>
-    <version>1.0.2</version>
+    <version>${surge.data.version}</version>
 
     <dependencies>
 
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>influxdb</artifactId>
-            <version>1.0</version>
+            <version>${surge.data.version}</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.pradar</groupId>
@@ -58,12 +58,12 @@
         <dependency>
             <groupId>io.shulie.surge.data.suppliers</groupId>
             <artifactId>jetty-supplier</artifactId>
-            <version>1.0</version>
+            <version>${surge.data.version}</version>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data.suppliers</groupId>
             <artifactId>netty-remoting</artifactId>
-            <version>1.0</version>
+            <version>${surge.data.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.esotericsoftware</groupId>
@@ -86,12 +86,13 @@
         <dependency>
             <groupId>io.shulie.surge.data.suppliers</groupId>
             <artifactId>netty-httpserver</artifactId>
-            <version>1.0</version>
+            <version>${surge.data.version}</version>
         </dependency>
         <!--version managed by parent pom -->
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>clickhouse</artifactId>
+            <version>${surge.data.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>httpclient</artifactId>
@@ -102,6 +103,7 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-parser</artifactId>
+            <version>${surge.data.version}</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
@@ -113,11 +115,13 @@
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-common</artifactId>
+            <version>${surge.data.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.shulie.surge.data</groupId>
             <artifactId>surge-deploy-pradar-link</artifactId>
+            <version>${surge.data.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

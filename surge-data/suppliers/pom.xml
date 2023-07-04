@@ -20,12 +20,13 @@
     <parent>
         <groupId>io.shulie.surge.data</groupId>
         <artifactId>surge-data</artifactId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
     <artifactId>suppliers</artifactId>
+    <version>${surge.data.version}</version>
 
     <modules>
         <module>netty-remoting</module>

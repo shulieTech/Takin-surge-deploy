@@ -21,11 +21,11 @@
     <parent>
         <groupId>io.shulie.surge.data</groupId>
         <artifactId>sink</artifactId>
-        <version>1.0</version>
+        <version>${surge.data.version}</version>
     </parent>
 
     <artifactId>hdfs</artifactId>
-    <version>1.0</version>
+    <version>${surge.data.version}</version>
 
     <name>hdfs</name>
     <repositories>
@@ -41,6 +41,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>io.shulie.surge.data</groupId>
+            <artifactId>runtime</artifactId>
+            <version>${surge.data.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
