@@ -112,7 +112,7 @@ public class RocketmqDigester implements DataDigester<RpcBased> {
                             List<Message> listItem = splitter.next();
                             //发送消息
                             try {
-                                SendResult sendResult = producer.send(listItem);
+//                                SendResult sendResult = producer.send(listItem);
                             } catch (Exception e) {
                                 logger.error("Producer message error.", e);
                             }

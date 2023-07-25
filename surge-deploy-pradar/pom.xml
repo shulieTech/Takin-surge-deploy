@@ -36,7 +36,7 @@
         <dependency>
             <groupId>io.shulie.pradar</groupId>
             <artifactId>log-rule</artifactId>
-            <version>2.0.4</version>
+            <version>${log.protocol.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -126,6 +126,7 @@
         <dependency>
             <groupId>io.shulie.pradar</groupId>
             <artifactId>log-remoting</artifactId>
+            <version>${log.protocol.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

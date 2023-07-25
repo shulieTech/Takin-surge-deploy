@@ -36,6 +36,7 @@
         <dependency>
             <groupId>io.shulie.pradar</groupId>
             <artifactId>log-remoting</artifactId>
+            <version>${log.protocol.version}</version>
         </dependency>
     </dependencies>
 </project>

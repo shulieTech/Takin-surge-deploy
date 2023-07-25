@@ -204,8 +204,15 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
                 return responseCommand;
             }
 
+            /**
+             * 拒绝
+             *
+             * @param ctx
+             * @param request
+             * @return
+             */
             @Override
-            public boolean reject() {
+            public boolean reject(ChannelHandlerContext ctx, RemotingCommand request) {
                 try {
                     for (DataQueue dataQueue : queueMap.values()) {
                         dataQueue.canPublish(1000);
