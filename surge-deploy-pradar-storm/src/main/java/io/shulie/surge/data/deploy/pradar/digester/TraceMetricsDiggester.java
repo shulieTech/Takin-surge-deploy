@@ -152,7 +152,7 @@ public class TraceMetricsDiggester implements DataDigester<RpcBased> {
                 }
                 return;
             }
-//            rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
+            rpcBased.setEntranceId(""); //如果边不在真实业务活动中,把所有入口流量汇总一起算指标
             edgeId = rpcBasedParser.edgeId("", rpcBased);
             eagleTags = rpcBasedParser.edgeTags("", rpcBased);
         }
