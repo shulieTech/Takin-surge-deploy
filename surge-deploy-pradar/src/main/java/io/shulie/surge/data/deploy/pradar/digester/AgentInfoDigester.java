@@ -1,5 +1,6 @@
 package io.shulie.surge.data.deploy.pradar.digester;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.pamirs.pradar.log.parser.agent.AgentBased;
@@ -71,12 +72,19 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
     @Named("/pradar/config/rt/agentInfoSampling")
     private Remote<Integer> agentInfoSampling;
 
+    private RateLimiter rateLimiter = RateLimiter.create(Integer.MAX_VALUE);
+
+    @Inject
+    @DefaultValue("2000")
+    @Named("/pradar/config/agent/limitRate")
+    private Remote<Integer> limitRate;
+
     /**
      * 初始化任务只会执行一次
      */
     private void init() {
         //启动一个定时任务,每隔5分钟运行一次
-        executor.scheduleAtFixedRate((Runnable) () -> {
+        executor.scheduleAtFixedRate(() -> {
             Map<String, Object> countMap = mysqlSupport.queryForMap("select count(1) as count from t_amdb_agent_info;");
             if (MapUtils.isNotEmpty(countMap) && ((long) countMap.get("count") > maxRowSize.get())) {
                 logger.info("current agent log row length reach {},stop write into database.", countMap.get("count"));
@@ -127,6 +135,10 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
                 logger.warn("detect illegal agent log:{},skip it.", agentBased);
                 return;
             }
+            // 限流,每秒限制2000条
+            rateLimiter.setRate(limitRate.get());
+            rateLimiter.acquire();
+            logger.warn("agent info consume current rate:{}", rateLimiter.getRate());
 
             //对于1.1以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
             if (StringUtils.isBlank(agentBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(agentBased.getUserAppKey())) {
