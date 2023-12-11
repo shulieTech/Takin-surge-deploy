@@ -21,7 +21,10 @@ import com.pamirs.pradar.log.parser.DataType;
 import io.shulie.surge.data.JettySupplierModule;
 import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
-import io.shulie.surge.data.deploy.pradar.digester.*;
+import io.shulie.surge.data.deploy.pradar.digester.AgentInfoDigester;
+import io.shulie.surge.data.deploy.pradar.digester.BaseDataDigester;
+import io.shulie.surge.data.deploy.pradar.digester.LogDigester;
+import io.shulie.surge.data.deploy.pradar.digester.MetricsDigester;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.runtime.digest.DataDigester;
@@ -144,8 +147,7 @@ public class PradarSupplierConfiguration {
     public DataDigester[] buildTraceLogProcess(DataRuntime dataRuntime) {
         LogDigester logDigester = dataRuntime.getInstance(LogDigester.class);
         logDigester.setDataSourceType(this.dataSourceType);
-        KafkaDigester kafkaDigester = dataRuntime.getInstance(KafkaDigester.class);
-        return new DataDigester[]{logDigester, kafkaDigester};
+        return new DataDigester[]{logDigester};
     }
 
 

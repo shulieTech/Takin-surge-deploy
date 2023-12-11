@@ -36,6 +36,5 @@
         <module>clickhouse</module>
         <module>mysql</module>
         <module>hdfs</module>
-        <module>kafka</module>
     </modules>
 </project>
