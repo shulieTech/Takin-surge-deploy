@@ -228,6 +228,16 @@ public class MysqlSupport implements Lifecycle, Stoppable {
     }
 
     /**
+     * 执行指定sql
+     */
+    public void execute(String sql) {
+        if (jdbcTemplate == null) {
+            jdbcTemplate = new JdbcTemplate(dataSource);
+        }
+        jdbcTemplate.execute(sql);
+    }
+
+    /**
      * 查询map
      *
      * @param sql

@@ -18,7 +18,9 @@ package io.shulie.surge.data;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.shulie.surge.data.common.factory.GenericFactory;
+import io.shulie.surge.data.common.lifecycle.LifecycleObserver;
 import io.shulie.surge.data.runtime.common.DataRuntime;
+import io.shulie.surge.data.runtime.supplier.Supplier;
 
 @Singleton
 public class JettySupplierFactory implements GenericFactory<JettySupplier, JettySupplierSpec> {
@@ -29,6 +31,9 @@ public class JettySupplierFactory implements GenericFactory<JettySupplier, Jetty
     public JettySupplier create(JettySupplierSpec syncSpec) {
         JettySupplier supplier = new JettySupplier();
         runtime.inject(supplier);
+        LifecycleObserver<Supplier> jettySupplierConfigSync = new JettySupplierObserver();
+        runtime.inject(jettySupplierConfigSync);
+        supplier.addObserver(jettySupplierConfigSync);
         return supplier;
     }
 }
