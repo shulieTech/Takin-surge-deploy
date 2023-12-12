@@ -18,6 +18,7 @@ package io.shulie.surge.data.deploy.pradar.config;
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.pamirs.pradar.log.parser.DataType;
+import io.shulie.surge.data.JettySupplierModule;
 import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
 import io.shulie.surge.data.deploy.pradar.digester.*;
@@ -116,6 +117,7 @@ public class PradarSupplierConfiguration {
         bootstrap.install(
                 new PradarModule(workPort),
                 new NettyRemotingModule(),
+                new JettySupplierModule(),
                 new InfluxDBModule(),
                 new ClickHouseModule(),
                 new ClickHouseShardModule(),

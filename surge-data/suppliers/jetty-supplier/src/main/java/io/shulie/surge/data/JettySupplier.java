@@ -29,14 +29,16 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.BlockingArrayQueue;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @Author: xingchen
@@ -48,21 +50,27 @@ import java.util.concurrent.TimeUnit;
 public class JettySupplier extends DefaultMultiProcessorSupplier {
     private static Logger logger = LoggerFactory.getLogger(JettySupplier.class);
     private Server server;
-    private ServletContextHandler contextHandler = new ServletContextHandler();
-
     private List<Pair<String, Servlet>> servletMap = Lists.newArrayList();
 
     private static final String MIN = "MIN";
     private static final String MAX = "MAX";
+
+    public static ArrayList<Integer> registedPort = Lists.newArrayList();
 
 
     @Inject
     @Named("jetty.server.ports")
     protected String pradarServerPorts;
 
+    @Inject
+    @Named("jetty.server.threads")
+    protected int threads;
+
 
     @Inject
     private ApiProcessor apiProcessor;
+
+    private int port = 39900;
 
 
     /**
@@ -95,41 +103,59 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
         Map<String, Integer> parsePortRange = parsePort();
         for (int index = parsePortRange.get(MIN); index <= parsePortRange.get(MAX); index++) {
             try {
-                int port = index;
+                port = index;
                 server = getServer(port);
+                logger.info("current started port is {}", port);
+                registedPort.add(port);
             } catch (Throwable e) {
-                logger.error("next port start " + index);
+                logger.error("start current port {} catch exception:{},{},next port start {} ", index, e, e.getStackTrace(), index + 1);
                 continue;
             }
             // 启动成功以后就停止掉
             break;
         }
 
-
         // 初始化聚合接口
-        apiProcessor.init();
+        // apiProcessor.init();
         super.start();
 
-        logger.info("JETTY服务启动成功");
+        logger.info("JETTY supplier started success.port is {}", port);
+    }
+
+    /**
+     * 停止获取数据
+     *
+     * @throws Exception
+     */
+    @Override
+    public void stop() throws Exception {
+        logger.info("jetty服务已停止,端口:{}", server.getURI().getPort());
+        super.stop();
+        server.stop();
     }
 
     /**
      * 获取服务
+     *
      * @param port
      * @return
      * @throws Exception
      */
     private Server getServer(int port) throws Exception {
-        Server server = new Server();
+        //默认最大线程为200
+        //Server server = new Server();
+        Server server = new Server(new QueuedThreadPool(threads, threads / 2, new BlockingArrayQueue()));
         server.setStopAtShutdown(true);
         ServerConnector serverConnector = new ServerConnector(server);
         serverConnector.setPort(port);
         server.setConnectors(new Connector[]{serverConnector});
-        server.setHandler(contextHandler);
+
+        ServletContextHandler contextHandler = new ServletContextHandler();
         contextHandler.setContextPath("/");
         for (Pair<String, Servlet> pair : servletMap) {
             contextHandler.addServlet(new ServletHolder(pair.getValue()), pair.getKey());
         }
+        server.setHandler(contextHandler);
         server.start();
         return server;
     }
@@ -146,5 +172,13 @@ public class JettySupplier extends DefaultMultiProcessorSupplier {
     @Override
     public void addObserver(LifecycleObserver<Supplier> observer) {
         super.addObserver(observer);
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
     }
 }

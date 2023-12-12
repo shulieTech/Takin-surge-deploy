@@ -17,8 +17,6 @@ package io.shulie.surge.data.deploy.pradar.config;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import io.shulie.surge.data.common.aggregation.Scheduler;
 import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
@@ -27,8 +25,6 @@ import io.shulie.surge.data.deploy.pradar.link.AbstractLinkCache;
 import io.shulie.surge.data.deploy.pradar.link.processor.*;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
-import io.shulie.surge.data.runtime.common.remote.DefaultValue;
-import io.shulie.surge.data.runtime.common.remote.Remote;
 import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
@@ -59,14 +55,6 @@ public class PradarLinkConfiguration {
     private static long periodTime = 60;
 
     private static String defaultTaskId = "1";
-
-    /**
-     * 远程调用,默认
-     */
-    @Inject
-    @DefaultValue("2")
-    @Named("/pradar/config/rt/entranceProcess/expireDays")
-    private Remote<String> expireDays;
 
     public PradarLinkConfiguration() {
     }
@@ -163,7 +151,7 @@ public class PradarLinkConfiguration {
                 public void run() {
                     try {
                         // 两天未更新删除出口和入口
-                        entranceProcessor.shareExpire(Integer.parseInt(expireDays.get()));
+                        entranceProcessor.shareExpire();
                     } catch (Exception e) {
                         logger.error("do EntranceProcessor.shareExpire task error!", e);
                     }
