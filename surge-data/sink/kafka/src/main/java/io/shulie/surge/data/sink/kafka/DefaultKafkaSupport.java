@@ -56,7 +56,6 @@ public class DefaultKafkaSupport implements KafkaSupport {
      *
      * @param topic
      * @param msg          发送消息
-     * @param sendCallback
      * @throws Exception
      */
     @Override
@@ -68,7 +67,6 @@ public class DefaultKafkaSupport implements KafkaSupport {
      * 单向发送
      *
      * @param topic
-     * @param tag
      * @param msg   发送消息
      * @throws Exception
      */
