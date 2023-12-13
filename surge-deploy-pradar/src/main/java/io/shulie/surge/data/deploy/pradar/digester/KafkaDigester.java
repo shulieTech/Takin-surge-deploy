@@ -29,11 +29,8 @@ import io.shulie.surge.data.runtime.common.utils.ApiProcessor;
 import io.shulie.surge.data.runtime.digest.DataDigester;
 import io.shulie.surge.data.runtime.digest.DigestContext;
 import io.shulie.surge.data.sink.kafka.KafkaSupport;
-import io.shulie.surge.data.sink.rocketmq.RocketMQSupport;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.client.producer.SendResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,14 +47,14 @@ public class KafkaDigester implements DataDigester<RpcBased> {
     private KafkaSupport kafkaSupport;
 
     @Inject
-    @DefaultValue("true")
+    @DefaultValue("false")
     @Named("/pradar/config/rt/kafkaDisable")
     private Remote<Boolean> kafkaDisable;
-
     @Inject
-    @DefaultValue("1")
-    @Named("/pradar/config/rt/clickhouseSampling")
-    private Remote<Integer> clickhouseSampling;
+    @DefaultValue("100")
+    @Named("/pradar/config/rt/kafkaSampling")
+    private Remote<Integer> kafkaSampling;
+
 
     @Inject
     @Named("config.trace.topic")
@@ -73,7 +70,7 @@ public class KafkaDigester implements DataDigester<RpcBased> {
             if (rpcBased == null) {
                 return;
             }
-            if (!PradarUtils.isTraceSampleAccepted(rpcBased, clickhouseSampling.get())) {
+            if (!PradarUtils.isTraceSampleAccepted(rpcBased, kafkaSampling.get())) {
                 return;
             }
 
@@ -114,7 +111,7 @@ public class KafkaDigester implements DataDigester<RpcBased> {
         }
     }
 
-    public Remote<Integer> getClickhouseSampling() {
-        return clickhouseSampling;
+    public Remote<Integer> getKafkaSampling() {
+        return kafkaSampling;
     }
 }
