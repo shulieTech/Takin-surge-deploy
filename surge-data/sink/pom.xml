@@ -29,7 +29,7 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>hbase</module>
+<!--        <module>hbase</module>-->
         <module>influxdb</module>
         <module>rocketmq</module>
         <module>elasticsearch</module>

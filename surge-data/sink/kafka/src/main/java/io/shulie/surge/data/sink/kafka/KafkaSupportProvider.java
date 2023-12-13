@@ -46,7 +46,7 @@ public class KafkaSupportProvider implements Provider<KafkaSupport> {
     }
 
     @Override
-    public DefaultKafkaSupport get() {
+    public KafkaSupport get() {
         return this.singleton;
     }
 }

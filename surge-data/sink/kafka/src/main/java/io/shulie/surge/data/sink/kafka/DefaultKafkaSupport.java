@@ -41,7 +41,7 @@ public class DefaultKafkaSupport implements KafkaSupport {
             configs.put("bootstrap.servers", nameSrv);
             configs.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
             configs.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-            configs.put("acks",0);
+            configs.put("acks","0");
             configs.put("retries",0);
             configs.put("batch.size",5120);
             kafkaProducer = new KafkaProducer<>(configs);
@@ -56,7 +56,6 @@ public class DefaultKafkaSupport implements KafkaSupport {
      *
      * @param topic
      * @param msg          发送消息
-     * @param sendCallback
      * @throws Exception
      */
     @Override
@@ -68,7 +67,6 @@ public class DefaultKafkaSupport implements KafkaSupport {
      * 单向发送
      *
      * @param topic
-     * @param tag
      * @param msg   发送消息
      * @throws Exception
      */
