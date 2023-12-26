@@ -89,6 +89,7 @@ public class KafkaDigester implements DataDigester<RpcBased> {
                 rpcBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(rpcBased.getAppName()).get("envCode"));
             }
 
+            rpcBased.setLog("");
             String jsonString = JSON.toJSONString(rpcBased);
             kafkaSupport.sendMq(topic, rpcBased.getTraceId(), jsonString);
         } catch (Throwable e) {
