@@ -16,6 +16,7 @@
 package io.shulie.surge.data.deploy.pradar.digester.command;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.pamirs.pradar.log.parser.constant.TenantConstants;
@@ -31,7 +32,7 @@ import java.util.LinkedHashSet;
  * @author vincent
  */
 public class BaseCommand implements ClickhouseCommand {
-
+    private static String IP_16 = "ffffffff";
     /**
      * @return
      */
@@ -127,7 +128,25 @@ public class BaseCommand implements ClickhouseCommand {
         map.put("processTime", System.currentTimeMillis());
         map.put("uploadTime", rpcBased.getUploadTime());
         map.put("receiveHttpTime", rpcBased.getReceiveHttpTime());
-        map.put("taskId", rpcBased.getTaskId());
+        /**
+         * 优先从对象的taskId字段拿
+         * 再从ext字段中获取-jsonString
+         */
+        if(StringUtils.isNotBlank(rpcBased.getTaskId())){
+            map.put("taskId", rpcBased.getTaskId());
+        } else {
+            try {
+                String taskId = rpcBased.getTraceId().substring(0, IP_16.length());
+                int pos = taskId.indexOf("f");
+                if(pos == -1) {
+                    map.put("taskId", taskId);
+                } else {
+                    map.put("taskId", taskId.substring(0, pos));
+                }
+            } catch (Exception e) {
+                map.put("taskId", "-1");
+            }
+        }
 
         map.put("userAppKey", rpcBased.getUserAppKey());
         map.put("envCode", rpcBased.getEnvCode());
