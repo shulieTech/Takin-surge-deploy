@@ -137,11 +137,11 @@ public class BaseCommand implements ClickhouseCommand {
         } else {
             try {
                 String taskId = rpcBased.getTraceId().substring(0, IP_16.length());
-                int pos = taskId.indexOf("f");
+                int pos = taskId.indexOf("z");
                 if(pos == -1) {
                     map.put("taskId", taskId);
                 } else {
-                    map.put("taskId", taskId.substring(0, pos));
+                    map.put("taskId", String.valueOf(Long.parseLong(taskId.substring(0, pos), 16)));
                 }
             } catch (Exception e) {
                 map.put("taskId", "-1");
