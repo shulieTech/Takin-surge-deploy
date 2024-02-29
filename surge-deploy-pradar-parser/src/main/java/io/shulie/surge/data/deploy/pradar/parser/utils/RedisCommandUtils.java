@@ -260,6 +260,10 @@ public class RedisCommandUtils {
         REDIS_KEYS.add("pexpire");
         REDIS_KEYS.add("xautoclaim");
         REDIS_KEYS.add("zmpop");
+        REDIS_KEYS.add("clientsetname");
+        REDIS_KEYS.add("init");
+        REDIS_KEYS.add("authasync");
+        REDIS_KEYS.add("authsync");
     }
 
     /**
@@ -271,6 +275,10 @@ public class RedisCommandUtils {
      */
     public static String parseMethod(String serviceName, String methodName) {
         // 判断下serviceName是否在命令行里面
+        serviceName = StringUtils.replace(serviceName, "<", "");
+        serviceName = StringUtils.replace(serviceName, ">", "");
+        methodName = StringUtils.replace(methodName, "<", "");
+        methodName = StringUtils.replace(methodName, ">", "");
         if (StringUtils.isNotBlank(serviceName) && REDIS_KEYS.contains(serviceName.toLowerCase())) {
             return serviceName;
         }
