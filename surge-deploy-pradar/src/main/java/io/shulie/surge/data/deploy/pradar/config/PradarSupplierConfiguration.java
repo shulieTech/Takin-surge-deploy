@@ -21,10 +21,7 @@ import com.pamirs.pradar.log.parser.DataType;
 import io.shulie.surge.data.JettySupplierModule;
 import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.common.ParamUtil;
-import io.shulie.surge.data.deploy.pradar.digester.AgentInfoDigester;
-import io.shulie.surge.data.deploy.pradar.digester.BaseDataDigester;
-import io.shulie.surge.data.deploy.pradar.digester.LogDigester;
-import io.shulie.surge.data.deploy.pradar.digester.MetricsDigester;
+import io.shulie.surge.data.deploy.pradar.digester.*;
 import io.shulie.surge.data.runtime.common.DataBootstrap;
 import io.shulie.surge.data.runtime.common.DataRuntime;
 import io.shulie.surge.data.runtime.digest.DataDigester;
@@ -33,6 +30,7 @@ import io.shulie.surge.data.runtime.processor.ProcessorConfigSpec;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseShardModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
+import io.shulie.surge.data.sink.kafka.KafkaModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplier;
@@ -124,6 +122,7 @@ public class PradarSupplierConfiguration {
                 new InfluxDBModule(),
                 new ClickHouseModule(),
                 new ClickHouseShardModule(),
+                new KafkaModule(),
                 new MysqlModule());
         DataRuntime dataRuntime = bootstrap.startRuntime();
         return dataRuntime;
@@ -147,7 +146,8 @@ public class PradarSupplierConfiguration {
     public DataDigester[] buildTraceLogProcess(DataRuntime dataRuntime) {
         LogDigester logDigester = dataRuntime.getInstance(LogDigester.class);
         logDigester.setDataSourceType(this.dataSourceType);
-        return new DataDigester[]{logDigester};
+        KafkaDigester kafkaDigester = dataRuntime.getInstance(KafkaDigester.class);
+        return new DataDigester[]{logDigester, kafkaDigester};
     }
 
 
