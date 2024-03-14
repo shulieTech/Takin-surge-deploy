@@ -17,8 +17,10 @@ package io.shulie.surge.data.sink.kafka;
 
 
 import org.apache.commons.lang3.exception.ExceptionUtils;;
+import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +62,14 @@ public class DefaultKafkaSupport implements KafkaSupport {
      */
     @Override
     public void sendMq(String topic, String key, String msg) throws Exception {
-        this.kafkaProducer.send(new ProducerRecord<String,String>(topic, key, msg));
+        this.kafkaProducer.send(new ProducerRecord<String, String>(topic, key, msg), new Callback() {
+            @Override
+            public void onCompletion(RecordMetadata recordMetadata, Exception e) {
+                if(e != null) {
+                    logger.error("send kafka message failure", e);
+                }
+            }
+        });
     }
 
     /**
