@@ -264,6 +264,8 @@ public class RedisCommandUtils {
         REDIS_KEYS.add("init");
         REDIS_KEYS.add("authasync");
         REDIS_KEYS.add("authsync");
+        REDIS_KEYS.add("getmasteraddrbyname");
+        REDIS_KEYS.add("zrangewithscores");
     }
 
     /**
