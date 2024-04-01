@@ -19,6 +19,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.pamirs.pradar.log.parser.trace.RpcBased;
 import io.shulie.surge.data.deploy.pradar.common.MiddlewareTypeEnum;
+import io.shulie.surge.data.deploy.pradar.parser.MiddlewareType;
 import io.shulie.surge.data.deploy.pradar.parser.PradarLogType;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParser;
 import io.shulie.surge.data.deploy.pradar.parser.RpcBasedParserFactory;
@@ -79,5 +80,11 @@ public class LinkCommand implements ClickhouseCommand {
         map.put("parsedAppName", StringUtils.defaultString(rpcBasedParser.appNameParse(rpcBased), ""));
         map.put("parsedExtend", StringUtils.defaultString(rpcBasedParser.extendParse(rpcBased), ""));
         map.put("parsedMiddlewareName", MiddlewareTypeEnum.getNodeType(rpcBased.getMiddlewareName()).getType());
+        /**
+         * 压测引擎日志，且中间件名称=kafka，rpcType=3
+         */
+        if (rpcBased.getLogType() == PradarLogType.LOG_TYPE_FLOW_ENGINE && StringUtils.containsIgnoreCase(rpcBased.getMiddlewareName(), "kafka")) {
+            map.put("rpcType", MiddlewareType.TYPE_MQ);
+        }
     }
 }
