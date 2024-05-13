@@ -54,6 +54,7 @@ public class ApiProcessor {
     private static String staticTenantConfigUrl;
     private static String staticEntryUrl;
     public static String staticDefaultTenantAppKey;
+    public static String staticRefIdPath;
 
     private String host;
     private String url;
@@ -61,6 +62,7 @@ public class ApiProcessor {
     private String tenantConfigUrl;
     private String entryUrl;
     private String defaultTenantAppKey;
+    private String refIdPath;
 
     private String amdbHost;
     private String amdbUrl;
@@ -98,12 +100,17 @@ public class ApiProcessor {
 
     //10分钟的本地缓存,1000个压测报告
     private static Cache<String, List<Map<String, Object>>> cache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
+    //10分钟的本地缓存,1000个压测报告 压测对应压测场景id、调试对应业务流程id
+    private static Cache<Long, Long> reportRefIdCache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
     public ApiProcessor() {
     }
 
     @Inject
-    public ApiProcessor(@Named("tro.url.ip") String host, @Named("tro.api.path") String url, @Named("tro.tenant.config.path") String tenantConfigUrl, @Named("amdb.url.ip") String amdbHost, @Named("amdb.api.apiUrl.path") String amdbUrl, @Named("amdb.port") String amdbPort, @Named("tro.entries.path") String entryUrl, @Named("tro.port") String port, @Named("config.tenant.defaultTenantAppKey") String defaultTenantAppKey) {
+    public ApiProcessor(@Named("tro.url.ip") String host, @Named("tro.api.path") String url, @Named("tro.tenant.config.path") String tenantConfigUrl,
+                        @Named("amdb.url.ip") String amdbHost, @Named("amdb.api.apiUrl.path") String amdbUrl, @Named("amdb.port") String amdbPort,
+                        @Named("tro.entries.path") String entryUrl, @Named("tro.port") String port, @Named("config.tenant.defaultTenantAppKey") String defaultTenantAppKey,
+                        @Named("tro.report.refId.path") String refIdPath) {
         this.host = host;
         this.url = url;
         this.entryUrl = entryUrl;
@@ -113,6 +120,7 @@ public class ApiProcessor {
         this.amdbHost = amdbHost;
         this.amdbPort = amdbPort;
         this.amdbUrl = amdbUrl;
+        this.refIdPath = refIdPath;
 
         staticHost = host;
         staticUrl = url;
@@ -120,6 +128,7 @@ public class ApiProcessor {
         staticEntryUrl = entryUrl;
         staticPort = port;
         staticDefaultTenantAppKey = defaultTenantAppKey;
+        staticRefIdPath = refIdPath;
     }
 
 
@@ -264,6 +273,14 @@ public class ApiProcessor {
         return config;
     }
 
+    public static Long matchReportId(Long reportId) {
+        Long sourceVO = reportRefIdCache.getIfPresent(reportId);
+        if(sourceVO == null) {
+            sourceVO = getRefIdByReportId(reportId);
+        }
+        return sourceVO;
+    }
+
     /**
      * 匹配报告ID下的业务活动
      *
@@ -347,6 +364,25 @@ public class ApiProcessor {
             }
         });
         return appName;
+    }
+
+    private static Long getRefIdByReportId(Long reportId) {
+        HashMap<String, String> param = Maps.newHashMap();
+        param.put("reportId", String.valueOf(reportId));
+        try {
+            Map<String, Object> dataMap = gson.fromJson(HttpUtil.doGet(staticHost, Integer.valueOf(staticPort), staticRefIdPath, null, param), Map.class);
+            if(dataMap != null && dataMap.size() > 0) {
+                Object data = dataMap.get("data");
+                Long sceneId = Long.parseLong(data.toString());
+                reportRefIdCache.put(reportId, sceneId);
+                return sceneId;
+            }
+        } catch (Throwable e) {
+            logger.error("query refIdByReport catch exception :{},{}", e, e.getStackTrace());
+            return null;
+        }
+        reportRefIdCache.put(reportId, -1L);
+        return -1L;
     }
 
 

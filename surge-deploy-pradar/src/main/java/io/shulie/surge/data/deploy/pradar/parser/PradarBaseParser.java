@@ -49,7 +49,7 @@ public class PradarBaseParser implements DataParser<String, MonitorBased> {
         content += '|' + hostIp + '|' + dataVersion;
         MonitorBased monitorBased = ProtocolParserFactory.getFactory().getMonitorProtocolParser(dataVersion).parse(hostIp, dataVersion, content);
         if (monitorBased == null) {
-            logger.warn("未解析到日志信息->" + content);
+            //logger.warn("未解析到日志信息->" + content);
             return null;
         }
         monitorBased.setLog(content);
