@@ -128,19 +128,21 @@ public class ResourceDigester implements DataDigester<RpcBased> {
             }
             //报告ID
             Long reportId = parseReportId(rpcBased.getTraceId());
-            if(reportId == 0L) {
-                return;
-            }
             ResourceModel resourceModel = new ResourceModel();
             resourceModel.setPressureTime(calcMillSeconds(rpcBased.getStartTime()));
             resourceModel.setResourceType(rpcMap.get(rpcBased.getRpcType()));
             resourceModel.setResourceName(rpcBased.getMiddlewareName());
             resourceModel.setResourceUrl(remoteIp);
-            Long scenId = ApiProcessor.matchReportId(reportId);
-            if(scenId == null || scenId <= 0) {
-                return;
+            //能解析出报告ID，则获取场景ID，否则直接保存
+            if(reportId > 0) {
+                Long sceneId = ApiProcessor.matchReportId(reportId);
+                if (sceneId == null || sceneId <= 0) {
+                    return;
+                }
+                resourceModel.setSceneIds(Sets.newHashSet(sceneId));
+            } else {
+                resourceModel.setSceneIds(Sets.newHashSet(reportId));
             }
-            resourceModel.setSceneIds(Sets.newHashSet(scenId));
             String cacheKey = resourceModel.getPressureTime() +"_" + resourceModel.getResourceType() + "_" + resourceModel.getResourceUrl();
             ResourceModel cacheModel = resourceMap.get(cacheKey);
             if(cacheModel == null) {
@@ -158,12 +160,12 @@ public class ResourceDigester implements DataDigester<RpcBased> {
             String taskId = traceId.substring(0, IP_16.length());
             int pos = taskId.indexOf("z");
             if(pos == -1) {
-                return 0L;
+                return -1L;
             } else {
                 return Long.parseLong(taskId.substring(0, pos), 16);
             }
         } catch (Exception e) {
-            return 0L;
+            return -1L;
         }
     }
 
