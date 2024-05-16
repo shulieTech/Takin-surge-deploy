@@ -48,7 +48,7 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
     private volatile boolean isWriteFlag = true;
 
     @Inject
-    @DefaultValue("1000000")
+    @DefaultValue("20000")
     @Named("/pradar/config/rt/maxRowSize")
     private Remote<Long> maxRowSize;
 
@@ -63,7 +63,7 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
     private Remote<Boolean> agentInfoDisable;
 
     @Inject
-    @DefaultValue("4000")
+    @DefaultValue("2048")
     @Named("/pradar/config/rt/agentInfoLength")
     private Remote<Integer> agentInfoLength;
 
@@ -75,7 +75,7 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
     private RateLimiter rateLimiter = RateLimiter.create(Integer.MAX_VALUE);
 
     @Inject
-    @DefaultValue("2000")
+    @DefaultValue("100")
     @Named("/pradar/config/agent/limitRate")
     private Remote<Integer> limitRate;
 
@@ -83,6 +83,7 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
      * 初始化任务只会执行一次
      */
     private void init() {
+        rateLimiter.setRate(limitRate.get());
         //启动一个定时任务,每隔5分钟运行一次
         executor.scheduleAtFixedRate(() -> {
             Map<String, Object> countMap = mysqlSupport.queryForMap("select count(1) as count from t_amdb_agent_info;");
@@ -97,17 +98,18 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
             if (!isWriteFlag) {
                 //开始强制执行清理
                 try {
-                    //删除当前时间往前1小时的数据
+                    //删除当前时间往前N小时的数据
                     long cleanTime = System.currentTimeMillis() - reserveHours.get() * 60 * 60 * 1000;
                     String sql = "delete from t_amdb_agent_info where agent_timestamp < " + cleanTime;
                     mysqlSupport.execute(sql);
                     logger.info("cleared {} hour's agentLog,cleared sql:{}", reserveHours.get(), sql);
                 } catch (Exception e) {
                     logger.error("cleared {} hour's agentLog,failed{},exception stack:{}", reserveHours.get(), e, e.getStackTrace());
+                } finally {
+                    isWriteFlag = true;
                 }
             }
-
-        }, 0, 5, TimeUnit.MINUTES);
+        }, 2, 5, TimeUnit.MINUTES);
     }
 
     @Override
@@ -132,33 +134,31 @@ public class AgentInfoDigester implements DataDigester<AgentBased> {
                 return;
             }
             if (!Pattern.matches(pattern, agentBased.getIp())) {
-                logger.warn("detect illegal agent log:{},skip it.", agentBased);
+                logger.warn("detect illegal agent log ip:{}, skip it.", agentBased.getIp());
                 return;
             }
-            // 限流,每秒限制2000条
-            rateLimiter.setRate(limitRate.get());
-            rateLimiter.acquire();
-            logger.warn("agent info consume current rate:{}", rateLimiter.getRate());
-
-            //对于1.1以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
-            if (StringUtils.isBlank(agentBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(agentBased.getUserAppKey())) {
-                agentBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(agentBased.getAppName()).get("tenantAppKey"));
+            //1s内拿到令牌，否则丢弃
+            if(rateLimiter.tryAcquire(1, TimeUnit.SECONDS)) {
+                //logger.warn("agent info consume current rate:{}", rateLimiter.getRate());
+                //对于1.1以及之前的老版本探针,没有租户相关字段,根据应用名称获取租户配置,没有设默认值
+                if (StringUtils.isBlank(agentBased.getUserAppKey()) || TenantConstants.DEFAULT_USER_APP_KEY.equals(agentBased.getUserAppKey())) {
+                    agentBased.setUserAppKey(ApiProcessor.getTenantConfigByAppName(agentBased.getAppName()).get("tenantAppKey"));
+                }
+                if (StringUtils.isBlank(agentBased.getEnvCode())) {
+                    agentBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(agentBased.getAppName()).get("envCode"));
+                }
+                if (StringUtils.isBlank(agentBased.getUserId())) {
+                    agentBased.setUserId(TenantConstants.DEFAULT_USERID);
+                }
+                if (agentBased.getAgentInfo().length() > agentInfoLength.get()) {
+                    String agentInfo = agentBased.getAgentInfo();
+                    //logger.warn("agent log is too long:{},cut it: {}.", agentInfo.length(), agentBased);
+                    agentBased.setAgentInfo(agentInfo.substring(0, agentInfoLength.get()));
+                    //help gc
+                    agentInfo = null;
+                }
+                mysqlSupport.batchUpdate(AgentInfoModel.insertSql, Collections.singletonList(AgentInfoModel.values(agentBased)));
             }
-            if (StringUtils.isBlank(agentBased.getEnvCode())) {
-                agentBased.setEnvCode(ApiProcessor.getTenantConfigByAppName(agentBased.getAppName()).get("envCode"));
-            }
-            if (StringUtils.isBlank(agentBased.getUserId())) {
-                agentBased.setUserId(TenantConstants.DEFAULT_USERID);
-            }
-
-            if (agentBased.getAgentInfo().length() > agentInfoLength.get()) {
-                String agentInfo = agentBased.getAgentInfo();
-                logger.warn("agent log is too long:{},cut it: {}.", agentInfo.length(), agentBased);
-                agentBased.setAgentInfo(agentInfo.substring(0, agentInfoLength.get()));
-                //help gc
-                agentInfo = null;
-            }
-            mysqlSupport.batchUpdate(AgentInfoModel.insertSql, Collections.singletonList(AgentInfoModel.values(agentBased)));
         } catch (Throwable e) {
             logger.warn("fail to write mysql, log: " + agentBased.getLog() + ", error:" + ExceptionUtils.getStackTrace(e));
         }
