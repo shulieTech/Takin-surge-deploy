@@ -149,7 +149,8 @@ public class PradarSupplierConfiguration {
         LogDigester logDigester = dataRuntime.getInstance(LogDigester.class);
         logDigester.setDataSourceType(this.dataSourceType);
         KafkaDigester kafkaDigester = dataRuntime.getInstance(KafkaDigester.class);
-        return new DataDigester[]{logDigester, kafkaDigester};
+        RocketMqDigester rocketMqDigester = dataRuntime.getInstance(RocketMqDigester.class);
+        return new DataDigester[]{logDigester, kafkaDigester, rocketMqDigester};
     }
 
 
