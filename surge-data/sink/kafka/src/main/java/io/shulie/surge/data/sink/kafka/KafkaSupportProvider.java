@@ -13,41 +13,40 @@
  * limitations under the License.
  */
 
-package io.shulie.surge.data.sink.rocketmq;
+package io.shulie.surge.data.sink.kafka;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import org.apache.log4j.Logger;
-import org.apache.rocketmq.client.exception.MQClientException;
 
 
 /**
- * 返回单例的 {@link RocketMQSupportProvider} 对象
+ * 返回单例的 {@link KafkaSupportProvider} 对象
  *
  * @author xingchen
  */
 @Singleton
-public class RocketMQSupportProvider implements Provider<RocketMQSupport> {
-    private static final Logger logger = Logger.getLogger(RocketMQSupportProvider.class);
+public class KafkaSupportProvider implements Provider<KafkaSupport> {
+    private static final Logger logger = Logger.getLogger(KafkaSupportProvider.class);
 
-    private RocketMQSupport singleton;
+    private DefaultKafkaSupport singleton;
 
     @Inject
-    public RocketMQSupportProvider(@Named("config.rocketmq.namesrv") String namesrv,
-                                   @Named("config.rocketmq.producerGroup") String producerGroup) throws MQClientException {
+    public KafkaSupportProvider(@Named("config.kafka.namesrv") String namesrv,
+                                @Named("config.kafka.producerGroup") String producerGroup) {
 
         try {
-            singleton = new DefaultRocketMQSupport(namesrv, producerGroup);
+            singleton = new DefaultKafkaSupport(namesrv, producerGroup);
         } catch (Exception e) {
-            logger.warn("RocketMQSupportProvider init fail", e);
+            logger.warn("KafkaSupportProvider init fail", e);
             throw e;
         }
     }
 
     @Override
-    public RocketMQSupport get() {
+    public KafkaSupport get() {
         return this.singleton;
     }
 }

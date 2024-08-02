@@ -39,7 +39,9 @@ import io.shulie.surge.data.runtime.processor.ProcessorConfigSpec;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseModule;
 import io.shulie.surge.data.sink.clickhouse.ClickHouseShardModule;
 import io.shulie.surge.data.sink.influxdb.InfluxDBModule;
+import io.shulie.surge.data.sink.kafka.KafkaModule;
 import io.shulie.surge.data.sink.mysql.MysqlModule;
+import io.shulie.surge.data.sink.rocketmq.RocketMQModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingModule;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplier;
 import io.shulie.surge.data.suppliers.nettyremoting.NettyRemotingSupplierSpec;
@@ -273,6 +275,8 @@ public class PradarStormSupplierConfiguration {
                 new NettyRemotingModule(),
                 new InfluxDBModule(),
                 new ClickHouseModule(),
+                new KafkaModule(),
+                new RocketMQModule(),
                 new ClickHouseShardModule(),
                 new MysqlModule());
         DataRuntime dataRuntime = bootstrap.startRuntime();
