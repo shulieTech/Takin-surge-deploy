@@ -116,16 +116,39 @@ public class PradarSupplierConfiguration {
     public DataRuntime initDataRuntime() {
         DataBootstrap bootstrap = DataBootstrap.create("deploy.properties", "pradar");
         DataBootstrapEnhancer.enhancer(bootstrap);
-        bootstrap.install(
-                new PradarModule(workPort),
-                new NettyRemotingModule(),
-                new JettySupplierModule(),
-                new InfluxDBModule(),
-                new ClickHouseModule(),
-                new ClickHouseShardModule(),
-                new KafkaModule(),
-                new RocketMQModule(),
-                new MysqlModule());
+        String traceMq = bootstrap.getProperties().getProperty("config.trace.mq", "");
+        logger.info("当前使用traceMq为:" + traceMq);
+        System.setProperty("config.trace.mq", traceMq);
+        if ("rocketmq".equals(traceMq)) {
+            bootstrap.install(
+                    new PradarModule(workPort),
+                    new NettyRemotingModule(),
+                    new JettySupplierModule(),
+                    new InfluxDBModule(),
+                    new ClickHouseModule(),
+                    new ClickHouseShardModule(),
+                    new RocketMQModule(),
+                    new MysqlModule());
+        } else if ("kafka".equals(traceMq)) {
+            bootstrap.install(
+                    new PradarModule(workPort),
+                    new NettyRemotingModule(),
+                    new JettySupplierModule(),
+                    new InfluxDBModule(),
+                    new ClickHouseModule(),
+                    new ClickHouseShardModule(),
+                    new KafkaModule(),
+                    new MysqlModule());
+        } else {
+            bootstrap.install(
+                    new PradarModule(workPort),
+                    new NettyRemotingModule(),
+                    new JettySupplierModule(),
+                    new InfluxDBModule(),
+                    new ClickHouseModule(),
+                    new ClickHouseShardModule(),
+                    new MysqlModule());
+        }
         DataRuntime dataRuntime = bootstrap.startRuntime();
         return dataRuntime;
     }
@@ -148,9 +171,18 @@ public class PradarSupplierConfiguration {
     public DataDigester[] buildTraceLogProcess(DataRuntime dataRuntime) {
         LogDigester logDigester = dataRuntime.getInstance(LogDigester.class);
         logDigester.setDataSourceType(this.dataSourceType);
-        KafkaDigester kafkaDigester = dataRuntime.getInstance(KafkaDigester.class);
-        RocketMqDigester rocketMqDigester = dataRuntime.getInstance(RocketMqDigester.class);
-        return new DataDigester[]{logDigester, kafkaDigester, rocketMqDigester};
+        String traceMq = System.getProperty("config.trace.mq", "null");
+        logger.info("当前获取到traceMq为:" + traceMq);
+        if ("rocketmq".equals(traceMq)) {
+            logger.info("加载RocketMqDigester");
+            RocketMqDigester rocketMqDigester = dataRuntime.getInstance(RocketMqDigester.class);
+            return new DataDigester[]{logDigester, rocketMqDigester};
+        }
+        if ("kafka".equals(traceMq)) {
+            KafkaDigester kafkaDigester = dataRuntime.getInstance(KafkaDigester.class);
+            return new DataDigester[]{logDigester, kafkaDigester};
+        }
+        return new DataDigester[]{logDigester};
     }
 
 

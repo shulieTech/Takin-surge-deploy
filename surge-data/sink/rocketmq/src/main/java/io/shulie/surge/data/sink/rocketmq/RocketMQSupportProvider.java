@@ -21,6 +21,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -30,7 +31,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
  */
 @Singleton
 public class RocketMQSupportProvider implements Provider<RocketMQSupport> {
-    private static final Logger logger = Logger.getLogger(RocketMQSupportProvider.class);
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RocketMQSupportProvider.class);
 
     private RocketMQSupport singleton;
 
@@ -39,7 +40,9 @@ public class RocketMQSupportProvider implements Provider<RocketMQSupport> {
                                    @Named("config.rocketmq.producerGroup") String producerGroup) throws MQClientException {
 
         try {
+            logger.info("开始初始化RocketMQSupportProvider");
             singleton = new DefaultRocketMQSupport(namesrv, producerGroup);
+            logger.info("RocketMQSupportProvider初始化成功");
         } catch (Exception e) {
             logger.warn("RocketMQSupportProvider init fail", e);
             throw e;

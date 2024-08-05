@@ -49,7 +49,7 @@ public class RocketMqDigester implements DataDigester<RpcBased> {
     private RocketMQSupport rocketMQSupport;
 
     @Inject
-    @DefaultValue("true")
+    @DefaultValue("false")
     @Named("/pradar/config/rt/rocketmqDisable")
     private Remote<Boolean> rocketmqDisable;
 
@@ -102,7 +102,7 @@ public class RocketMqDigester implements DataDigester<RpcBased> {
                     try {
                         rocketMQSupport.sendMq(topic, "", rpcBased.getTraceId(), jsonString, this);
                     } catch (Throwable ex) {
-                        logger.warn("fail to write rocketmq, log: " + rpcBased.getLog() + ", error:" + ExceptionUtils.getStackTrace(e));
+                        logger.warn("二次提交fail to write rocketmq, log: " + rpcBased.getLog() + ", error:" + ExceptionUtils.getStackTrace(e));
                     }
                 }
             });

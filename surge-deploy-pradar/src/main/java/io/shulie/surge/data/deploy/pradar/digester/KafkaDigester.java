@@ -47,7 +47,7 @@ public class KafkaDigester implements DataDigester<RpcBased> {
     private KafkaSupport kafkaSupport;
 
     @Inject
-    @DefaultValue("false")
+    @DefaultValue("true")
     @Named("/pradar/config/rt/kafkaDisable")
     private Remote<Boolean> kafkaDisable;
     @Inject
@@ -92,7 +92,7 @@ public class KafkaDigester implements DataDigester<RpcBased> {
             String jsonString = JSON.toJSONString(rpcBased);
             kafkaSupport.sendMq(topic, rpcBased.getTraceId(), jsonString);
         } catch (Throwable e) {
-            logger.warn("fail to write rocketmq, log: " + rpcBased.getLog() + ", error:" + ExceptionUtils.getStackTrace(e));
+            logger.warn("fail to write kafka, log: " + rpcBased.getLog() + ", error:" + ExceptionUtils.getStackTrace(e));
         }
     }
 

@@ -19,6 +19,7 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.pamirs.pradar.log.parser.DataType;
 import io.shulie.surge.data.JettySupplier;
+import io.shulie.surge.data.JettySupplierModule;
 import io.shulie.surge.data.JettySupplierSpec;
 import io.shulie.surge.data.deploy.pradar.common.DataBootstrapEnhancer;
 import io.shulie.surge.data.deploy.pradar.config.PradarModule;
@@ -270,15 +271,39 @@ public class PradarStormSupplierConfiguration {
     public DataRuntime initDataRuntime() {
         DataBootstrap bootstrap = DataBootstrap.create("deploy.properties", "pradar");
         DataBootstrapEnhancer.enhancer(bootstrap);
-        bootstrap.install(
-                new PradarModule(workPort),
-                new NettyRemotingModule(),
-                new InfluxDBModule(),
-                new ClickHouseModule(),
-                new KafkaModule(),
-                new RocketMQModule(),
-                new ClickHouseShardModule(),
-                new MysqlModule());
+        String traceMq = bootstrap.getProperties().getProperty("config.trace.mq", "null");
+        logger.info("当前使用traceMq为:" + traceMq);
+        System.setProperty("config.trace.mq", traceMq);
+        if ("rocketmq".equals(traceMq)) {
+            bootstrap.install(
+                    new PradarModule(workPort),
+                    new NettyRemotingModule(),
+                    new JettySupplierModule(),
+                    new InfluxDBModule(),
+                    new ClickHouseModule(),
+                    new ClickHouseShardModule(),
+                    new RocketMQModule(),
+                    new MysqlModule());
+        } else if ("kafka".equals(traceMq)) {
+            bootstrap.install(
+                    new PradarModule(workPort),
+                    new NettyRemotingModule(),
+                    new JettySupplierModule(),
+                    new InfluxDBModule(),
+                    new ClickHouseModule(),
+                    new ClickHouseShardModule(),
+                    new KafkaModule(),
+                    new MysqlModule());
+        } else {
+            bootstrap.install(
+                    new PradarModule(workPort),
+                    new NettyRemotingModule(),
+                    new JettySupplierModule(),
+                    new InfluxDBModule(),
+                    new ClickHouseModule(),
+                    new ClickHouseShardModule(),
+                    new MysqlModule());
+        }
         DataRuntime dataRuntime = bootstrap.startRuntime();
         return dataRuntime;
     }
