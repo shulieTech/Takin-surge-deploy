@@ -26,6 +26,7 @@ public class ClickHouseShardSupportSpec implements GenericFactorySpec<ClickHouse
     private String username;
     private String password;
     private int batchCount;
+    private int delayTime;
     private boolean enableRound;
 
     @Override
@@ -64,6 +65,14 @@ public class ClickHouseShardSupportSpec implements GenericFactorySpec<ClickHouse
 
     public int getBatchCount() {
         return batchCount;
+    }
+
+    public int getDelayTime() {
+        return delayTime;
+    }
+
+    public void setDelayTime(int delayTime) {
+        this.delayTime = delayTime;
     }
 
     public void setBatchCount(int batchCount) {

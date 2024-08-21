@@ -34,7 +34,7 @@ public class ClickHouseShardSupportFactory implements GenericFactory<ClickHouseS
     @Override
     public ClickHouseShardSupport create(ClickHouseShardSupportSpec spec) {
         synchronized (ClickHouseShardSupportFactory.class) {
-            ClickHouseShardSupport clickHouseSupport = new ClickHouseShardSupport(spec.getUrl(), spec.getUsername(), spec.getPassword(), spec.getBatchCount(), spec.isEnableRound());
+            ClickHouseShardSupport clickHouseSupport = new ClickHouseShardSupport(spec.getUrl(), spec.getUsername(), spec.getPassword(), spec.getBatchCount(), spec.getDelayTime(), spec.isEnableRound());
             runtime.inject(clickHouseSupport);
             runtime.registShutdownCall(clickHouseSupport, StopLevel.SUPPORT);
             return clickHouseSupport;

@@ -54,7 +54,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
     private static final Pattern URL_TEMPLATE = Pattern.compile("jdbc:clickhouse://([a-zA-Z0-9_:,.-]+)(/[a-zA-Z0-9_]+([?][a-zA-Z0-9_]+[=][a-zA-Z0-9_]+([&][a-zA-Z0-9_]+[=][a-zA-Z0-9_]+)*)?)?");
     private List<String> urls;
     private int batchCount;
-    private static int deleyTime = 5;
+    private int deleyTime = 5;
     private Map<String, String> urlMap = Maps.newHashMap();
     private Map<String, JdbcTemplate> shardJdbcTemplateMap = Maps.newHashMap();
     private Map<String, RotationBatch<Object[]>> rotationPrepareSqlBatch = Maps.newHashMap();
@@ -67,6 +67,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
                                   @Named("config.clickhouse.userName") String username,
                                   @Named("config.clickhouse.password") String password,
                                   @Named("config.clickhouse.batchCount") int batchCount,
+                                  @Named("config.clickhouse.delayTime") int delayTime,
                                   @Named("config.clickhouse.enableRound") boolean enableRound) {
         try {
             this.urls = splitUrl(url);
@@ -90,6 +91,8 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
                 shardJdbcTemplateMap.put(urlParam, jdbcTemplate);
             }
             this.batchCount = batchCount;
+            this.deleyTime = delayTime;
+            logger.info("当前分片批量写入批量为:{},延迟时间为:{}", batchCount, delayTime);
         } catch (Exception e) {
             logger.error("Init datasource failed.", e);
             throw e;
@@ -136,7 +139,7 @@ public class ClickHouseShardSupport implements Lifecycle, Stoppable {
                         try {
                             shardJdbcTemplate(shardKey).batchUpdate(sql, Lists.newArrayList(batchSql));
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            logger.error("分片写入trace出现异常", e);
                             try {
                                 TimeUnit.MILLISECONDS.sleep(10L);
                             } catch (InterruptedException interruptedException) {

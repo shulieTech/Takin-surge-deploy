@@ -129,6 +129,10 @@ public class PradarStormSupplierConfiguration {
             traceLogProcessorConfigSpec.setDigesters(
                     ArrayUtils.addAll(conf.buildTraceLogProcess(dataRuntime),
                             isDistributed ? buildTraceLogComplexProcess(dataRuntime) : buildE2EProcessByStandadlone(dataRuntime)));
+            Object ringBufferSize = dataRuntime.getValue("traceLog.ringBuffer.size");
+            if (ringBufferSize != null && !(ringBufferSize + "").isEmpty()) {
+                traceLogProcessorConfigSpec.setRingBufferSize(Integer.parseInt(ringBufferSize + ""));
+            }
             traceLogProcessorConfigSpec.setExecuteSize(coreSize);
             PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
 
@@ -177,7 +181,6 @@ public class PradarStormSupplierConfiguration {
             PradarSupplierConfiguration conf = new PradarSupplierConfiguration("", dataSourceType);
             JettySupplierSpec jettySupplierSpec = new JettySupplierSpec();
             JettySupplier jettySupplier = dataRuntime.createGenericInstance(jettySupplierSpec);
-
             /**
              * storm消费trace日志
              */
@@ -187,6 +190,11 @@ public class PradarStormSupplierConfiguration {
                     ArrayUtils.addAll(conf.buildTraceLogProcess(dataRuntime),
                             isDistributed ? buildTraceLogComplexProcess(dataRuntime) : buildE2EProcessByStandadlone(dataRuntime)));
             traceLogProcessorConfigSpec.setExecuteSize(coreSize);
+
+            Object ringBufferSize = dataRuntime.getValue("traceLog.ringBuffer.size");
+            if (ringBufferSize != null && !(ringBufferSize + "").isEmpty()) {
+                traceLogProcessorConfigSpec.setRingBufferSize(Integer.parseInt(ringBufferSize + ""));
+            }
             PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
 
             /**
@@ -278,6 +286,8 @@ public class PradarStormSupplierConfiguration {
                 new ClickHouseShardModule(),
                 new MysqlModule());
         DataRuntime dataRuntime = bootstrap.startRuntime();
+        String property = bootstrap.getProperties().getProperty("traceLog.ringBuffer.size", "32768");
+        dataRuntime.putValue("traceLog.ringBuffer.size", property);
         return dataRuntime;
     }
 }

@@ -84,6 +84,8 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
 
         ringBuffer = disruptor.start();
 
+        logger.info(processorConfig.getName() + "的ringBufferSize为" + processorConfig.getRingBufferSize());
+
         monitor();
     }
 
