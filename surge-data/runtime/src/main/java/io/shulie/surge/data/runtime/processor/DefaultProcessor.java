@@ -234,6 +234,9 @@ public abstract class DefaultProcessor<IN extends Serializable, OUT extends Seri
                 }
                 processCount = new AtomicLong(0);
                 logger.warn(appender.toString());
+
+                String logText = processorConfig.getName() + "ringBufferRemaining:" + ringBuffer.remainingCapacity() + " totalCapacity:" + ringBuffer.getBufferSize();
+                logger.info("当前ringBuffer余量情况" + logText);
             }
         }, delay, interval, TimeUnit.MILLISECONDS);
     }

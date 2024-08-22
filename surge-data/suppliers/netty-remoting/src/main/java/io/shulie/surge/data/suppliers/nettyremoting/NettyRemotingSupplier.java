@@ -169,7 +169,10 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
                     queue.canPublish(1000);
                     return false;
                 } catch (RingBufferIllegalStateException e) {
-                    logger.error(e.getMessage());
+                    logger.error("RingBufferIllegalStateException" + e.getMessage());
+                    return true;
+                } catch (Throwable e) {
+                    logger.error("reject出现异常", e);
                     return true;
                 }
             }
