@@ -156,11 +156,17 @@ public final class NettyRemotingSupplier extends DefaultMultiProcessorSupplier {
             }
 
             @Override
-            public boolean reject() {
+            public boolean reject(ChannelHandlerContext ctx, RemotingCommand req) {
                 try {
-                    for (DataQueue dataQueue : queueMap.values()) {
-                        dataQueue.canPublish(1000);
+                    ProtocolFactory factory = selector.select(req.getProtocolCode());
+                    Request request = factory.decode(Request.class, req);
+                    if (request == null) {
+                        logger.warn("reject agent push version is error " + req.toString());
+                        return true;
                     }
+                    Byte dataType = request.getDataType();
+                    DataQueue queue = queueMap.get(String.valueOf(dataType));
+                    queue.canPublish(1000);
                     return false;
                 } catch (RingBufferIllegalStateException e) {
                     logger.error(e.getMessage());
