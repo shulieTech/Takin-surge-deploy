@@ -35,7 +35,7 @@ public class ClickHouseShardSupportTest {
     @Test
     public void singleIp() {
 
-        ClickHouseShardSupport clickHouseShardSupport = new ClickHouseShardSupport("jdbc:clickhouse://127.1.1.1:8123/default", "", "", 1, true);
+        ClickHouseShardSupport clickHouseShardSupport = new ClickHouseShardSupport("jdbc:clickhouse://127.1.1.1:8123/default", "", "", 1, 5, true);
 
         Class<ClickHouseShardSupport> clickHouseShardSupportClass = ClickHouseShardSupport.class;
 
@@ -63,7 +63,7 @@ public class ClickHouseShardSupportTest {
     @Test
     public void sameIp() {
 
-        ClickHouseShardSupport clickHouseShardSupport = new ClickHouseShardSupport("jdbc:clickhouse://192.168.1.1:8123,192.168.1.1:8123,192.168.1.1/default", "", "", 1, true);
+        ClickHouseShardSupport clickHouseShardSupport = new ClickHouseShardSupport("jdbc:clickhouse://192.168.1.1:8123,192.168.1.1:8123,192.168.1.1/default", "", "", 1,5, true);
 
         Class<ClickHouseShardSupport> clickHouseShardSupportClass = ClickHouseShardSupport.class;
 
@@ -91,7 +91,7 @@ public class ClickHouseShardSupportTest {
     @Test
     public void diffIp() {
 
-        ClickHouseShardSupport clickHouseShardSupport = new ClickHouseShardSupport("jdbc:clickhouse://192.168.1.1:8123,192.168.1.2:8123,192.168.1.3:8123/default", "", "", 1, true);
+        ClickHouseShardSupport clickHouseShardSupport = new ClickHouseShardSupport("jdbc:clickhouse://192.168.1.1:8123,192.168.1.2:8123,192.168.1.3:8123/default", "", "", 1,5, true);
 
         Class<ClickHouseShardSupport> clickHouseShardSupportClass = ClickHouseShardSupport.class;
 

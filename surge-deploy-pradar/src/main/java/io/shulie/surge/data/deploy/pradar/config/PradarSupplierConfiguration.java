@@ -125,6 +125,8 @@ public class PradarSupplierConfiguration {
                 new KafkaModule(),
                 new MysqlModule());
         DataRuntime dataRuntime = bootstrap.startRuntime();
+        String property = bootstrap.getProperties().getProperty("traceLog.ringBuffer.size", "32768");
+        dataRuntime.putValue("traceLog.ringBuffer.size", property);
         return dataRuntime;
     }
 
@@ -207,6 +209,10 @@ public class PradarSupplierConfiguration {
             traceLogProcessorConfigSpec.setName("trace-log");
             traceLogProcessorConfigSpec.setDigesters(ArrayUtils.addAll(buildTraceLogProcess(dataRuntime)));
             traceLogProcessorConfigSpec.setExecuteSize(coreSize);
+            Object ringBufferSize = dataRuntime.getValue("traceLog.ringBuffer.size");
+            if (ringBufferSize != null && !(ringBufferSize + "").isEmpty()) {
+                traceLogProcessorConfigSpec.setRingBufferSize(Integer.parseInt(ringBufferSize + ""));
+            }
             PradarProcessor traceLogProcessor = dataRuntime.createGenericInstance(traceLogProcessorConfigSpec);
 
             /**

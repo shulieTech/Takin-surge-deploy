@@ -42,6 +42,7 @@ public class ClickHouseShardSupportProvider implements Provider<ClickHouseShardS
                                           @Named("config.clickhouse.userName") String username,
                                           @Named("config.clickhouse.password") String password,
                                           @Named("config.clickhouse.batchCount") int batchCount,
+                                          @Named("config.clickhouse.delayTime") int delayTime,
                                           @Named("config.clickhouse.enableRound") boolean enableRound) {
         super();
         try {
@@ -51,6 +52,7 @@ public class ClickHouseShardSupportProvider implements Provider<ClickHouseShardS
             spec.setUsername(username);
             spec.setPassword(password);
             spec.setBatchCount(batchCount);
+            spec.setDelayTime(delayTime);
             spec.setEnableRound(enableRound);
         } catch (Exception e) {
             logger.warn("ClickHouseSupportProvider init fail.url :{}" + url, e);

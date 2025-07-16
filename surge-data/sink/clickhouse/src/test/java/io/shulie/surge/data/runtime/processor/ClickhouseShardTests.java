@@ -32,7 +32,7 @@ import java.util.UUID;
  */
 public class ClickhouseShardTests {
     public static void main(String[] args) throws InterruptedException {
-        ClickHouseShardSupport support = new ClickHouseShardSupport("jdbc:clickhouse://pradar.host.clickhouse01:8123,pradar.host.clickhouse02:8123/default", "", "", 1, true);
+        ClickHouseShardSupport support = new ClickHouseShardSupport("jdbc:clickhouse://pradar.host.clickhouse01:8123,pradar.host.clickhouse02:8123/default", "", "", 1,5, true);
         support.isCluster();
         while (true) {
             Thread.sleep(1000L);
