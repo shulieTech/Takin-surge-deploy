@@ -15,6 +15,7 @@
 
 package io.shulie.surge.data.suppliers.nettyremoting;
 
+import com.alibaba.fastjson.JSON;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import io.shulie.surge.data.common.lifecycle.LifecycleObserver;
@@ -22,6 +23,7 @@ import io.shulie.surge.data.common.utils.IpAddressUtils;
 import io.shulie.surge.data.common.zk.ZkClient;
 import io.shulie.surge.data.common.zk.ZkHeartbeatNode;
 import io.shulie.surge.data.runtime.supplier.Supplier;
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,15 +76,18 @@ public final class NettyRemotingSupplierObserver implements LifecycleObserver<Su
         if (defaultRegistZk) {
             String host = parseHostName();
             int port = nettyRemotingSupplier.getPort();
+            logger.info("start register zk server host={},port={},path={}",host,port,pradarServerPath);
             registerToZk(host, port, pradarServerPath);
             addressRelation(host, port);
         }
     }
 
     private void addressRelation(String host, int port) {
+        logger.info("start register zk cloud server host={},port={},netMap={}",host,port,netMap == null ? null : JSON.toJSONString(netMap));
         if (netMap == null || netMap.isEmpty() || !netMap.containsKey(host)) {
             return;
         }
+        logger.info("register zk cloud server host={},port={},path={}", netMap.get(host), port, pradarCloudServerPath);
         registerToZk(netMap.get(host), port, pradarCloudServerPath);
     }
 
