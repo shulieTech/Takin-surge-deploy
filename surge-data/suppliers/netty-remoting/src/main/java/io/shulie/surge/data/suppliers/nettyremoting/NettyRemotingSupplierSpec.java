@@ -22,6 +22,7 @@ import java.util.Map;
 
 public class NettyRemotingSupplierSpec implements GenericFactorySpec<NettyRemotingSupplier> {
     private Map<String, String> netMap;
+    private Map<String, String> envMap;
     private Map<String, String> hostNameMap;
     private boolean registerZk;
 
@@ -34,6 +35,14 @@ public class NettyRemotingSupplierSpec implements GenericFactorySpec<NettyRemoti
 
     public void setNetMap(Map<String, String> netMap) {
         this.netMap = netMap;
+    }
+
+    public Map<String, String> getEnvMap() {
+        return envMap;
+    }
+
+    public void setEnvMap(Map<String, String> envMap) {
+        this.envMap = envMap;
     }
 
     public Map<String, String> getHostNameMap() {

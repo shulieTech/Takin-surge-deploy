@@ -60,6 +60,7 @@ public class PradarLogSpout extends BaseRichSpout {
                 new PradarSupplierConfiguration(
                         topologyContext.getThisWorkerPort(),
                         map.get(ParamUtil.NET),
+                        map.get(ParamUtil.ENV),
                         map.get(ParamUtil.HOSTNAME),
                         map.get(ParamUtil.REGISTERZK),
                         map.get(ParamUtil.CORE_SIZE),
@@ -69,7 +70,7 @@ public class PradarLogSpout extends BaseRichSpout {
         try {
             DataRuntime dataRuntime = pradarSupplierConfiguration.initDataRuntime();
             PradarStormSupplierConfiguration pradarStormSupplierConfiguration = new PradarStormSupplierConfiguration(
-                    pradarSupplierConfiguration.getNetMap(), pradarSupplierConfiguration.getHostNameMap(),
+                    pradarSupplierConfiguration.getNetMap(), pradarSupplierConfiguration.getEnvMap(), pradarSupplierConfiguration.getHostNameMap(),
                     pradarSupplierConfiguration.isRegisterZk(), pradarSupplierConfiguration.getCoreSize(),
                     pradarSupplierConfiguration.getDataSourceType(),
                     pradarSupplierConfiguration.getServerPortsMap(),

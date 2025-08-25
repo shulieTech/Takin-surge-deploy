@@ -24,6 +24,7 @@ import io.shulie.surge.data.common.zk.ZkClient;
 import io.shulie.surge.data.common.zk.ZkHeartbeatNode;
 import io.shulie.surge.data.runtime.supplier.Supplier;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +46,8 @@ public final class NettyRemotingSupplierObserver implements LifecycleObserver<Su
 
     private Map<String, String> netMap;
 
+    private Map<String, String> envMap;
+
     private Map<String, String> hostNameMap;
 
     private boolean defaultRegistZk;
@@ -58,9 +61,11 @@ public final class NettyRemotingSupplierObserver implements LifecycleObserver<Su
     protected transient String pradarCloudServerPath;
 
     public NettyRemotingSupplierObserver(Map<String, String> netMap,
+                                         Map<String, String> envMap,
                                          Map<String, String> hostNameMap,
                                          boolean defaultRegistZk) {
         this.netMap = netMap;
+        this.envMap = envMap;
         this.hostNameMap = hostNameMap;
         this.defaultRegistZk = defaultRegistZk;
     }
@@ -79,6 +84,7 @@ public final class NettyRemotingSupplierObserver implements LifecycleObserver<Su
             logger.info("start register zk server host={},port={},path={}",host,port,pradarServerPath);
             registerToZk(host, port, pradarServerPath);
             addressRelation(host, port);
+            envRelation(host, port);
         }
     }
 
@@ -89,6 +95,25 @@ public final class NettyRemotingSupplierObserver implements LifecycleObserver<Su
         }
         logger.info("register zk cloud server host={},port={},path={}", netMap.get(host), port, pradarCloudServerPath);
         registerToZk(netMap.get(host), port, pradarCloudServerPath);
+    }
+
+    private void envRelation(String host, int port) {
+        logger.info("start register zk env server host={},port={},envMap={}",host,port,envMap == null ? null : JSON.toJSONString(envMap));
+        if (envMap == null || envMap.isEmpty()) {
+            return;
+        }
+        for(String env : envMap.keySet()) {
+            String envPath = StringUtils.replace(pradarCloudServerPath, "cloud", env);
+            logger.info("register zk env server env={},port={},path={}", env, port, envPath);
+            String envValue = envMap.get(env);
+            String[] values = StringUtils.split(envValue, ";");
+            for(String value : values) {
+                String[] maps = StringUtils.split(value, ",");
+                if(maps.length == 2 && maps[0].equals(host)) {
+                    registerToZk(maps[1], port, envPath);
+                }
+            }
+        }
     }
 
     private void registerToZk(String host, int port, String pradarServerPath) {

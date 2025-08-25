@@ -64,6 +64,7 @@ public class PradarStormSupplierConfiguration {
 
     private Integer workPort;
     private Map<String, String> netMap;
+    private Map<String, String> envMap;
     private Map<String, String> hostNameMap;
     private Map<String, String> serverPortsMap = Maps.newHashMap();
     private String dataSourceType;
@@ -71,10 +72,11 @@ public class PradarStormSupplierConfiguration {
     private boolean generalVersion;
     private int coreSize;
 
-    public PradarStormSupplierConfiguration(Map<String, String> netMap, Map<String, String> hostNameMap,
+    public PradarStormSupplierConfiguration(Map<String, String> netMap, Map<String, String> envMap, Map<String, String> hostNameMap,
                                             boolean registerZk, int coreSize, String dataSourceType,
                                             Map<String, String> serverPortsMap, boolean generalVersion) {
         this.netMap = netMap;
+        this.envMap = envMap;
         this.hostNameMap = hostNameMap;
         this.registerZk = registerZk;
         this.coreSize = coreSize;
@@ -86,6 +88,7 @@ public class PradarStormSupplierConfiguration {
 
     public PradarStormSupplierConfiguration(
             Object netMapStr,
+            Object envMapStr,
             Object hostNameMapStr,
             Object registerZk,
             Object coreSize,
@@ -93,6 +96,9 @@ public class PradarStormSupplierConfiguration {
             Object serverPortsMapStr) {
         if (null != netMapStr && StringUtils.isNotBlank(String.valueOf(netMapStr))) {
             this.netMap = JSON.parseObject(String.valueOf(netMapStr), Map.class);
+        }
+        if (null != envMapStr && StringUtils.isNotBlank(String.valueOf(envMapStr))) {
+            this.envMap = JSON.parseObject(String.valueOf(envMapStr), Map.class);
         }
         if (null != hostNameMapStr && StringUtils.isNotBlank(String.valueOf(hostNameMapStr))) {
             this.hostNameMap = JSON.parseObject(String.valueOf(hostNameMapStr), Map.class);
@@ -116,6 +122,7 @@ public class PradarStormSupplierConfiguration {
             PradarSupplierConfiguration conf = new PradarSupplierConfiguration("", dataSourceType);
             NettyRemotingSupplierSpec nettyRemotingSupplierSpec = new NettyRemotingSupplierSpec();
             nettyRemotingSupplierSpec.setNetMap(netMap);
+            nettyRemotingSupplierSpec.setEnvMap(envMap);
             nettyRemotingSupplierSpec.setHostNameMap(hostNameMap);
             nettyRemotingSupplierSpec.setRegisterZk(registerZk);
             NettyRemotingSupplier nettyRemotingSupplier = dataRuntime.createGenericInstance(nettyRemotingSupplierSpec);

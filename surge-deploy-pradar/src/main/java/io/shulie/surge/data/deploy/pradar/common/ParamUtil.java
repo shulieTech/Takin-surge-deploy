@@ -36,6 +36,8 @@ public class ParamUtil {
     public static final String HOSTNAME = "-DHostName=";
     // 内外网映射-DNet='{\"192.189.1:192.2.3.22\",\"168,1,1.1\":\"10.1.1.1\"}'
     public static final String NET = "-DNet=";
+
+    public static final String ENV = "-DEnv=";
     // 数据源类型切换 -DSourceType=MYSQL/CLICKHOUSE
     public static final String DATA_SOURCE_TYPE = "-DSourceType=";
     // ip对应的端口段  -DPORTS='{"192.168.0.5":"[299900,29995]","192.168.0.6":"[29900,29995]","192.168.0.7":"[29900,29995]"}
@@ -75,6 +77,8 @@ public class ParamUtil {
                     conf.put(ParamUtil.HOSTNAME, param.replace(ParamUtil.HOSTNAME, ""));
                 } else if (param.startsWith(ParamUtil.NET)) {
                     conf.put(ParamUtil.NET, param.replace(ParamUtil.NET, ""));
+                } else if (param.startsWith(ParamUtil.ENV)) {
+                    conf.put(ParamUtil.ENV, param.replace(ParamUtil.ENV, ""));
                 } else if (param.startsWith(ParamUtil.DATA_SOURCE_TYPE)) {
                     conf.put(ParamUtil.DATA_SOURCE_TYPE, param.replace(ParamUtil.DATA_SOURCE_TYPE, ""));
                 } else if (param.startsWith(ParamUtil.PORTS)) {

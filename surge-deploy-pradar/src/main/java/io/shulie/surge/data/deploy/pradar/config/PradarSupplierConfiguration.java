@@ -56,6 +56,7 @@ public class PradarSupplierConfiguration {
     private Integer workPort;
     private String dataSourceType;
     private Map<String, String> netMap;
+    private Map<String, String> envMap;
     private Map<String, String> hostNameMap;
     private Map<String, String> serverPortsMap = Maps.newHashMap();
     private boolean registerZk;
@@ -87,6 +88,7 @@ public class PradarSupplierConfiguration {
 
     public PradarSupplierConfiguration(Integer workPort,
                                        Object netMapStr,
+                                       Object envMapStr,
                                        Object hostNameMapStr,
                                        Object registerZk,
                                        Object coreSize,
@@ -96,6 +98,9 @@ public class PradarSupplierConfiguration {
         this.workPort = workPort;
         if (null != netMapStr && StringUtils.isNotBlank(String.valueOf(netMapStr))) {
             this.netMap = JSON.parseObject(String.valueOf(netMapStr), Map.class);
+        }
+        if (null != envMapStr && StringUtils.isNotBlank(String.valueOf(envMapStr))) {
+            this.envMap = JSON.parseObject(String.valueOf(envMapStr), Map.class);
         }
         if (null != hostNameMapStr && StringUtils.isNotBlank(String.valueOf(hostNameMapStr))) {
             this.hostNameMap = JSON.parseObject(String.valueOf(hostNameMapStr), Map.class);
@@ -195,6 +200,7 @@ public class PradarSupplierConfiguration {
         try {
             NettyRemotingSupplierSpec nettyRemotingSupplierSpec = new NettyRemotingSupplierSpec();
             nettyRemotingSupplierSpec.setNetMap(netMap);
+            nettyRemotingSupplierSpec.setEnvMap(envMap);
             nettyRemotingSupplierSpec.setHostNameMap(hostNameMap);
             nettyRemotingSupplierSpec.setRegisterZk(true);
             NettyRemotingSupplier nettyRemotingSupplier = dataRuntime.createGenericInstance(nettyRemotingSupplierSpec);
@@ -255,6 +261,14 @@ public class PradarSupplierConfiguration {
 
     public void setNetMap(Map<String, String> netMap) {
         this.netMap = netMap;
+    }
+
+    public Map<String, String> getEnvMap() {
+        return envMap;
+    }
+
+    public void setEnvMap(Map<String, String> envMap) {
+        this.envMap = envMap;
     }
 
     public Map<String, String> getHostNameMap() {

@@ -45,6 +45,7 @@ public class PradarTopologyBootStrap {
         PradarStormSupplierConfiguration pradarStormSupplierConfiguration =
                 new PradarStormSupplierConfiguration(
                         inputMap.get(ParamUtil.NET),
+                        inputMap.get(ParamUtil.ENV),
                         inputMap.get(ParamUtil.HOSTNAME),
                         inputMap.get(ParamUtil.REGISTERZK),
                         inputMap.getOrDefault(ParamUtil.CORE_SIZE, "0"),
