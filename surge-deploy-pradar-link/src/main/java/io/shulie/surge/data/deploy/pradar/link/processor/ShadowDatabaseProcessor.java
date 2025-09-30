@@ -193,6 +193,8 @@ public class ShadowDatabaseProcessor extends AbstractProcessor {
     }
 
     private void uniqueSaveDatabase(List<ShadowDatabaseModel> databaseModelList) {
+        //过滤数据源为空的
+        databaseModelList = databaseModelList.stream().filter(model -> StringUtils.isNotBlank(model.getDataSource())).collect(Collectors.toList());
         if (CollectionUtils.isNotEmpty(databaseModelList)) {
             Set<String> uniqueKeySet = new HashSet<>();
             databaseModelList = databaseModelList.stream().filter(model -> {
